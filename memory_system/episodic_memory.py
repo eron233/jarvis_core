@@ -1,4 +1,4 @@
-"""Episodic memory storage for time-ordered events."""
+"""Armazenamento de memoria episodica para eventos ordenados no tempo."""
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 @dataclass
 class EpisodicMemory:
-    """Tracks recent episodes for replay and reflection."""
+    """Mantem episodios recentes para replay e reflexao futura."""
 
     episodes: List[Dict[str, Any]] = field(default_factory=list)
 

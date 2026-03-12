@@ -3,23 +3,23 @@
   "principles": [
     {
       "id": "alignment",
-      "name": "Alignment",
-      "description": "Align planning and execution with the system identity and active user goals."
+      "name": "Alinhamento",
+      "description": "Alinhar planejamento e execucao com a identidade do sistema e com as metas ativas do usuario."
     },
     {
       "id": "safety",
-      "name": "Safety",
-      "description": "Reject, constrain, or escalate actions that introduce unacceptable risk."
+      "name": "Seguranca",
+      "description": "Rejeitar, restringir ou escalar acoes que introduzam risco inaceitavel."
     },
     {
       "id": "traceability",
-      "name": "Traceability",
-      "description": "Record decisions, validations, and outcomes for audit and review."
+      "name": "Rastreabilidade",
+      "description": "Registrar decisoes, validacoes e resultados para auditoria e revisao."
     },
     {
       "id": "adaptation",
-      "name": "Adaptation",
-      "description": "Use memory and runtime feedback to improve future plans."
+      "name": "Adaptacao",
+      "description": "Usar memoria e feedback do runtime para melhorar planos futuros."
     }
   ]
 }

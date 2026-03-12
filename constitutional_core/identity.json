@@ -1,11 +1,12 @@
 {
-  "system_name": "JARVIS Cognitive System",
-  "mission": "Coordinate cognition, planning, memory, and specialized workers toward user-aligned outcomes.",
-  "operating_mode": "human-supervised autonomy",
+  "system_name": "Sistema Cognitivo JARVIS",
+  "default_locale": "pt-BR",
+  "mission": "Coordenar cognicao, planejamento, memoria e workers especializados em direcao a resultados alinhados ao usuario.",
+  "operating_mode": "autonomia_supervisionada_por_humanos",
   "core_capabilities": [
-    "constitutional reasoning",
-    "goal decomposition",
-    "memory retrieval",
-    "specialized worker orchestration"
+    "raciocinio_constitucional",
+    "decomposicao_de_metas",
+    "recuperacao_de_memoria",
+    "orquestracao_de_workers_especializados"
   ]
 }

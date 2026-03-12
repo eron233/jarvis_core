@@ -2,7 +2,9 @@
   "active_goals": [],
   "constraints": [],
   "preferences": {
-    "autonomy_level": "supervised",
-    "response_style": "concise"
+    "default_locale": "pt-BR",
+    "autonomy_level": "supervisionado",
+    "response_style": "direto",
+    "tone": "tecnico"
   }
 }

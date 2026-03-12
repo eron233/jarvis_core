@@ -1,61 +1,77 @@
-# JARVIS Cognitive System
+# Sistema Cognitivo JARVIS
 
-JARVIS is a modular cognitive architecture scaffold designed to coordinate planning, memory, runtime control, and specialized worker execution. This repository captures the initial architecture baseline for the system so the core layers can evolve under version control.
+O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, controle de execucao e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica e um loop continuo de sistema.
 
-## Architecture Overview
+Idioma padrao do sistema: `pt-BR`
 
-The current scaffold is organized around a small set of cooperating layers:
+## Visao Geral da Arquitetura
 
-- `constitutional_core/`: identity and governing principles for system behavior
-- `executive_planner/`: queueing, prioritization, validation, audit, and plan creation
-- `intent_layer/`: active goals, constraints, and user preference capture
-- `memory_system/`: episodic, semantic, and procedural memory primitives
-- `workers/`: domain-oriented workers for runtime, finance, studio, and study tasks
-- `runtime/`: runtime bootstrap and autonomy decision logic
-- `infrastructure/`: deployment, persistence, and monitoring placeholders
-- `interface/`: API, CLI, and dashboard placeholders
-- `tests/`: test suite location for validation and regression coverage
+O scaffold atual esta organizado em um conjunto enxuto de camadas cooperativas:
 
-## Runtime Entrypoint
+- `constitutional_core/`: identidade e principios de governanca do sistema
+- `executive_planner/`: fila, priorizacao, validacao, auditoria e construcao de planos
+- `intent_layer/`: metas ativas, restricoes e preferencias operacionais
+- `memory_system/`: memoria episodica, semantica e procedural
+- `workers/`: workers especializados para tarefas de runtime, financas, estudio e estudo
+- `runtime/`: bootstrap do runtime e logica de autonomia
+- `main.py`: entrypoint do processo continuo inicial do sistema
+- `infrastructure/`: placeholders de deploy, persistencia e monitoramento
+- `interface/`: placeholders de API, CLI e dashboard
+- `tests/`: local da suite de testes e cobertura de regressao
 
-Primary runtime bootstrap:
+## Entrypoints
+
+Bootstrap interno do runtime:
 
 - `runtime/internal_agent_runtime.py`
 
-Within the workspace-level scaffold, this corresponds to:
+Processo continuo inicial do sistema:
 
-- `jarvis_core/runtime/internal_agent_runtime.py`
+- `main.py`
 
-## Module Explanation
+## Explicacao dos Modulos
 
-### Constitutional Core
+### Nucleo Constitucional
 
-Defines the system identity and principles that constrain planning and execution.
+Define a identidade do sistema e os principios que restringem planejamento e execucao.
 
-### Executive Planner
+### Planejador Executivo
 
-Provides the initial planning toolchain: task intake, prioritization, validation, audit logging, and plan assembly.
+Fornece a cadeia inicial de planejamento: entrada de tarefas, priorizacao, validacao, auditoria e montagem de plano.
 
-### Intent Layer
+### Camada de Intencao
 
-Stores active goals, constraints, and operating preferences that shape planner decisions.
+Armazena metas ativas, restricoes e preferencias operacionais que orientam as decisoes do planejador.
 
-### Memory System
+### Sistema de Memoria
 
-Separates memory concerns into episodic recall, semantic facts, and procedural routines.
+Separa as responsabilidades de memoria entre lembrancas episodicas, fatos semanticos e rotinas procedurais.
 
-### Worker Framework
+### Estrutura de Workers
 
-Hosts specialized worker adapters that can accept domain-specific tasks.
+Hospeda adaptadores especializados que podem aceitar tarefas orientadas por dominio.
 
-### Runtime Engine
+### Motor de Runtime
 
-Bootstraps the active runtime state and enforces gated autonomy behavior.
+Inicializa o estado ativo do sistema e aplica controle de autonomia com supervisao.
 
-## Development Workflow
+### Processo Continuo do Sistema
 
-1. Create or update architecture modules inside the relevant subsystem directory.
-2. Add or expand tests in `tests/` as runtime wiring becomes more concrete.
-3. Update `ARCHITECTURE.md` when subsystem responsibilities change.
-4. Record user-visible architecture milestones in `CHANGELOG.md`.
-5. Review `git status` before each commit to ensure only intentional files are tracked.
+Coordena o bootstrap do runtime, recupera fila e memoria semantica persistidas, executa ciclos sucessivos do planner, registra logs por ciclo e realiza encerramento gracioso com persistencia final de estado.
+
+## Execucao Inicial
+
+Exemplo de subida local com um ciclo controlado:
+
+```powershell
+python main.py --max-cycles 1 --stop-when-idle
+```
+
+## Fluxo de Desenvolvimento
+
+1. Crie ou atualize modulos de arquitetura dentro do subsistema correspondente.
+2. Adicione ou expanda testes em `tests/` conforme a integracao do runtime evoluir.
+3. Atualize `ARCHITECTURE.md`, `system_capabilities_index.md` e os relatorios obrigatorios ao concluir um bloco.
+4. Registre marcos arquiteturais visiveis ao usuario em `CHANGELOG.md`.
+5. Gere um checkpoint git ao final de cada ciclo de implementacao.
+6. Revise `git status` antes de cada commit para garantir que apenas arquivos intencionais sejam rastreados.

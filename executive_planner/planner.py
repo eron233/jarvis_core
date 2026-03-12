@@ -1,10 +1,15 @@
-"""High-level planning orchestration for JARVIS."""
+"""Orquestracao de alto nivel do planejador executivo do JARVIS."""
 
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from executive_planner.audit import AuditLogger
+from executive_planner.audit import (
+    AuditLogger,
+    traduzir_estado,
+    traduzir_motivo,
+    traduzir_status,
+)
 from executive_planner.prioritizer import Prioritizer
 from executive_planner.queue import TaskQueue
 from executive_planner.validator import PlanValidator
@@ -12,7 +17,7 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 class ExecutivePlanner:
-    """Runs a deterministic, auditable planner cycle."""
+    """Executa um ciclo deterministico e auditavel do planejador."""
 
     def __init__(
         self,
@@ -22,11 +27,11 @@ class ExecutivePlanner:
         audit_logger: Optional[AuditLogger] = None,
         runtime: Optional[InternalAgentRuntime] = None,
     ) -> None:
-        self.task_queue = task_queue or TaskQueue()
-        self.prioritizer = prioritizer or Prioritizer()
-        self.validator = validator or PlanValidator()
-        self.audit_logger = audit_logger or AuditLogger()
-        self.runtime = runtime or InternalAgentRuntime()
+        self.task_queue = task_queue if task_queue is not None else TaskQueue()
+        self.prioritizer = prioritizer if prioritizer is not None else Prioritizer()
+        self.validator = validator if validator is not None else PlanValidator()
+        self.audit_logger = audit_logger if audit_logger is not None else AuditLogger()
+        self.runtime = runtime if runtime is not None else InternalAgentRuntime()
         self.runtime.attach_planner(
             planner=self,
             task_queue=self.task_queue,
@@ -41,16 +46,20 @@ class ExecutivePlanner:
             "context": context or {},
             "steps": [],
             "status": "draft",
+            "status_ptbr": traduzir_status("draft"),
         }
 
     def run_cycle(self) -> Dict[str, Any]:
         tasks = self._load_tasks()
         cycle_summary: Dict[str, Any] = {
             "status": "idle",
+            "status_ptbr": traduzir_status("idle"),
             "selected_task": None,
             "dispatch_result": None,
             "rejected_tasks": [],
             "deferred_tasks": [],
+            "reason": "no_tasks",
+            "reason_ptbr": traduzir_motivo("no_tasks"),
         }
 
         if not tasks:
@@ -63,12 +72,18 @@ class ExecutivePlanner:
         dispatch_result = self._execute_task(selected_task)
         self._requeue_tasks(deferred_tasks)
 
+        cycle_status = dispatch_result["status"] if dispatch_result else "idle"
+        cycle_reason = dispatch_result.get("reason") if dispatch_result else "no_executable_task"
+
         cycle_summary = {
-            "status": dispatch_result["status"] if dispatch_result else "idle",
+            "status": cycle_status,
+            "status_ptbr": traduzir_status(cycle_status),
             "selected_task": selected_task["task"] if selected_task else None,
             "dispatch_result": dispatch_result,
             "rejected_tasks": rejected_tasks,
             "deferred_tasks": deferred_tasks,
+            "reason": cycle_reason,
+            "reason_ptbr": traduzir_motivo(cycle_reason) if cycle_reason else None,
         }
 
         self.audit_logger.record(
@@ -83,13 +98,7 @@ class ExecutivePlanner:
         return cycle_summary
 
     def _load_tasks(self) -> List[Dict[str, Any]]:
-        tasks: List[Dict[str, Any]] = []
-
-        while True:
-            task = self.task_queue.dequeue()
-            if task is None:
-                break
-            tasks.append(task)
+        tasks = self.task_queue.drain()
 
         self.audit_logger.record(
             "plan",
@@ -146,6 +155,8 @@ class ExecutivePlanner:
                 valid_tasks.append(candidate)
                 continue
 
+            candidate["task"]["state"] = "rejected"
+            candidate["task"]["state_ptbr"] = traduzir_estado("rejected")
             rejected_tasks.append(
                 {
                     "task": candidate["task"],
@@ -166,6 +177,8 @@ class ExecutivePlanner:
             task = candidate["task"]
 
             if selected_task is None and self.runtime.can_execute(task):
+                task["state"] = "scheduled"
+                task["state_ptbr"] = traduzir_estado("scheduled")
                 selected_task = candidate
                 self.audit_logger.record(
                     "schedule",
@@ -181,6 +194,8 @@ class ExecutivePlanner:
             if selected_task is None:
                 decision = "blocked"
 
+            task["state"] = decision
+            task["state_ptbr"] = traduzir_estado(decision)
             deferred_tasks.append(task)
             self.audit_logger.record(
                 "schedule",
@@ -204,6 +219,8 @@ class ExecutivePlanner:
             )
             return None
 
+        selected_task["task"]["state"] = "executing"
+        selected_task["task"]["state_ptbr"] = traduzir_estado("executing")
         dispatch_result = self.runtime.dispatch_task(selected_task["task"])
         self.audit_logger.record(
             "execute",
@@ -235,7 +252,7 @@ def run_planner_cycle(
     audit_logger: Optional[AuditLogger] = None,
     runtime: Optional[InternalAgentRuntime] = None,
 ) -> Dict[str, Any]:
-    """Runs one deterministic planner cycle with auditable decisions."""
+    """Executa um unico ciclo deterministico do planejador."""
 
     planner = ExecutivePlanner(
         task_queue=task_queue,

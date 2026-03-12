@@ -1,13 +1,14 @@
-# Development Continuation Guide
+# Guia de Continuidade de Desenvolvimento
 
-## Project
+## Projeto
 
-- Project name: JARVIS Cognitive System
-- Architecture version: 0.1.0
-- Project root: `jarvis_core/`
-- Runtime entrypoint: `jarvis_core/runtime/internal_agent_runtime.py`
+- Nome do projeto: Sistema Cognitivo JARVIS
+- Versao da arquitetura: 0.1.0
+- Raiz do projeto: `jarvis_core/`
+- Entrypoint do runtime: `jarvis_core/runtime/internal_agent_runtime.py`
+- Idioma padrao: `pt-BR`
 
-## Modules
+## Modulos
 
 - `constitutional_core`
 - `executive_planner`
@@ -19,35 +20,36 @@
 - `interface`
 - `tests`
 
-## Next Module To Implement
+## Proximo Modulo Recomendado
 
-Recommended next development task:
+Proxima tarefa sugerida:
 
-- Implement runtime-to-planner integration in `runtime/internal_agent_runtime.py` so the entrypoint constructs and coordinates the executive planner, memory layer, and worker registry instead of returning only a static bootstrap payload.
+- consolidar a camada de interface para expor o runtime em pt-BR sem alterar os identificadores internos estaveis do codigo
 
-## Resume Development In VS Code
+## Retomar Desenvolvimento no VS Code
 
-1. Open a terminal in the project root workspace.
-2. Change into the repository:
+1. Abra um terminal na workspace do projeto.
+2. Entre no repositorio:
    - `cd jarvis_core`
-3. Open the project in VS Code:
+3. Abra o projeto no VS Code:
    - `code .`
-4. Start by reviewing:
+4. Revise primeiro:
    - `README.md`
    - `ARCHITECTURE.md`
    - `runtime/internal_agent_runtime.py`
    - `executive_planner/planner.py`
-5. Confirm the repository is clean before new work:
+   - `memory_system/semantic_memory.py`
+5. Confirme que o repositorio esta limpo antes de iniciar novas alteracoes:
    - `git status`
-6. Continue with the next module task and add tests in `tests/` as integration logic is introduced.
+6. Continue a partir da proxima tarefa e adicione testes em `tests/` sempre que houver nova integracao visivel ao usuario.
 
-## OPEN IN VSCODE
+## ABRIR NO VSCODE
 
 ```powershell
 cd jarvis_core
 code .
 ```
 
-## Entrypoint Confirmation
+## Confirmacao do Entrypoint
 
-- Runtime entrypoint: `jarvis_core/runtime/internal_agent_runtime.py`
+- Entrypoint do runtime: `jarvis_core/runtime/internal_agent_runtime.py`

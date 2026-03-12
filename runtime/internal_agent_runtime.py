@@ -1,14 +1,16 @@
-"""Internal runtime bootstrap for the JARVIS cognitive system."""
+"""Bootstrap interno do runtime do Sistema Cognitivo JARVIS."""
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Dict
 
+from executive_planner.audit import traduzir_estado, traduzir_motivo, traduzir_status
 from runtime.autonomy import AutonomyController
 
 
 class InternalAgentRuntime:
-    """Bootstraps the initial runtime state for orchestration."""
+    """Inicializa o runtime funcional do sistema e coordena a execucao basica."""
 
     def __init__(self, autonomy_controller: AutonomyController | None = None) -> None:
         self.autonomy_controller = autonomy_controller or AutonomyController()
@@ -29,7 +31,7 @@ class InternalAgentRuntime:
         validator: Any,
         audit_logger: Any,
     ) -> None:
-        """Shares planner-owned components with the runtime."""
+        """Compartilha com o runtime os componentes controlados pelo planner."""
 
         self.planner = planner
         self.task_queue = task_queue
@@ -38,7 +40,7 @@ class InternalAgentRuntime:
         self.audit_logger = audit_logger
 
     def bootstrap(self) -> Dict[str, Any]:
-        """Initializes the first functional system runtime."""
+        """Inicializa o primeiro runtime funcional do sistema."""
 
         if self.status == "initialized":
             return self.describe_state()
@@ -56,17 +58,25 @@ class InternalAgentRuntime:
         from workers.worker_studio import StudioWorker
         from workers.worker_study import StudyWorker
 
-        self.task_queue = self.task_queue or TaskQueue()
-        self.prioritizer = self.prioritizer or Prioritizer()
-        self.validator = self.validator or PlanValidator()
-        self.audit_logger = self.audit_logger or AuditLogger()
+        self.task_queue = self.task_queue if self.task_queue is not None else TaskQueue()
+        if len(self.task_queue) == 0:
+            self.task_queue.load_from_disk()
+        self.task_queue.auto_persist_on_change(True)
+        self.prioritizer = self.prioritizer if self.prioritizer is not None else Prioritizer()
+        self.validator = self.validator if self.validator is not None else PlanValidator()
+        self.audit_logger = self.audit_logger if self.audit_logger is not None else AuditLogger()
 
         if not self.memory:
-            self.memory = {
-                "episodic": EpisodicMemory(),
-                "semantic": SemanticMemory(),
-                "procedural": ProceduralMemory(),
-            }
+            self.memory = {}
+
+        self.memory.setdefault("episodic", EpisodicMemory())
+        self.memory.setdefault("semantic", SemanticMemory())
+        self.memory.setdefault("procedural", ProceduralMemory())
+
+        semantic_memory = self.memory["semantic"]
+        if not semantic_memory.entries and not semantic_memory.facts:
+            semantic_memory.load_snapshot()
+        semantic_memory.auto_persist = True
 
         if not self.workers:
             self.workers = {
@@ -87,12 +97,12 @@ class InternalAgentRuntime:
 
         self.memory["semantic"].upsert(
             "runtime_status",
-            "initialized",
+            "inicializado",
             domain="system",
-            tags=["runtime", "status"],
+            tags=["runtime", "estado"],
             source="runtime.bootstrap",
             importance=5,
-            metadata={"status": "initialized"},
+            metadata={"status": "initialized", "status_ptbr": "inicializado"},
         )
         self.memory["semantic"].upsert(
             "registered_workers",
@@ -105,12 +115,14 @@ class InternalAgentRuntime:
         )
         self.memory["procedural"].register(
             "planner_cycle",
-            ["plan", "prioritize", "validate", "schedule", "execute", "review"],
+            ["planejar", "priorizar", "validar", "agendar", "executar", "revisar"],
         )
         self.memory["episodic"].remember(
             {
                 "event": "bootstrap",
+                "event_ptbr": "inicializar",
                 "status": "initialized",
+                "status_ptbr": "inicializado",
                 "planner": self._planner_path(),
                 "worker_count": len(self.workers),
             }
@@ -120,25 +132,30 @@ class InternalAgentRuntime:
         return self.describe_state()
 
     def can_execute(self, task: Dict[str, Any]) -> bool:
-        """Returns whether the runtime can deterministically execute the task now."""
+        """Retorna se a tarefa pode ser executada de forma deterministica agora."""
 
         return self.autonomy_controller.should_execute(task)
 
     def dispatch_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Executes a task through the runtime's autonomy gate."""
+        """Executa uma tarefa por meio do gate de autonomia do runtime."""
 
         self.bootstrap()
 
         if not self.can_execute(task):
+            self._apply_state(task, "blocked")
             result = {
                 "status": "blocked",
+                "status_ptbr": traduzir_status("blocked"),
                 "task": task,
                 "reason": "autonomy_gate",
+                "reason_ptbr": traduzir_motivo("autonomy_gate"),
             }
             self.memory["episodic"].remember(
                 {
                     "event": "dispatch",
+                    "event_ptbr": "despachar",
                     "status": result["status"],
+                    "status_ptbr": result["status_ptbr"],
                     "task_id": task.get("task_id"),
                     "worker": task.get("worker", "runtime"),
                 }
@@ -149,16 +166,21 @@ class InternalAgentRuntime:
         worker = self.workers.get(worker_id)
 
         if worker is None:
+            self._apply_state(task, "rejected")
             result = {
                 "status": "rejected",
+                "status_ptbr": traduzir_status("rejected"),
                 "task": task,
                 "reason": "unknown_worker",
+                "reason_ptbr": traduzir_motivo("unknown_worker"),
                 "worker": worker_id,
             }
             self.memory["episodic"].remember(
                 {
                     "event": "dispatch",
+                    "event_ptbr": "despachar",
                     "status": result["status"],
+                    "status_ptbr": result["status_ptbr"],
                     "task_id": task.get("task_id"),
                     "worker": worker_id,
                 }
@@ -166,19 +188,24 @@ class InternalAgentRuntime:
             return result
 
         worker_response = worker.handle(task)
+        self._apply_state(task, "completed")
         result = {
             "status": "executed",
+            "status_ptbr": traduzir_status("executed"),
             "task": task,
             "worker": worker_id,
             "worker_response": worker_response,
             "result": {
                 "runtime_status": "completed",
+                "runtime_status_ptbr": traduzir_status("completed"),
             },
         }
         self.memory["episodic"].remember(
             {
                 "event": "dispatch",
+                "event_ptbr": "despachar",
                 "status": result["status"],
+                "status_ptbr": result["status_ptbr"],
                 "task_id": task.get("task_id"),
                 "worker": worker_id,
             }
@@ -186,7 +213,7 @@ class InternalAgentRuntime:
         self.memory["semantic"].add_entry(
             content=self._build_completed_task_content(task, worker_id, result),
             domain=worker_id,
-            tags=[worker_id, "task_result", "completed"],
+            tags=[worker_id, "resultado_tarefa", "concluida"],
             source="runtime.dispatch_task",
             importance=int(task.get("importance", 0)),
             metadata={
@@ -194,19 +221,21 @@ class InternalAgentRuntime:
                 "goal": task.get("goal"),
                 "worker": worker_id,
                 "dispatch_status": result["status"],
+                "dispatch_status_ptbr": result["status_ptbr"],
                 "runtime_status": result["result"]["runtime_status"],
+                "runtime_status_ptbr": result["result"]["runtime_status_ptbr"],
             },
         )
         return result
 
     def enqueue_task(self, task: Dict[str, Any]) -> None:
-        """Adds a task to the runtime-owned planner queue."""
+        """Adiciona uma tarefa na fila controlada pelo runtime."""
 
         self.bootstrap()
         self.task_queue.enqueue(task)
 
     def run_planner_cycle(self) -> Dict[str, Any]:
-        """Runs one planner cycle from a fully bootstrapped runtime."""
+        """Executa um ciclo do planner a partir de um runtime inicializado."""
 
         self.bootstrap()
         return self.planner.run_cycle()
@@ -214,13 +243,32 @@ class InternalAgentRuntime:
     def query_semantic_memory(
         self, query: str, domain: str | None = None, limit: int = 5
     ) -> list[Dict[str, Any]]:
-        """Queries semantic memory for relevant entries."""
+        """Consulta a memoria semantica em busca de entradas relevantes."""
 
         self.bootstrap()
         return self.memory["semantic"].search(query=query, domain=domain, limit=limit)
 
+    def persist_runtime_state(self) -> Dict[str, Any]:
+        """Persiste os artefatos de runtime necessarios para reinicio seguro."""
+
+        self.bootstrap()
+
+        queue_snapshot = None
+        if self.task_queue is not None:
+            queue_snapshot = self.task_queue.save_to_disk()
+
+        semantic_snapshot = None
+        semantic_memory = self.memory.get("semantic")
+        if semantic_memory is not None:
+            semantic_snapshot = semantic_memory.snapshot()
+
+        return {
+            "queue": deepcopy(queue_snapshot),
+            "semantic_memory": deepcopy(semantic_snapshot),
+        }
+
     def describe_state(self) -> Dict[str, Any]:
-        """Returns a lightweight snapshot of the bootstrapped runtime."""
+        """Retorna um snapshot leve do estado atual do runtime inicializado."""
 
         queue_depth = 0
         if self.task_queue is not None:
@@ -228,11 +276,14 @@ class InternalAgentRuntime:
 
         return {
             "status": self.status,
+            "status_ptbr": traduzir_status(self.status),
+            "default_locale": "pt-BR",
             "planner": self._planner_path(),
             "memory": "memory_system",
             "memory_modules": list(self.memory),
             "workers": [f"worker_{worker_id}" for worker_id in self.workers],
             "queue_depth": queue_depth,
+            "queue_store": str(self.task_queue.storage_path) if self.task_queue is not None else None,
         }
 
     def _planner_path(self) -> str:
@@ -247,7 +298,12 @@ class InternalAgentRuntime:
         return worker_id
 
     @staticmethod
+    def _apply_state(task: Dict[str, Any], state: str) -> None:
+        task["state"] = state
+        task["state_ptbr"] = traduzir_estado(state)
+
+    @staticmethod
     def _build_completed_task_content(task: Dict[str, Any], worker_id: str, result: Dict[str, Any]) -> str:
-        goal = task.get("goal", "Task completed")
-        runtime_status = result["result"]["runtime_status"]
-        return f"{goal} completed by {worker_id} with runtime status {runtime_status}"
+        goal = task.get("goal", "Tarefa concluida")
+        runtime_status = result["result"]["runtime_status_ptbr"]
+        return f"{goal} concluida por {worker_id} com status de runtime {runtime_status}"

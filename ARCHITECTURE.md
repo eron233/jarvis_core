@@ -1,64 +1,83 @@
-# Architecture Overview
+# Visao Geral da Arquitetura
 
-This document describes the baseline structure of the JARVIS Cognitive System scaffold.
+Este documento descreve a estrutura base do scaffold do Sistema Cognitivo JARVIS.
 
-## Constitutional Core
+## Nucleo Constitucional
 
-Location: `constitutional_core/`
+Local: `constitutional_core/`
 
-The Constitutional Core defines the identity of the system and the principles that govern its behavior. In the current scaffold, this layer is represented by JSON configuration files that establish mission, operating mode, capabilities, and high-level behavioral principles such as alignment, safety, traceability, and adaptation.
+O Nucleo Constitucional define a identidade do sistema e os principios que governam seu comportamento. No scaffold atual, essa camada e representada por arquivos JSON de configuracao que estabelecem missao, modo de operacao, capacidades e principios de alto nivel, como alinhamento, seguranca, rastreabilidade e adaptacao.
 
-Primary artifacts:
+Artefatos principais:
 
 - `constitutional_core/identity.json`
 - `constitutional_core/principles.json`
 
-## Executive Planner
+## Planejador Executivo
 
-Location: `executive_planner/`
+Local: `executive_planner/`
 
-The Executive Planner is responsible for turning goals into draft plans and maintaining order over task execution. It currently includes:
+O Planejador Executivo e responsavel por transformar metas em planos preliminares e manter ordem na execucao das tarefas. Atualmente ele inclui:
 
-- a queue primitive for task intake
-- a prioritizer for weighted scoring
-- a validator for structural plan checks
-- an audit logger for decision traceability
-- a planner for draft plan creation
+- uma fila para entrada de tarefas
+- um priorizador para pontuacao ponderada
+- um validador para verificacoes estruturais
+- um logger de auditoria para rastreabilidade de decisoes
+- um planejador para criacao de rascunhos de plano
 
-This layer is expected to become the orchestration brain that connects goals, memory, workers, and runtime policy.
+Espera-se que essa camada evolua para o cerebro de orquestracao que conecta metas, memoria, workers e politica de runtime.
 
-## Memory System
+## Sistema de Memoria
 
-Location: `memory_system/`
+Local: `memory_system/`
 
-The Memory System separates stored knowledge into three distinct forms:
+O Sistema de Memoria separa o conhecimento armazenado em tres formas distintas:
 
-- Episodic memory for time-ordered events and recent activity
-- Semantic memory for facts and concepts
-- Procedural memory for reusable step sequences
+- memoria episodica para eventos ordenados no tempo e atividade recente
+- memoria semantica para fatos e conceitos
+- memoria procedural para sequencias de passos reutilizaveis
 
-This split keeps retrieval and updates conceptually clean while supporting future reasoning and adaptation workflows.
+Essa divisao mantem recuperacao e atualizacao conceitualmente limpas, ao mesmo tempo em que sustenta fluxos futuros de raciocinio e adaptacao.
 
-## Worker Framework
+## Estrutura de Workers
 
-Location: `workers/`
+Local: `workers/`
 
-The Worker Framework contains specialized worker stubs that accept tasks in different domains. The current scaffold includes workers for:
+A Estrutura de Workers contem stubs especializados que aceitam tarefas em dominios diferentes. O scaffold atual inclui workers para:
 
-- runtime operations
-- finance
-- studio or creative tasks
-- study and learning tasks
+- operacoes de runtime
+- financas
+- estudio e criacao
+- estudo e aprendizado
 
-Each worker currently exposes a minimal `handle` method and returns a normalized acceptance payload. Later versions can extend these workers with capabilities, permissions, and tool integrations.
+Cada worker atualmente expoe um metodo `handle` minimo e retorna um payload padronizado de aceitacao. Versoes futuras podem estender esses workers com capacidades, permissoes e integracoes de ferramentas.
 
-## Runtime Engine
+## Motor de Runtime
 
-Location: `runtime/`
+Local: `runtime/`
 
-The Runtime Engine is the execution layer that bootstraps the system and governs autonomous behavior. The current scaffold includes:
+O Motor de Runtime e a camada de execucao que inicializa o sistema e governa o comportamento autonomo. O scaffold atual inclui:
 
-- `runtime/internal_agent_runtime.py` for runtime initialization
-- `runtime/autonomy.py` for simple approval and supervision gates
+- `runtime/internal_agent_runtime.py` para inicializacao do runtime
+- `runtime/autonomy.py` para regras simples de aprovacao e supervisao
 
-The runtime entrypoint advertises planner, memory, and worker dependencies as a lightweight bootstrap contract. As the architecture evolves, this layer should become the central coordinator for lifecycle management, worker dispatch, validation, and observability.
+O entrypoint do runtime anuncia dependencias de planejador, memoria e workers como um contrato leve de bootstrap. Conforme a arquitetura evoluir, essa camada deve se tornar o coordenador central de ciclo de vida, despacho de workers, validacao e observabilidade.
+
+## Processo Continuo do Sistema
+
+Local: `main.py`
+
+O processo continuo inicial do JARVIS agora fica concentrado em um entrypoint unico que reaproveita os modulos existentes de runtime, planner, fila e memoria. Essa camada nao recria inteligencia nem duplica componentes; ela apenas coordena o ciclo de vida do sistema.
+
+Capacidades atuais:
+
+- bootstrap do runtime com attachment do planner
+- recarga da fila persistente no startup
+- recarga da memoria semantica no startup
+- loop controlado com `cycle_id`
+- logs legiveis por ciclo em pt-BR
+- protecao para fila vazia
+- encerramento gracioso com persistencia final
+- recuperacao segura de reinicio
+
+Essa camada foi mantida propositalmente fina para que futuras interfaces, monitoramento e API controlem o mesmo nucleo sem bifurcar responsabilidades.

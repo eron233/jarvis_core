@@ -1,4 +1,4 @@
-"""Deterministic semantic memory storage for facts and searchable entries."""
+"""Armazenamento deterministico de memoria semantica para fatos e entradas pesquisaveis."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ DEFAULT_STORAGE_PATH = Path(__file__).with_name("semantic_memory_store.json")
 
 @dataclass
 class MemoryEntry:
-    """Structured semantic memory entry."""
+    """Entrada estruturada de memoria semantica."""
 
     id: str
     content: str
@@ -33,7 +33,7 @@ class MemoryEntry:
 
 @dataclass
 class SemanticMemory:
-    """Stores semantic memory entries with deterministic keyword scoring."""
+    """Armazena entradas semanticas com pontuacao deterministica por palavras-chave."""
 
     storage_path: Path = field(default_factory=lambda: DEFAULT_STORAGE_PATH)
     auto_persist: bool = False
@@ -54,7 +54,7 @@ class SemanticMemory:
         entry_id: Optional[str] = None,
         created_at: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Adds a structured semantic memory entry."""
+        """Adiciona uma entrada estruturada de memoria semantica."""
 
         entry = MemoryEntry(
             id=entry_id or self._next_entry_id(),
@@ -75,7 +75,7 @@ class SemanticMemory:
         return deepcopy(entry)
 
     def search(self, query: str, domain: Optional[str] = None, limit: int = 5) -> List[Dict[str, Any]]:
-        """Retrieves the most relevant entries using deterministic keyword scoring."""
+        """Recupera as entradas mais relevantes usando pontuacao deterministica."""
 
         query_tokens = self._tokenize(query)
         normalized_domain = None if domain is None else str(domain)
@@ -113,19 +113,19 @@ class SemanticMemory:
         return results
 
     def get_by_domain(self, domain: str) -> List[Dict[str, Any]]:
-        """Returns all entries for a specific domain in insertion order."""
+        """Retorna todas as entradas de um dominio especifico na ordem de insercao."""
 
         return [deepcopy(entry) for entry in self.entries if entry["domain"] == domain]
 
     def snapshot(self) -> Dict[str, Any]:
-        """Returns and persists the current semantic memory snapshot."""
+        """Retorna e persiste o snapshot atual da memoria semantica."""
 
         snapshot = self._build_snapshot()
         self._write_storage(snapshot)
         return snapshot
 
     def load_snapshot(self, snapshot: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Loads semantic memory state from a provided snapshot or the storage file."""
+        """Carrega o estado da memoria semantica de um snapshot ou do arquivo em disco."""
 
         if snapshot is None:
             if not self.storage_path.exists():
@@ -150,7 +150,7 @@ class SemanticMemory:
         importance: int = 0,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Compatibility helper for storing named semantic facts."""
+        """Helper de compatibilidade para armazenar fatos semanticos nomeados."""
 
         self.facts[str(concept)] = deepcopy(value)
         merged_metadata = deepcopy(metadata or {})
@@ -165,7 +165,7 @@ class SemanticMemory:
         )
 
     def get(self, concept: str) -> Optional[Any]:
-        """Returns the most recently upserted fact for a concept."""
+        """Retorna o fato mais recente armazenado para um conceito."""
 
         value = self.facts.get(concept)
         return deepcopy(value)

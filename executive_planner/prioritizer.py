@@ -1,12 +1,12 @@
-"""Priority scoring helpers for planner tasks."""
+"""Helpers de priorizacao para tarefas do planejador."""
 
 from typing import Any, Dict
 
 
 class Prioritizer:
-    """Computes a simple weighted score for a task."""
+    """Calcula uma pontuacao simples e deterministica para uma tarefa."""
 
     def score(self, task: Dict[str, Any]) -> int:
         urgency = int(task.get("urgency", 0))
-        importance = int(task.get("importance", 0))
-        return (importance * 10) + urgency
+        impact = int(task.get("impact", task.get("importance", 0)))
+        return (impact * 10) + urgency

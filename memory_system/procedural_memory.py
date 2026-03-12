@@ -1,4 +1,4 @@
-"""Procedural memory storage for reusable routines."""
+"""Armazenamento de memoria procedural para rotinas reutilizaveis."""
 
 from dataclasses import dataclass, field
 from typing import Dict, List
@@ -6,7 +6,7 @@ from typing import Dict, List
 
 @dataclass
 class ProceduralMemory:
-    """Stores named procedures as ordered steps."""
+    """Armazena procedimentos nomeados como listas ordenadas de etapas."""
 
     procedures: Dict[str, List[str]] = field(default_factory=dict)
 

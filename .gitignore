@@ -33,3 +33,5 @@ htmlcov/
 .ipynb_checkpoints/
 tests/_tmp/
 tests/_semantic_memory_artifacts/
+tests/_queue_artifacts/
+tests/_main_loop_artifacts/
