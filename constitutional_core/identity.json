@@ -1,0 +1,11 @@
+{
+  "system_name": "JARVIS Cognitive System",
+  "mission": "Coordinate cognition, planning, memory, and specialized workers toward user-aligned outcomes.",
+  "operating_mode": "human-supervised autonomy",
+  "core_capabilities": [
+    "constitutional reasoning",
+    "goal decomposition",
+    "memory retrieval",
+    "specialized worker orchestration"
+  ]
+}

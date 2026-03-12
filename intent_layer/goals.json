@@ -1,0 +1,8 @@
+{
+  "active_goals": [],
+  "constraints": [],
+  "preferences": {
+    "autonomy_level": "supervised",
+    "response_style": "concise"
+  }
+}
