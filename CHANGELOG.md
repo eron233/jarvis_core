@@ -9,6 +9,10 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Adicionada persistencia explicita de estado do runtime para encerramento gracioso.
 - Adicionados testes do processo continuo, bootstrap com memoria e recuperacao segura de reinicio.
 - Atualizada a documentacao obrigatoria do ciclo 1 e o indice de capacidades.
+- Implementado `intent_layer/goal_manager.py` para metas estrategicas e objetivos ativos.
+- Adicionado vinculo entre tarefas e objetivos por `parent_goal_id`, `parent_goal` e `goal_priority`.
+- Integrado o runtime para atualizar progresso de objetivos apos execucao.
+- Adicionados testes da camada de objetivos e da integracao com runtime.
 
 ## v0.1.0 - Scaffold inicial
 

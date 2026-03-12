@@ -15,6 +15,7 @@ class InternalAgentRuntime:
     def __init__(self, autonomy_controller: AutonomyController | None = None) -> None:
         self.autonomy_controller = autonomy_controller or AutonomyController()
         self.status = "cold"
+        self.goal_manager: Any = None
         self.task_queue: Any = None
         self.prioritizer: Any = None
         self.validator: Any = None
@@ -50,6 +51,7 @@ class InternalAgentRuntime:
         from executive_planner.prioritizer import Prioritizer
         from executive_planner.queue import TaskQueue
         from executive_planner.validator import PlanValidator
+        from intent_layer.goal_manager import GoalManager
         from memory_system.episodic_memory import EpisodicMemory
         from memory_system.procedural_memory import ProceduralMemory
         from memory_system.semantic_memory import SemanticMemory
@@ -65,6 +67,7 @@ class InternalAgentRuntime:
         self.prioritizer = self.prioritizer if self.prioritizer is not None else Prioritizer()
         self.validator = self.validator if self.validator is not None else PlanValidator()
         self.audit_logger = self.audit_logger if self.audit_logger is not None else AuditLogger()
+        self.goal_manager = self.goal_manager if self.goal_manager is not None else GoalManager()
 
         if not self.memory:
             self.memory = {}
@@ -112,6 +115,15 @@ class InternalAgentRuntime:
             source="runtime.bootstrap",
             importance=4,
             metadata={"worker_ids": list(self.workers)},
+        )
+        self.memory["semantic"].upsert(
+            "active_goals",
+            [goal["goal_id"] for goal in self.goal_manager.list_active_goals()],
+            domain="intent",
+            tags=["objetivos", "ativos"],
+            source="runtime.bootstrap",
+            importance=3,
+            metadata={"goal_count": len(self.goal_manager.list_active_goals())},
         )
         self.memory["procedural"].register(
             "planner_cycle",
@@ -226,13 +238,18 @@ class InternalAgentRuntime:
                 "runtime_status_ptbr": result["result"]["runtime_status_ptbr"],
             },
         )
+        self.goal_manager.record_task_result(task, result)
         return result
 
     def enqueue_task(self, task: Dict[str, Any]) -> None:
         """Adiciona uma tarefa na fila controlada pelo runtime."""
 
         self.bootstrap()
-        self.task_queue.enqueue(task)
+        task_to_enqueue = deepcopy(task)
+        parent_goal_id = task_to_enqueue.get("parent_goal_id")
+        if parent_goal_id is not None:
+            task_to_enqueue = self.goal_manager.link_task_to_goal(task_to_enqueue, str(parent_goal_id))
+        self.task_queue.enqueue(task_to_enqueue)
 
     def run_planner_cycle(self) -> Dict[str, Any]:
         """Executa um ciclo do planner a partir de um runtime inicializado."""
@@ -247,6 +264,12 @@ class InternalAgentRuntime:
 
         self.bootstrap()
         return self.memory["semantic"].search(query=query, domain=domain, limit=limit)
+
+    def get_goal_report(self, goal_id: str | None = None) -> Dict[str, Any]:
+        """Retorna um relatorio de objetivos em pt-BR."""
+
+        self.bootstrap()
+        return self.goal_manager.goal_report(goal_id)
 
     def persist_runtime_state(self) -> Dict[str, Any]:
         """Persiste os artefatos de runtime necessarios para reinicio seguro."""
@@ -282,6 +305,8 @@ class InternalAgentRuntime:
             "memory": "memory_system",
             "memory_modules": list(self.memory),
             "workers": [f"worker_{worker_id}" for worker_id in self.workers],
+            "active_goal_count": len([goal for goal in self.goal_manager.list_active_goals() if goal["state"] != "completed"]),
+            "strategic_goal_count": len(self.goal_manager.list_strategic_goals()),
             "queue_depth": queue_depth,
             "queue_store": str(self.task_queue.storage_path) if self.task_queue is not None else None,
         }

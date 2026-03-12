@@ -19,6 +19,7 @@ Este indice oferece uma visao unica das capacidades atualmente implementadas no 
 | Fila persistente de tarefas | Implementada | `executive_planner/queue.py` | `executive_planner/task_queue_store.json` | `tests/test_task_queue_persistence.py` |
 | Bootstrap do runtime e recuperacao apos reinicio | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py` | Fila e memoria semantica recarregadas no bootstrap | `tests/test_runtime_bootstrap.py`, `tests/test_task_queue_persistence.py`, `tests/test_main_loop.py` |
 | Loop continuo do sistema | Implementada | `main.py`, `runtime/internal_agent_runtime.py` | Persistencia final de fila e memoria semantica no encerramento | `tests/test_main_loop.py` |
+| Camada real de objetivos | Implementada | `intent_layer/goal_manager.py`, `intent_layer/goals.json` | `intent_layer/goals.json` | `tests/test_goal_manager.py` |
 | Memoria episodica | Implementada | `memory_system/episodic_memory.py` | Somente em memoria | Indireta via testes de runtime |
 | Memoria semantica com busca e snapshots | Implementada | `memory_system/semantic_memory.py` | `memory_system/semantic_memory_store.json` | `tests/test_semantic_memory.py`, `tests/test_runtime_bootstrap.py` |
 | Memoria procedural | Implementada | `memory_system/procedural_memory.py` | Somente em memoria | Indireta via testes de runtime |
@@ -70,6 +71,20 @@ Arquivos relacionados:
 Arquivo relacionado:
 
 - `main.py`
+
+## Capacidades da Camada de Objetivos
+
+- registrar metas estrategicas e objetivos ativos
+- calcular progresso por objetivo
+- vincular tarefas a `parent_goal_id`
+- propagar prioridade de objetivo para a tarefa
+- atualizar estado do objetivo apos execucao no runtime
+- gerar relatorios em pt-BR
+
+Arquivos relacionados:
+
+- `intent_layer/goal_manager.py`
+- `intent_layer/goals.json`
 
 ## Capacidades de Memoria
 
@@ -126,6 +141,8 @@ O comportamento atual dos workers e propositalmente minimo e deterministico: cad
   Cobre execucao do ciclo do planner, tratamento de tarefa invalida, tratamento de tarefa bloqueada e comportamento de fila vazia
 - `tests/test_main_loop.py`
   Cobre bootstrap do processo continuo, loop minimo com fila vazia e recuperacao segura de reinicio
+- `tests/test_goal_manager.py`
+  Cobre estrutura de metas estrategicas e objetivos ativos, vinculo tarefa-objetivo e atualizacao de progresso apos execucao
 - `tests/test_runtime_bootstrap.py`
   Cobre estado do bootstrap do runtime, execucao de ciclo do planner via runtime e integracao com consulta de memoria semantica
 - `tests/test_semantic_memory.py`
@@ -137,7 +154,7 @@ O comportamento atual dos workers e propositalmente minimo e deterministico: cad
 
 - o nucleo constitucional ainda e apenas configuracional e nao um motor executavel separado de validacao
 - as implementacoes de workers continuam sendo stubs minimos de aceitacao
-- a camada de intencao permanece como armazenamento estruturado, sem logica propria
+- a camada de objetivos ja existe, mas ainda nao gera tarefas derivadas automaticamente
 - as camadas de infraestrutura e interface ainda sao placeholders de diretorio
 - o processo continuo ainda nao expoe monitoramento, API ou interface de comando ao usuario final
 - a memoria semantica ainda usa recuperacao deterministica por palavras-chave e nao embeddings nem busca vetorial

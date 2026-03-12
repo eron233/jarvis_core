@@ -27,6 +27,25 @@ O Planejador Executivo e responsavel por transformar metas em planos preliminare
 
 Espera-se que essa camada evolua para o cerebro de orquestracao que conecta metas, memoria, workers e politica de runtime.
 
+## Camada de Objetivos
+
+Local: `intent_layer/`
+
+A Camada de Objetivos agora possui um `GoalManager` persistente que organiza a direcao do sistema em dois niveis:
+
+- metas estrategicas para orientar o sistema em horizonte mais amplo
+- objetivos ativos para execucao operacional e vinculo direto com tarefas
+
+Capacidades atuais:
+
+- leitura e persistencia de `goals.json`
+- separacao entre metas estrategicas e objetivos ativos
+- prioridade por objetivo
+- deadline opcional
+- progresso calculado por tarefas vinculadas
+- relatorios em pt-BR
+- integracao com fila, priorizador e runtime
+
 ## Sistema de Memoria
 
 Local: `memory_system/`

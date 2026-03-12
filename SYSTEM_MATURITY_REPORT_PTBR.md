@@ -3,6 +3,7 @@
 ## Estado atual
 
 - Nivel atual: `M1 - inicial funcional`
+- Subnivel: `M1.1 - objetivos integrados`
 - Idioma visivel: `pt-BR`
 - Entrypoint do processo continuo: `jarvis_core/main.py`
 
@@ -13,15 +14,16 @@
 - fila persistente de tarefas
 - memoria semantica com persistencia local
 - loop continuo inicial com encerramento gracioso
+- camada de objetivos com progresso e prioridade
 - workers minimos por dominio
 
 ## Blocos concluídos
 
 - BLOCO 1 — Loop continuo do sistema
+- BLOCO 2 — Camada de objetivos real
 
 ## Blocos parciais
 
-- BLOCO 2 — Camada de objetivos real
 - BLOCO 4 — Memoria procedural real
 - BLOCO 10 — Workers mais reais
 
@@ -38,7 +40,7 @@
 
 ## Riscos atuais
 
-- a camada de objetivos ainda nao orienta o planner de forma estruturada
+- a camada de objetivos ainda nao gera tarefas derivadas nem fecha o ciclo completo de planejamento estrategico
 - os workers ainda retornam respostas minimas
 - ainda nao existe API, CLI funcional ou monitoramento de saude
 

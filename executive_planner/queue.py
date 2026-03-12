@@ -100,6 +100,7 @@ class TaskQueue:
 
         description = str(normalized.get("description") or normalized.get("goal") or "")
         parent_goal = str(normalized.get("parent_goal") or normalized.get("goal") or description)
+        parent_goal_id = normalized.get("parent_goal_id")
         domain = str(
             normalized.get("domain")
             or normalized.get("worker")
@@ -140,6 +141,7 @@ class TaskQueue:
                 "cost": int(normalized.get("cost", 0)),
                 "reversibility": int(normalized.get("reversibility", 0)),
                 "risk": int(normalized.get("risk", 0)),
+                "goal_priority": int(normalized.get("goal_priority", 0)),
                 "approval": {
                     "approved": approved,
                     "requires_supervision": requires_supervision,
@@ -150,6 +152,7 @@ class TaskQueue:
                 "state_ptbr": traduzir_estado(state),
                 "evidence": deepcopy(evidence),
                 "parent_goal": parent_goal,
+                "parent_goal_id": None if parent_goal_id is None else str(parent_goal_id),
                 "timestamps": {
                     "created_at": created_at,
                     "updated_at": updated_at,

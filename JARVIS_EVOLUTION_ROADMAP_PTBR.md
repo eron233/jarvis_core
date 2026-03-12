@@ -9,7 +9,7 @@ Este roadmap acompanha os blocos de construcao previstos para levar o JARVIS do 
 | Bloco | Capacidade | Status |
 | --- | --- | --- |
 | 1 | Loop continuo do sistema | Concluido |
-| 2 | Camada de objetivos real | Proximo |
+| 2 | Camada de objetivos real | Concluido |
 | 3 | Geracao controlada de tarefas | Pendente |
 | 4 | Memoria procedural real | Parcial |
 | 5 | Consolidacao de memoria | Pendente |
@@ -23,7 +23,7 @@ Este roadmap acompanha os blocos de construcao previstos para levar o JARVIS do 
 
 ## Proxima prioridade
 
-- BLOCO 2 — Camada de objetivos real
+- BLOCO 3 — Geracao controlada de tarefas
 
 ## Criterio de continuidade
 

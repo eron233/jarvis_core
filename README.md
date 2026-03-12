@@ -1,6 +1,6 @@
 # Sistema Cognitivo JARVIS
 
-O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, controle de execucao e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica e um loop continuo de sistema.
+O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, objetivos, controle de execucao e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica, loop continuo de sistema e uma camada real de objetivos.
 
 Idioma padrao do sistema: `pt-BR`
 
@@ -10,7 +10,7 @@ O scaffold atual esta organizado em um conjunto enxuto de camadas cooperativas:
 
 - `constitutional_core/`: identidade e principios de governanca do sistema
 - `executive_planner/`: fila, priorizacao, validacao, auditoria e construcao de planos
-- `intent_layer/`: metas ativas, restricoes e preferencias operacionais
+- `intent_layer/`: metas estrategicas, objetivos ativos, restricoes e preferencias operacionais
 - `memory_system/`: memoria episodica, semantica e procedural
 - `workers/`: workers especializados para tarefas de runtime, financas, estudio e estudo
 - `runtime/`: bootstrap do runtime e logica de autonomia
@@ -41,7 +41,7 @@ Fornece a cadeia inicial de planejamento: entrada de tarefas, priorizacao, valid
 
 ### Camada de Intencao
 
-Armazena metas ativas, restricoes e preferencias operacionais que orientam as decisoes do planejador.
+Armazena metas estrategicas, objetivos ativos, restricoes e preferencias operacionais que orientam as decisoes do planejador. A camada agora conta com `GoalManager` para leitura, atualizacao, progresso, prioridades e relatarios em pt-BR.
 
 ### Sistema de Memoria
 
