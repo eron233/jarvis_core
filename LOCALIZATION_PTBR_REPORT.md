@@ -10,6 +10,7 @@ Converter a camada externa e operacional visivel do JARVIS para portugues do Bra
 - `C:\Users\User\Documents\jarvis_core\main.py`
 - `C:\Users\User\Documents\jarvis_core\intent_layer\goal_manager.py`
 - `C:\Users\User\Documents\jarvis_core\interface\api\app.py`
+- `C:\Users\User\Documents\jarvis_core\interface\dashboard\index.html`
 - `C:\Users\User\Documents\jarvis_core\API_PTBR.md`
 - `C:\Users\User\Documents\jarvis_core\ARCHITECTURE.md`
 - `C:\Users\User\Documents\jarvis_core\CHANGELOG.md`
@@ -49,6 +50,7 @@ Converter a camada externa e operacional visivel do JARVIS para portugues do Bra
 - Mensagens do processo continuo inicial em `main.py`.
 - Relatorios e labels da camada de objetivos em `goal_manager.py`.
 - Mensagens, rotas e documentacao visivel da API em pt-BR.
+- Painel web inicial com labels e fluxo de uso em pt-BR.
 - Rotulos expostos ao usuario por meio de equivalentes pt-BR em auditoria, estado de tarefa, status de runtime e motivos de bloqueio.
 - Testes atualizados para validar a superficie localizada sem quebrar os identificadores internos.
 

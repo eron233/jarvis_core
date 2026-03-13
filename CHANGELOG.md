@@ -17,6 +17,9 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Adicionada autenticacao inicial por token para endpoints protegidos.
 - Expostos endpoints de status, ciclo, tarefas, objetivos, memoria recente e relatorio operacional.
 - Adicionada documentacao dedicada da API em `API_PTBR.md`.
+- Implementado o painel mobile-first em `interface/dashboard/index.html`.
+- Adicionadas rotas web para acesso ao painel e redirecionamento pela API.
+- Incluida entrada textual simples e acoes rapidas para operacao inicial pelo celular.
 
 ## v0.1.0 - Scaffold inicial
 

@@ -119,3 +119,18 @@ Capacidades atuais:
 - relatorio operacional resumido
 
 Essa camada prepara o terreno para painel mobile, monitoramento e operacao remota sem romper os contratos internos ja estabilizados.
+
+## Painel de Acesso
+
+Local: `interface/dashboard/`
+
+O painel inicial foi implementado como HTML responsivo servido pela propria API. Essa escolha reduz atrito operacional, evita uma segunda stack de frontend e reaproveita integralmente os endpoints ja criados.
+
+Capacidades atuais:
+
+- acesso por rota web unica
+- layout mobile-first
+- entrada de comando textual simples
+- acoes rapidas para atualizar resumo e executar ciclo
+- visualizacao de estado, objetivos, tarefas e memoria recente
+- reutilizacao do token da API para acesso operacional

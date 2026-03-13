@@ -3,7 +3,7 @@
 ## Estado atual
 
 - Nivel atual: `M1 - inicial funcional`
-- Subnivel: `M1.2 - acesso remoto inicial`
+- Subnivel: `M1.3 - operacao web inicial`
 - Idioma visivel: `pt-BR`
 - Entrypoint do processo continuo: `jarvis_core/main.py`
 
@@ -16,6 +16,7 @@
 - loop continuo inicial com encerramento gracioso
 - camada de objetivos com progresso e prioridade
 - API minima em FastAPI com token de acesso
+- painel web mobile-first servido pela API
 - workers minimos por dominio
 
 ## Blocos concluídos
@@ -23,6 +24,7 @@
 - BLOCO 1 — Loop continuo do sistema
 - BLOCO 2 — Camada de objetivos real
 - BLOCO 2 — API real do JARVIS
+- BLOCO 3 — Acesso por celular
 
 ## Blocos parciais
 
@@ -44,7 +46,7 @@
 
 - a camada de objetivos ainda nao gera tarefas derivadas nem fecha o ciclo completo de planejamento estrategico
 - os workers ainda retornam respostas minimas
-- ainda nao existe interface mobile-first, CLI funcional ou monitoramento de saude
+- ainda nao existe monitoramento de saude dedicado nem autenticacao acima do token inicial
 
 ## Leitura objetiva
 

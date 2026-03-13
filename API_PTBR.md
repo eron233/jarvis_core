@@ -20,6 +20,8 @@ Se a variavel `JARVIS_API_TOKEN` nao estiver definida, a API usa o token de dese
 
 ## Endpoints atuais
 
+- `GET /painel`
+  Entrega o painel web mobile-first do JARVIS
 - `GET /api/saude`
   Retorna saude basica da API e do runtime
 - `GET /api/status`
@@ -42,3 +44,4 @@ Se a variavel `JARVIS_API_TOKEN` nao estiver definida, a API usa o token de dese
 - Respostas visiveis foram mantidas em pt-BR.
 - Identificadores internos estaveis continuam preservados dentro dos payloads para evitar quebra de integracao.
 - A autenticacao atual e minima e baseada em token; podera ser expandida no bloco de autenticacao inicial.
+- O painel web usa os mesmos endpoints e o mesmo token da API.

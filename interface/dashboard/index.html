@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel JARVIS</title>
+  <style>
+    :root {
+      --bg: #f4f0e7;
+      --panel: #fffaf0;
+      --ink: #15251c;
+      --accent: #2b6a4b;
+      --accent-soft: #d9eadf;
+      --line: #d6cfbf;
+      --warn: #8a5a17;
+      --mono: "Courier New", monospace;
+      --sans: "Trebuchet MS", "Segoe UI", sans-serif;
+      color-scheme: light;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at top right, rgba(43, 106, 75, 0.12), transparent 28%),
+        linear-gradient(180deg, #f8f3ea 0%, var(--bg) 100%);
+      color: var(--ink);
+    }
+
+    .shell {
+      width: min(100%, 980px);
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(21, 37, 28, 0.96), rgba(43, 106, 75, 0.9));
+      color: #f7f5ef;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 18px 40px rgba(21, 37, 28, 0.16);
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 1.7rem;
+    }
+
+    .hero p {
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .token-box,
+    .card {
+      margin-top: 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 10px 24px rgba(21, 37, 28, 0.05);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    input,
+    textarea,
+    button {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      font: inherit;
+    }
+
+    input,
+    textarea {
+      padding: 12px;
+      background: #fffdf7;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    button {
+      padding: 12px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #f8f6f0;
+      font-weight: 700;
+    }
+
+    button.secondary {
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .label {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(217, 234, 223, 0.8);
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .status-strip {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .console {
+      min-height: 120px;
+      background: #171d1a;
+      color: #f3f3ec;
+      border-radius: 14px;
+      padding: 14px;
+      font-family: var(--mono);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    .hint {
+      color: var(--warn);
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        padding: 12px;
+      }
+
+      .actions {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 1.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <span class="label">Operacao real inicial</span>
+      <h1>JARVIS</h1>
+      <p>Controle o runtime, consulte memoria, acompanhe objetivos e execute ciclos do sistema por um painel pensado para celular.</p>
+      <div class="status-strip">
+        <span class="label" id="healthStatus">API aguardando token</span>
+        <span class="label" id="runtimeStatus">Runtime nao consultado</span>
+      </div>
+    </section>
+
+    <section class="token-box">
+      <label for="tokenInput">Token de acesso</label>
+      <input id="tokenInput" type="password" placeholder="Informe o token da API" />
+      <div class="actions">
+        <button type="button" onclick="salvarToken()">Salvar token</button>
+        <button type="button" class="secondary" onclick="atualizarResumo()">Atualizar resumo</button>
+      </div>
+      <p class="hint">O mesmo token protege o painel e os endpoints da API.</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <label for="commandInput">Comando textual</label>
+        <textarea id="commandInput" placeholder="Exemplo: mostrar objetivos ativos"></textarea>
+        <div class="actions">
+          <button type="button" onclick="enviarComando()">Enviar comando</button>
+          <button type="button" class="secondary" onclick="executarCiclo()">Executar ciclo</button>
+        </div>
+      </article>
+
+      <article class="card">
+        <label>Resposta do JARVIS</label>
+        <div class="console" id="responseBox">Aguardando comando.</div>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <label>Estado do sistema</label>
+        <pre id="stateBox">Sem dados.</pre>
+      </article>
+      <article class="card">
+        <label>Objetivos ativos</label>
+        <pre id="goalsBox">Sem dados.</pre>
+      </article>
+      <article class="card">
+        <label>Tarefas pendentes</label>
+        <pre id="tasksBox">Sem dados.</pre>
+      </article>
+      <article class="card">
+        <label>Memoria recente</label>
+        <pre id="memoryBox">Sem dados.</pre>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const TOKEN_KEY = "jarvis_api_token";
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || "";
+    }
+
+    function salvarToken() {
+      const token = document.getElementById("tokenInput").value.trim();
+      localStorage.setItem(TOKEN_KEY, token);
+      escreverResposta("Token salvo. Voce ja pode consultar o sistema.");
+      atualizarResumo();
+    }
+
+    function escreverResposta(texto) {
+      document.getElementById("responseBox").textContent = texto;
+    }
+
+    function renderJson(id, payload) {
+      document.getElementById(id).textContent = JSON.stringify(payload, null, 2);
+    }
+
+    async function apiFetch(path, options = {}) {
+      const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      };
+      const token = getToken();
+      if (token) {
+        headers["X-Jarvis-Token"] = token;
+      }
+
+      const response = await fetch(path, { ...options, headers });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.mensagem || "Falha na comunicacao com o JARVIS.");
+      }
+
+      return payload;
+    }
+
+    async function atualizarResumo() {
+      try {
+        const [saude, estado, objetivos, tarefas, memoria] = await Promise.all([
+          apiFetch("/api/saude"),
+          apiFetch("/api/status"),
+          apiFetch("/api/objetivos"),
+          apiFetch("/api/tarefas"),
+          apiFetch("/api/memoria/recente?limit=4"),
+        ]);
+
+        document.getElementById("healthStatus").textContent = "API " + saude.status_ptbr;
+        document.getElementById("runtimeStatus").textContent = "Runtime " + estado.dados.status_ptbr;
+        renderJson("stateBox", estado.dados);
+        renderJson("goalsBox", objetivos.dados);
+        renderJson("tasksBox", tarefas.tarefas);
+        renderJson("memoryBox", memoria.entradas_semanticas);
+        escreverResposta("Resumo atualizado com sucesso.");
+      } catch (error) {
+        escreverResposta(error.message);
+      }
+    }
+
+    async function executarCiclo() {
+      try {
+        const payload = await apiFetch("/api/ciclos/executar", { method: "POST" });
+        escreverResposta("Ciclo executado com status: " + payload.resultado.status_ptbr);
+        await atualizarResumo();
+      } catch (error) {
+        escreverResposta(error.message);
+      }
+    }
+
+    async function enviarComando() {
+      const command = document.getElementById("commandInput").value.trim().toLowerCase();
+      if (!command) {
+        escreverResposta("Digite um comando textual antes de enviar.");
+        return;
+      }
+
+      try {
+        if (command.includes("status")) {
+          const payload = await apiFetch("/api/status");
+          escreverResposta(JSON.stringify(payload.dados, null, 2));
+          return;
+        }
+
+        if (command.includes("objetiv")) {
+          const payload = await apiFetch("/api/objetivos");
+          escreverResposta(JSON.stringify(payload.dados, null, 2));
+          return;
+        }
+
+        if (command.includes("taref")) {
+          const payload = await apiFetch("/api/tarefas");
+          escreverResposta(JSON.stringify(payload.tarefas, null, 2));
+          return;
+        }
+
+        if (command.includes("memoria")) {
+          const payload = await apiFetch("/api/memoria/recente?limit=5");
+          escreverResposta(JSON.stringify(payload.entradas_semanticas, null, 2));
+          return;
+        }
+
+        if (command.includes("ciclo") || command.includes("rodar")) {
+          await executarCiclo();
+          return;
+        }
+
+        const payload = await apiFetch("/api/relatorio");
+        escreverResposta("Comando nao reconhecido. Exibindo relatorio geral.\n\n" + JSON.stringify(payload, null, 2));
+      } catch (error) {
+        escreverResposta(error.message);
+      }
+    }
+
+    window.addEventListener("load", () => {
+      document.getElementById("tokenInput").value = getToken();
+      if (getToken()) {
+        atualizarResumo();
+      }
+    });
+  </script>
+</body>
+</html>

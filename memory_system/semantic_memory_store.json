@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "entry_count": 22,
+  "entry_count": 30,
   "entries": [
     {
       "id": "memory-0001",
@@ -477,6 +477,180 @@
       ],
       "source": "runtime.dispatch_task",
       "created_at": "2026-03-13T20:40:20.528469+00:00",
+      "importance": 1,
+      "metadata": {
+        "task_id": "task-ready",
+        "goal": "Tarefa pronta",
+        "worker": "runtime",
+        "dispatch_status": "executed",
+        "dispatch_status_ptbr": "executada",
+        "runtime_status": "completed",
+        "runtime_status_ptbr": "concluida"
+      }
+    },
+    {
+      "id": "memory-0023",
+      "content": "runtime_status: inicializado",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "estado",
+        "runtime_status"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-13T20:43:42.911007+00:00",
+      "importance": 5,
+      "metadata": {
+        "status": "initialized",
+        "status_ptbr": "inicializado",
+        "concept": "runtime_status",
+        "value": "inicializado"
+      }
+    },
+    {
+      "id": "memory-0024",
+      "content": "registered_workers: [\"runtime\", \"finance\", \"studio\", \"study\"]",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "workers",
+        "registered_workers"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-13T20:43:42.912719+00:00",
+      "importance": 4,
+      "metadata": {
+        "worker_ids": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "concept": "registered_workers",
+        "value": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ]
+      }
+    },
+    {
+      "id": "memory-0025",
+      "content": "active_goals: []",
+      "domain": "intent",
+      "tags": [
+        "objetivos",
+        "ativos",
+        "active_goals"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-13T20:43:42.914386+00:00",
+      "importance": 3,
+      "metadata": {
+        "goal_count": 0,
+        "concept": "active_goals",
+        "value": []
+      }
+    },
+    {
+      "id": "memory-0026",
+      "content": "Tarefa de alta prioridade concluida por runtime com status de runtime concluida",
+      "domain": "runtime",
+      "tags": [
+        "runtime",
+        "resultado_tarefa",
+        "concluida"
+      ],
+      "source": "runtime.dispatch_task",
+      "created_at": "2026-03-13T20:43:42.916003+00:00",
+      "importance": 3,
+      "metadata": {
+        "task_id": "task-high",
+        "goal": "Tarefa de alta prioridade",
+        "worker": "runtime",
+        "dispatch_status": "executed",
+        "dispatch_status_ptbr": "executada",
+        "runtime_status": "completed",
+        "runtime_status_ptbr": "concluida"
+      }
+    },
+    {
+      "id": "memory-0027",
+      "content": "runtime_status: inicializado",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "estado",
+        "runtime_status"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-13T20:43:42.932368+00:00",
+      "importance": 5,
+      "metadata": {
+        "status": "initialized",
+        "status_ptbr": "inicializado",
+        "concept": "runtime_status",
+        "value": "inicializado"
+      }
+    },
+    {
+      "id": "memory-0028",
+      "content": "registered_workers: [\"runtime\", \"finance\", \"studio\", \"study\"]",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "workers",
+        "registered_workers"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-13T20:43:42.934321+00:00",
+      "importance": 4,
+      "metadata": {
+        "worker_ids": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "concept": "registered_workers",
+        "value": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ]
+      }
+    },
+    {
+      "id": "memory-0029",
+      "content": "active_goals: []",
+      "domain": "intent",
+      "tags": [
+        "objetivos",
+        "ativos",
+        "active_goals"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-13T20:43:42.935806+00:00",
+      "importance": 3,
+      "metadata": {
+        "goal_count": 0,
+        "concept": "active_goals",
+        "value": []
+      }
+    },
+    {
+      "id": "memory-0030",
+      "content": "Tarefa pronta concluida por runtime com status de runtime concluida",
+      "domain": "runtime",
+      "tags": [
+        "runtime",
+        "resultado_tarefa",
+        "concluida"
+      ],
+      "source": "runtime.dispatch_task",
+      "created_at": "2026-03-13T20:43:42.937252+00:00",
       "importance": 1,
       "metadata": {
         "task_id": "task-ready",

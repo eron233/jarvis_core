@@ -21,6 +21,7 @@ Este indice oferece uma visao unica das capacidades atualmente implementadas no 
 | Loop continuo do sistema | Implementada | `main.py`, `runtime/internal_agent_runtime.py` | Persistencia final de fila e memoria semantica no encerramento | `tests/test_main_loop.py` |
 | Camada real de objetivos | Implementada | `intent_layer/goal_manager.py`, `intent_layer/goals.json` | `intent_layer/goals.json` | `tests/test_goal_manager.py` |
 | API real do sistema | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py` | Reaproveita fila, memoria e objetivos persistidos do nucleo | `tests/test_api.py` |
+| Painel mobile-first | Implementada | `interface/dashboard/index.html`, `interface/api/app.py` | Reaproveita a API e o mesmo token inicial | `tests/test_dashboard.py` |
 | Memoria episodica | Implementada | `memory_system/episodic_memory.py` | Somente em memoria | Indireta via testes de runtime |
 | Memoria semantica com busca e snapshots | Implementada | `memory_system/semantic_memory.py` | `memory_system/semantic_memory_store.json` | `tests/test_semantic_memory.py`, `tests/test_runtime_bootstrap.py` |
 | Memoria procedural | Implementada | `memory_system/procedural_memory.py` | Somente em memoria | Indireta via testes de runtime |
@@ -102,6 +103,19 @@ Arquivos relacionados:
 - `interface/api/app.py`
 - `API_PTBR.md`
 
+## Capacidades do Painel
+
+- servir um painel HTML pela propria API
+- funcionar em layout mobile-first
+- aceitar comando textual simples
+- mostrar estado, objetivos, tarefas e memoria recente
+- reutilizar os mesmos endpoints operacionais da API
+
+Arquivos relacionados:
+
+- `interface/dashboard/index.html`
+- `interface/api/app.py`
+
 ## Capacidades de Memoria
 
 ### Memoria Episodica
@@ -161,6 +175,8 @@ O comportamento atual dos workers e propositalmente minimo e deterministico: cad
   Cobre estrutura de metas estrategicas e objetivos ativos, vinculo tarefa-objetivo e atualizacao de progresso apos execucao
 - `tests/test_api.py`
   Cobre inicializacao da API, healthcheck, autenticacao minima e operacao dos endpoints principais
+- `tests/test_dashboard.py`
+  Cobre o redirecionamento raiz e a entrega do painel HTML mobile-first
 - `tests/test_runtime_bootstrap.py`
   Cobre estado do bootstrap do runtime, execucao de ciclo do planner via runtime e integracao com consulta de memoria semantica
 - `tests/test_semantic_memory.py`
@@ -176,6 +192,7 @@ O comportamento atual dos workers e propositalmente minimo e deterministico: cad
 - as camadas de infraestrutura e interface ainda sao placeholders de diretorio
 - ainda nao existe interface mobile-first para uso cotidiano em celular
 - a autenticacao atual e minima e baseada em token, sem sessao nem usuario root dedicado
+- o painel ainda nao possui historico conversacional nem criacao guiada de tarefas
 - a memoria semantica ainda usa recuperacao deterministica por palavras-chave e nao embeddings nem busca vetorial
 
 ## Referencias de Origem

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import os
+from pathlib import Path
 from typing import Annotated, Any, Dict, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from main import SystemLoopConfig, bootstrap_runtime
@@ -15,6 +17,7 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 TOKEN_HEADER = "X-Jarvis-Token"
 DEFAULT_API_TOKEN = "jarvis-local-dev-token"
 SAFE_WORKER_IDS = {"runtime", "finance", "study", "studio"}
+DASHBOARD_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "index.html"
 
 
 class TaskCreateRequest(BaseModel):
@@ -66,6 +69,14 @@ def create_app(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de acesso invalido ou ausente.",
         )
+
+    @app.get("/", include_in_schema=False)
+    def root() -> RedirectResponse:
+        return RedirectResponse(url="/painel", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+    @app.get("/painel", include_in_schema=False, response_class=HTMLResponse)
+    def get_dashboard() -> HTMLResponse:
+        return HTMLResponse(DASHBOARD_PATH.read_text(encoding="utf-8"))
 
     @app.get("/api/saude")
     def healthcheck(request: Request) -> Dict[str, Any]:

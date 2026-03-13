@@ -2,23 +2,23 @@
 
 ## Ciclo atual
 
-- Ciclo: 3
-- Capacidade implementada: API real do JARVIS
+- Ciclo: 4
+- Capacidade implementada: acesso por celular
 - Estado: concluido com testes verdes
 
 ## Entregas do ciclo
 
-- adicionada `interface/api/app.py` com FastAPI
-- autenticacao minima por token incorporada
-- endpoints principais do sistema expostos
-- runtime ampliado com listagem de tarefas, memoria recente e relatorio operacional
-- documentacao e testes da API adicionados
+- adicionado `interface/dashboard/index.html`
+- painel mobile-first servido pela propria API
+- entrada textual simples e acoes rapidas integradas aos endpoints reais
+- rota raiz redirecionando para o painel
+- documentacao e testes do painel adicionados
 
 ## Validacao
 
 - suite executada: `python -m unittest discover -s tests -v`
-- resultado: `21 testes aprovados`
+- resultado: `23 testes aprovados`
 
 ## Proximo bloco
 
-- BLOCO 3 — Acesso por celular
+- BLOCO 4 — Autenticacao inicial
