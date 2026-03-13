@@ -13,6 +13,7 @@ EVENTOS_PTBR = {
     "review": "revisar",
     "bootstrap": "inicializar",
     "dispatch": "despachar",
+    "access": "acesso",
 }
 
 STATUS_PTBR = {
@@ -34,6 +35,8 @@ STATUS_PTBR = {
     "executing": "em_execucao",
     "deferred": "adiada",
     "selected": "selecionada",
+    "authorized": "autorizado",
+    "denied": "negado",
 }
 
 MOTIVOS_PTBR = {
@@ -41,6 +44,10 @@ MOTIVOS_PTBR = {
     "no_executable_task": "sem_tarefa_executavel",
     "autonomy_gate": "bloqueada_pela_politica_de_autonomia",
     "unknown_worker": "worker_desconhecido",
+    "missing_token": "token_ausente",
+    "invalid_token": "token_invalido",
+    "missing_device_id": "device_id_ausente",
+    "untrusted_device": "dispositivo_nao_autorizado",
 }
 
 

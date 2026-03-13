@@ -2,23 +2,23 @@
 
 ## Ciclo atual
 
-- Ciclo: 4
-- Capacidade implementada: acesso por celular
+- Ciclo: 5
+- Capacidade implementada: autenticacao por dispositivo confiavel
 - Estado: concluido com testes verdes
 
 ## Entregas do ciclo
 
-- adicionado `interface/dashboard/index.html`
-- painel mobile-first servido pela propria API
-- entrada textual simples e acoes rapidas integradas aos endpoints reais
-- rota raiz redirecionando para o painel
-- documentacao e testes do painel adicionados
+- validacao de `X-Jarvis-Token` e `X-Jarvis-Device-Id`
+- sessao do painel por dispositivo confiavel
+- auditoria de acessos autorizados e negados
+- gate de acesso dedicado para o painel
+- documentacao e testes de seguranca atualizados
 
 ## Validacao
 
 - suite executada: `python -m unittest discover -s tests -v`
-- resultado: `23 testes aprovados`
+- resultado: `26 testes aprovados`
 
 ## Proximo bloco
 
-- BLOCO 4 — Autenticacao inicial
+- BLOCO 5 — Relatorios operacionais completos

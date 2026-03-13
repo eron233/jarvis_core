@@ -7,21 +7,29 @@ Fornecer uma camada minima de acesso externo ao nucleo operacional do JARVIS sem
 ## Inicializacao local
 
 ```powershell
-set JARVIS_API_TOKEN=seu_token_seguro
+set JARVIS_TOKEN=seu_token_seguro
+set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
 python -m uvicorn interface.api.app:app --host 0.0.0.0 --port 8000
 ```
 
-Se a variavel `JARVIS_API_TOKEN` nao estiver definida, a API usa o token de desenvolvimento `jarvis-local-dev-token`.
+Se `JARVIS_TOKEN` ou `JARVIS_TRUSTED_DEVICE_ID` nao estiverem definidos, a API usa valores locais de desenvolvimento.
 
 ## Autenticacao
 
-- Header obrigatorio para endpoints protegidos: `X-Jarvis-Token`
+- Headers obrigatorios para endpoints protegidos:
+  - `X-Jarvis-Token`
+  - `X-Jarvis-Device-Id`
+- Painel protegido por sessao de dispositivo confiavel, criada via `POST /api/auth/device-session`
 - Healthcheck publico: `GET /api/saude`
 
 ## Endpoints atuais
 
 - `GET /painel`
-  Entrega o painel web mobile-first do JARVIS
+  Entrega o painel web do JARVIS ou a tela de validacao do dispositivo
+- `POST /api/auth/device-session`
+  Valida token + device id e cria a sessao do painel
+- `DELETE /api/auth/device-session`
+  Remove a sessao atual do painel
 - `GET /api/saude`
   Retorna saude basica da API e do runtime
 - `GET /api/status`
@@ -43,5 +51,6 @@ Se a variavel `JARVIS_API_TOKEN` nao estiver definida, a API usa o token de dese
 
 - Respostas visiveis foram mantidas em pt-BR.
 - Identificadores internos estaveis continuam preservados dentro dos payloads para evitar quebra de integracao.
-- A autenticacao atual e minima e baseada em token; podera ser expandida no bloco de autenticacao inicial.
-- O painel web usa os mesmos endpoints e o mesmo token da API.
+- A autenticacao atual combina token secreto e identificador do dispositivo confiavel.
+- Toda tentativa negada gera registro de auditoria de acesso no runtime.
+- O painel web usa o mesmo token da API e uma sessao curta derivada do dispositivo confiavel.

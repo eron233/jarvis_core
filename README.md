@@ -1,6 +1,6 @@
 # Sistema Cognitivo JARVIS
 
-O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, objetivos, controle de execucao, API de acesso, painel mobile-first e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica, loop continuo de sistema, camada real de objetivos, API FastAPI integrada ao nucleo e painel web servido pela propria API.
+O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, objetivos, controle de execucao, API de acesso, painel mobile-first e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica, loop continuo de sistema, camada real de objetivos, API FastAPI integrada ao nucleo, painel web servido pela propria API e autenticacao inicial por dispositivo confiavel.
 
 Idioma padrao do sistema: `pt-BR`
 
@@ -69,6 +69,10 @@ Exponibiliza acesso externo ao runtime por meio de endpoints seguros para status
 
 Disponibiliza uma interface web simples, servida pela propria API, com foco em consulta rapida, execucao de ciclo e uso cotidiano a partir do celular.
 
+### Autenticacao Inicial
+
+Restringe o acesso ao sistema por meio de token secreto e identificador de dispositivo confiavel, com auditoria de tentativas negadas e sessao dedicada para liberar o painel web.
+
 ## Execucao Inicial
 
 Exemplo de subida local com um ciclo controlado:
@@ -80,7 +84,8 @@ python main.py --max-cycles 1 --stop-when-idle
 Exemplo de subida local da API:
 
 ```powershell
-set JARVIS_API_TOKEN=seu_token_seguro
+set JARVIS_TOKEN=seu_token_seguro
+set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
 python -m uvicorn interface.api.app:app --host 0.0.0.0 --port 8000
 ```
 

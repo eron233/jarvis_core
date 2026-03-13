@@ -23,7 +23,7 @@ Este roadmap acompanha os blocos de construcao previstos para levar o JARVIS do 
 
 ## Proxima prioridade
 
-- BLOCO 4 — Autenticacao inicial
+- BLOCO 5 — Relatorios operacionais completos
 
 ## Criterio de continuidade
 

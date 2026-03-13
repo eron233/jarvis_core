@@ -20,6 +20,9 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Implementado o painel mobile-first em `interface/dashboard/index.html`.
 - Adicionadas rotas web para acesso ao painel e redirecionamento pela API.
 - Incluida entrada textual simples e acoes rapidas para operacao inicial pelo celular.
+- Implementada autenticacao inicial por dispositivo confiavel na API e no painel.
+- Adicionados `X-Jarvis-Token` e `X-Jarvis-Device-Id` como contrato de acesso protegido.
+- Adicionada auditoria de acessos autorizados e negados no runtime.
 
 ## v0.1.0 - Scaffold inicial
 

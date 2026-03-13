@@ -183,19 +183,22 @@
       <h1>JARVIS</h1>
       <p>Controle o runtime, consulte memoria, acompanhe objetivos e execute ciclos do sistema por um painel pensado para celular.</p>
       <div class="status-strip">
-        <span class="label" id="healthStatus">API aguardando token</span>
+        <span class="label" id="healthStatus">API aguardando credenciais</span>
         <span class="label" id="runtimeStatus">Runtime nao consultado</span>
+        <span class="label" id="deviceStatus">Dispositivo nao validado</span>
       </div>
     </section>
 
     <section class="token-box">
       <label for="tokenInput">Token de acesso</label>
       <input id="tokenInput" type="password" placeholder="Informe o token da API" />
+      <label for="deviceInput">Identificador do dispositivo confiável</label>
+      <input id="deviceInput" type="text" placeholder="Informe o device id autorizado" />
       <div class="actions">
-        <button type="button" onclick="salvarToken()">Salvar token</button>
+        <button type="button" onclick="salvarCredenciais()">Salvar credenciais</button>
         <button type="button" class="secondary" onclick="atualizarResumo()">Atualizar resumo</button>
       </div>
-      <p class="hint">O mesmo token protege o painel e os endpoints da API.</p>
+      <p class="hint">O painel e os endpoints protegidos exigem token e identificador do dispositivo confiável.</p>
     </section>
 
     <section class="grid">
@@ -236,15 +239,27 @@
 
   <script>
     const TOKEN_KEY = "jarvis_api_token";
+    const DEVICE_KEY = "jarvis_device_id";
 
     function getToken() {
       return localStorage.getItem(TOKEN_KEY) || "";
     }
 
-    function salvarToken() {
+    function getDeviceId() {
+      return localStorage.getItem(DEVICE_KEY) || "";
+    }
+
+    function salvarCredenciais() {
       const token = document.getElementById("tokenInput").value.trim();
+      const deviceId = document.getElementById("deviceInput").value.trim();
+      if (!token || !deviceId) {
+        escreverResposta("Informe token e identificador do dispositivo.");
+        return;
+      }
       localStorage.setItem(TOKEN_KEY, token);
-      escreverResposta("Token salvo. Voce ja pode consultar o sistema.");
+      localStorage.setItem(DEVICE_KEY, deviceId);
+      document.getElementById("deviceStatus").textContent = "Dispositivo " + deviceId;
+      escreverResposta("Credenciais salvas. Voce ja pode consultar o sistema.");
       atualizarResumo();
     }
 
@@ -262,9 +277,12 @@
         ...(options.headers || {}),
       };
       const token = getToken();
-      if (token) {
-        headers["X-Jarvis-Token"] = token;
+      const deviceId = getDeviceId();
+      if (!token || !deviceId) {
+        throw new Error("Token e identificador do dispositivo sao obrigatorios.");
       }
+      headers["X-Jarvis-Token"] = token;
+      headers["X-Jarvis-Device-Id"] = deviceId;
 
       const response = await fetch(path, { ...options, headers });
       const payload = await response.json().catch(() => ({}));
@@ -288,6 +306,7 @@
 
         document.getElementById("healthStatus").textContent = "API " + saude.status_ptbr;
         document.getElementById("runtimeStatus").textContent = "Runtime " + estado.dados.status_ptbr;
+        document.getElementById("deviceStatus").textContent = "Dispositivo " + getDeviceId();
         renderJson("stateBox", estado.dados);
         renderJson("goalsBox", objetivos.dados);
         renderJson("tasksBox", tarefas.tarefas);
@@ -354,7 +373,11 @@
 
     window.addEventListener("load", () => {
       document.getElementById("tokenInput").value = getToken();
-      if (getToken()) {
+      document.getElementById("deviceInput").value = getDeviceId();
+      if (getDeviceId()) {
+        document.getElementById("deviceStatus").textContent = "Dispositivo " + getDeviceId();
+      }
+      if (getToken() && getDeviceId()) {
         atualizarResumo();
       }
     });

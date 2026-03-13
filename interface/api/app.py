@@ -3,21 +3,26 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import os
 from pathlib import Path
 from typing import Annotated, Any, Dict, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from main import SystemLoopConfig, bootstrap_runtime
 from runtime.internal_agent_runtime import InternalAgentRuntime
 
 TOKEN_HEADER = "X-Jarvis-Token"
+DEVICE_HEADER = "X-Jarvis-Device-Id"
+SESSION_COOKIE = "jarvis_trusted_device"
 DEFAULT_API_TOKEN = "jarvis-local-dev-token"
+DEFAULT_TRUSTED_DEVICE_ID = "jarvis-dispositivo-local"
 SAFE_WORKER_IDS = {"runtime", "finance", "study", "studio"}
 DASHBOARD_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "index.html"
+ACCESS_GATE_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "access_gate.html"
 
 
 class TaskCreateRequest(BaseModel):
@@ -42,6 +47,7 @@ class TaskCreateRequest(BaseModel):
 def create_app(
     runtime: InternalAgentRuntime | None = None,
     api_token: str | None = None,
+    trusted_device_id: str | None = None,
     config: SystemLoopConfig | None = None,
 ) -> FastAPI:
     """Cria uma aplicacao FastAPI ligada ao runtime atual."""
@@ -56,18 +62,20 @@ def create_app(
     app.state.bootstrap_state = None
     app.state.started_at = datetime.now(timezone.utc).isoformat()
     app.state.last_cycle_result = None
-    app.state.api_token = api_token or os.getenv("JARVIS_API_TOKEN") or DEFAULT_API_TOKEN
+    app.state.api_token = api_token or os.getenv("JARVIS_TOKEN") or os.getenv("JARVIS_API_TOKEN") or DEFAULT_API_TOKEN
+    app.state.trusted_device_id = (
+        trusted_device_id or os.getenv("JARVIS_TRUSTED_DEVICE_ID") or DEFAULT_TRUSTED_DEVICE_ID
+    )
 
-    def require_token(
+    def require_trusted_device(
         request: Request,
         x_jarvis_token: Annotated[str | None, Header(alias=TOKEN_HEADER)] = None,
-    ) -> None:
-        if x_jarvis_token == request.app.state.api_token:
-            return
-
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token de acesso invalido ou ausente.",
+        x_jarvis_device_id: Annotated[str | None, Header(alias=DEVICE_HEADER)] = None,
+    ) -> Dict[str, str]:
+        return _validate_trusted_access(
+            request=request,
+            token=x_jarvis_token,
+            device_id=x_jarvis_device_id,
         )
 
     @app.get("/", include_in_schema=False)
@@ -75,8 +83,41 @@ def create_app(
         return RedirectResponse(url="/painel", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
     @app.get("/painel", include_in_schema=False, response_class=HTMLResponse)
-    def get_dashboard() -> HTMLResponse:
-        return HTMLResponse(DASHBOARD_PATH.read_text(encoding="utf-8"))
+    def get_dashboard(request: Request) -> HTMLResponse:
+        if _has_valid_dashboard_session(request):
+            return HTMLResponse(DASHBOARD_PATH.read_text(encoding="utf-8"))
+        return HTMLResponse(ACCESS_GATE_PATH.read_text(encoding="utf-8"))
+
+    @app.post("/api/auth/device-session")
+    def create_device_session(
+        request: Request,
+        x_jarvis_token: Annotated[str | None, Header(alias=TOKEN_HEADER)] = None,
+        x_jarvis_device_id: Annotated[str | None, Header(alias=DEVICE_HEADER)] = None,
+    ) -> JSONResponse:
+        access_context = _validate_trusted_access(
+            request=request,
+            token=x_jarvis_token,
+            device_id=x_jarvis_device_id,
+        )
+        response = JSONResponse(
+            {
+                "mensagem": "Dispositivo confiavel validado com sucesso.",
+                "device_id": access_context["device_id"],
+            }
+        )
+        response.set_cookie(
+            key=SESSION_COOKIE,
+            value=_build_trusted_session_value(request.app.state.api_token, access_context["device_id"]),
+            httponly=True,
+            samesite="lax",
+        )
+        return response
+
+    @app.delete("/api/auth/device-session")
+    def clear_device_session() -> JSONResponse:
+        response = JSONResponse({"mensagem": "Sessao do dispositivo removida."})
+        response.delete_cookie(SESSION_COOKIE)
+        return response
 
     @app.get("/api/saude")
     def healthcheck(request: Request) -> Dict[str, Any]:
@@ -89,7 +130,7 @@ def create_app(
             "api_iniciada_em": app.state.started_at,
         }
 
-    @app.get("/api/status", dependencies=[Depends(require_token)])
+    @app.get("/api/status", dependencies=[Depends(require_trusted_device)])
     def get_status(request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
         return {
@@ -97,7 +138,7 @@ def create_app(
             "dados": runtime.describe_state(),
         }
 
-    @app.post("/api/ciclos/executar", dependencies=[Depends(require_token)])
+    @app.post("/api/ciclos/executar", dependencies=[Depends(require_trusted_device)])
     def run_cycle(request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
         cycle_result = runtime.run_planner_cycle()
@@ -107,7 +148,7 @@ def create_app(
             "resultado": cycle_result,
         }
 
-    @app.get("/api/tarefas", dependencies=[Depends(require_token)])
+    @app.get("/api/tarefas", dependencies=[Depends(require_trusted_device)])
     def list_tasks(request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
         tasks = runtime.list_tasks()
@@ -117,7 +158,7 @@ def create_app(
             "tarefas": tasks,
         }
 
-    @app.post("/api/tarefas", dependencies=[Depends(require_token)])
+    @app.post("/api/tarefas", dependencies=[Depends(require_trusted_device)])
     def add_task(payload: TaskCreateRequest, request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
         task = payload.model_dump()
@@ -132,7 +173,7 @@ def create_app(
             "tarefa": enqueued_task,
         }
 
-    @app.get("/api/objetivos", dependencies=[Depends(require_token)])
+    @app.get("/api/objetivos", dependencies=[Depends(require_trusted_device)])
     def get_goals(request: Request, goal_id: str | None = Query(default=None)) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
         return {
@@ -140,7 +181,7 @@ def create_app(
             "dados": runtime.get_goal_report(goal_id),
         }
 
-    @app.get("/api/memoria/recente", dependencies=[Depends(require_token)])
+    @app.get("/api/memoria/recente", dependencies=[Depends(require_trusted_device)])
     def get_recent_memory(
         request: Request,
         limit: int = Query(default=5, ge=1, le=20),
@@ -155,7 +196,7 @@ def create_app(
             "eventos_episodicos": recent_events,
         }
 
-    @app.get("/api/relatorio", dependencies=[Depends(require_token)])
+    @app.get("/api/relatorio", dependencies=[Depends(require_trusted_device)])
     def get_report(request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
         return runtime.build_system_report(last_cycle_result=app.state.last_cycle_result)
@@ -182,6 +223,80 @@ def _ensure_runtime_initialized(request: Request) -> InternalAgentRuntime:
     request.app.state.runtime = runtime
     request.app.state.bootstrap_state = bootstrap_state
     return runtime
+
+
+def _validate_trusted_access(
+    request: Request,
+    token: str | None,
+    device_id: str | None,
+) -> Dict[str, str]:
+    runtime = _ensure_runtime_initialized(request)
+    client_host = request.client.host if request.client is not None else None
+
+    if not token:
+        _record_access_attempt(runtime, request, device_id, False, "missing_token", client_host)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de acesso ausente.",
+        )
+
+    if token != request.app.state.api_token:
+        _record_access_attempt(runtime, request, device_id, False, "invalid_token", client_host)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de acesso invalido.",
+        )
+
+    if not device_id:
+        _record_access_attempt(runtime, request, device_id, False, "missing_device_id", client_host)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Identificador do dispositivo ausente.",
+        )
+
+    if device_id != request.app.state.trusted_device_id:
+        _record_access_attempt(runtime, request, device_id, False, "untrusted_device", client_host)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dispositivo nao autorizado.",
+        )
+
+    _record_access_attempt(runtime, request, device_id, True, None, client_host)
+    return {"device_id": device_id}
+
+
+def _record_access_attempt(
+    runtime: InternalAgentRuntime,
+    request: Request,
+    device_id: str | None,
+    allowed: bool,
+    reason: str | None,
+    client_host: str | None,
+) -> None:
+    runtime.record_access_attempt(
+        endpoint=request.url.path,
+        method=request.method,
+        device_id=device_id,
+        allowed=allowed,
+        reason=reason,
+        client_host=client_host,
+    )
+
+
+def _has_valid_dashboard_session(request: Request) -> bool:
+    session_value = request.cookies.get(SESSION_COOKIE)
+    if not session_value:
+        return False
+
+    expected_value = _build_trusted_session_value(
+        request.app.state.api_token,
+        request.app.state.trusted_device_id,
+    )
+    return session_value == expected_value
+
+
+def _build_trusted_session_value(api_token: str, device_id: str) -> str:
+    return hashlib.sha256(f"{api_token}:{device_id}".encode("utf-8")).hexdigest()
 
 
 app = create_app()

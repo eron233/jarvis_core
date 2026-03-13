@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acesso restrito ao JARVIS</title>
+  <style>
+    :root {
+      --bg: #f3ede0;
+      --panel: #fff8ee;
+      --ink: #1b231e;
+      --accent: #295f46;
+      --accent-ink: #f7f3eb;
+      --line: #d8cfbe;
+      --warn: #8a4f18;
+      --sans: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background:
+        radial-gradient(circle at top, rgba(41, 95, 70, 0.18), transparent 30%),
+        linear-gradient(180deg, #faf5eb 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: var(--sans);
+    }
+
+    .gate {
+      width: min(100%, 460px);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 18px 40px rgba(27, 35, 30, 0.1);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 1.5rem;
+    }
+
+    p {
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin: 14px 0 8px;
+    }
+
+    input,
+    button {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      font: inherit;
+    }
+
+    input {
+      padding: 12px;
+      background: #fffdf8;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(41, 95, 70, 0.08);
+      color: var(--warn);
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <main class="gate">
+    <h1>Acesso restrito por dispositivo confiável</h1>
+    <p>Informe o token secreto e o identificador do dispositivo principal autorizado para liberar o painel do JARVIS neste aparelho.</p>
+
+    <label for="tokenInput">Token do JARVIS</label>
+    <input id="tokenInput" type="password" placeholder="Token secreto" />
+
+    <label for="deviceInput">Identificador do dispositivo</label>
+    <input id="deviceInput" type="text" placeholder="Exemplo: eron-celular-principal" />
+
+    <button type="button" onclick="validarDispositivo()">Liberar acesso</button>
+
+    <div class="status" id="statusBox">Aguardando validacao do dispositivo.</div>
+  </main>
+
+  <script>
+    const TOKEN_KEY = "jarvis_api_token";
+    const DEVICE_KEY = "jarvis_device_id";
+
+    function persistirCredenciais(token, deviceId) {
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(DEVICE_KEY, deviceId);
+    }
+
+    async function validarDispositivo() {
+      const token = document.getElementById("tokenInput").value.trim();
+      const deviceId = document.getElementById("deviceInput").value.trim();
+      const statusBox = document.getElementById("statusBox");
+
+      if (!token || !deviceId) {
+        statusBox.textContent = "Informe o token e o identificador do dispositivo.";
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/auth/device-session", {
+          method: "POST",
+          headers: {
+            "X-Jarvis-Token": token,
+            "X-Jarvis-Device-Id": deviceId,
+          },
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.detail || payload.mensagem || "Falha na validacao do dispositivo.");
+        }
+
+        persistirCredenciais(token, deviceId);
+        statusBox.textContent = "Dispositivo validado. Redirecionando para o painel.";
+        window.location.href = "/painel";
+      } catch (error) {
+        statusBox.textContent = error.message;
+      }
+    }
+
+    window.addEventListener("load", () => {
+      const token = localStorage.getItem(TOKEN_KEY) || "";
+      const deviceId = localStorage.getItem(DEVICE_KEY) || "";
+      document.getElementById("tokenInput").value = token;
+      document.getElementById("deviceInput").value = deviceId;
+    });
+  </script>
+</body>
+</html>

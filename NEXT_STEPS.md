@@ -2,18 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- Implementar o BLOCO 4 reforcando autenticacao na API e no painel
+- Implementar o BLOCO 5 com relatorios operacionais completos e health report rico
 
 ## Delta recomendado
 
-- mover o token minimo para configuracao operacional explicita
-- proteger o painel com fluxo mais claro de autenticacao
-- definir usuario inicial root e regra de acesso
-- preparar reutilizacao da autenticacao nas proximas interfaces
-- manter simplicidade sem criar sistema pesado de identidade
+- enriquecer os relatorios geral, fila, objetivos, memoria e auditoria
+- expor endpoints dedicados de relatorio
+- adicionar healthcheck rico com verificacoes de configuracao
+- refletir os novos relatorios no painel mobile
+- reaproveitar o que ja existe em runtime, memoria, fila e auditoria
 
 ## Criterios de aceite
 
-- nenhuma duplicacao de logica entre runtime, API e painel
-- autenticacao simples, clara e segura o suficiente para exposicao inicial
-- compatibilidade com deploy simples e operacao remota
+- nenhuma duplicacao de logica entre runtime, API, painel e auditoria
+- relatorios tecnicos, diretos e uteis para operacao real
+- protecao por dispositivo confiavel mantida nos novos endpoints

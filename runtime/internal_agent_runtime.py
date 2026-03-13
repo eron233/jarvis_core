@@ -318,6 +318,57 @@ class InternalAgentRuntime:
             },
         }
 
+    def record_access_attempt(
+        self,
+        endpoint: str,
+        method: str,
+        device_id: str | None,
+        allowed: bool,
+        reason: str | None = None,
+        client_host: str | None = None,
+    ) -> Dict[str, Any]:
+        """Registra uma tentativa de acesso na auditoria e na memoria episodica."""
+
+        self.bootstrap()
+        status = "authorized" if allowed else "denied"
+        payload = {
+            "endpoint": endpoint,
+            "method": method,
+            "device_id": device_id or "nao_informado",
+            "status": status,
+            "client_host": client_host,
+        }
+        if reason is not None:
+            payload["reason"] = reason
+
+        entry = self.audit_logger.record("access", payload)
+        self.memory["episodic"].remember(
+            {
+                "event": "access",
+                "event_ptbr": "acesso",
+                "endpoint": endpoint,
+                "method": method,
+                "device_id": device_id or "nao_informado",
+                "status": status,
+                "status_ptbr": traduzir_status(status),
+                "reason": reason,
+                "reason_ptbr": traduzir_motivo(reason) if reason is not None else None,
+                "client_host": client_host,
+            }
+        )
+        return entry
+
+    def get_access_events(self, limit: int = 10, denied_only: bool = False) -> list[Dict[str, Any]]:
+        """Retorna os eventos de acesso mais recentes da auditoria."""
+
+        self.bootstrap()
+        access_entries = [entry for entry in self.audit_logger.entries if entry["event"] == "access"]
+        if denied_only:
+            access_entries = [
+                entry for entry in access_entries if entry["payload"].get("status") == "denied"
+            ]
+        return [deepcopy(entry) for entry in access_entries[-limit:]]
+
     def persist_runtime_state(self) -> Dict[str, Any]:
         """Persiste os artefatos de runtime necessarios para reinicio seguro."""
 

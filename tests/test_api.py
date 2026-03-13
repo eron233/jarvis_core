@@ -51,13 +51,17 @@ class JarvisApiTests(unittest.TestCase):
         app = create_app(
             runtime=runtime,
             api_token="token-teste",
+            trusted_device_id="eron-celular-principal",
             config=SystemLoopConfig(
                 queue_storage_path=queue_path,
                 semantic_storage_path=semantic_path,
                 install_signal_handlers=False,
             ),
         )
-        return TestClient(app), {"X-Jarvis-Token": "token-teste"}
+        return TestClient(app), {
+            "X-Jarvis-Token": "token-teste",
+            "X-Jarvis-Device-Id": "eron-celular-principal",
+        }
 
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
         client, _headers = self.build_client("health")
@@ -70,12 +74,46 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(payload["status_ptbr"], "saudavel")
 
     def test_api_exige_token_nos_endpoints_protegidos(self) -> None:
-        client, _headers = self.build_client("auth")
+        client, _headers = self.build_client("auth_missing_headers")
 
         response = client.get("/api/status")
 
         self.assertEqual(response.status_code, 401)
-        self.assertIn("Token de acesso", response.json()["detail"])
+        self.assertEqual(response.json()["detail"], "Token de acesso ausente.")
+        last_denied = client.app.state.runtime.get_access_events(limit=1, denied_only=True)[0]
+        self.assertEqual(last_denied["payload"]["reason"], "missing_token")
+
+    def test_api_permite_acesso_com_token_e_device_corretos(self) -> None:
+        client, headers = self.build_client("authorized")
+
+        response = client.get("/api/status", headers=headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["dados"]["status"], "initialized")
+        last_access = client.app.state.runtime.get_access_events(limit=1)[0]
+        self.assertEqual(last_access["payload"]["status"], "authorized")
+
+    def test_api_nega_acesso_com_token_invalido(self) -> None:
+        client, headers = self.build_client("invalid_token")
+        headers["X-Jarvis-Token"] = "token-errado"
+
+        response = client.get("/api/status", headers=headers)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["detail"], "Token de acesso invalido.")
+        last_denied = client.app.state.runtime.get_access_events(limit=1, denied_only=True)[0]
+        self.assertEqual(last_denied["payload"]["reason"], "invalid_token")
+
+    def test_api_nega_acesso_com_device_invalido(self) -> None:
+        client, headers = self.build_client("invalid_device")
+        headers["X-Jarvis-Device-Id"] = "celular-nao-autorizado"
+
+        response = client.get("/api/status", headers=headers)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["detail"], "Dispositivo nao autorizado.")
+        last_denied = client.app.state.runtime.get_access_events(limit=1, denied_only=True)[0]
+        self.assertEqual(last_denied["payload"]["reason"], "untrusted_device")
 
     def test_endpoints_principais_operam_sobre_runtime_real(self) -> None:
         client, headers = self.build_client("core")
