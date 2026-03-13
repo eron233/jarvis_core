@@ -23,7 +23,7 @@ Este roadmap acompanha os blocos de construcao previstos para levar o JARVIS do 
 
 ## Proxima prioridade
 
-- BLOCO 3 — Geracao controlada de tarefas
+- BLOCO 3 — Acesso por celular
 
 ## Criterio de continuidade
 

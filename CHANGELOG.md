@@ -13,6 +13,10 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Adicionado vinculo entre tarefas e objetivos por `parent_goal_id`, `parent_goal` e `goal_priority`.
 - Integrado o runtime para atualizar progresso de objetivos apos execucao.
 - Adicionados testes da camada de objetivos e da integracao com runtime.
+- Implementada a API minima do JARVIS em FastAPI em `interface/api/app.py`.
+- Adicionada autenticacao inicial por token para endpoints protegidos.
+- Expostos endpoints de status, ciclo, tarefas, objetivos, memoria recente e relatorio operacional.
+- Adicionada documentacao dedicada da API em `API_PTBR.md`.
 
 ## v0.1.0 - Scaffold inicial
 

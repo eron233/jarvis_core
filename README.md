@@ -1,6 +1,6 @@
 # Sistema Cognitivo JARVIS
 
-O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, objetivos, controle de execucao e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica, loop continuo de sistema e uma camada real de objetivos.
+O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, objetivos, controle de execucao, API de acesso e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica, loop continuo de sistema, camada real de objetivos e API FastAPI integrada ao nucleo.
 
 Idioma padrao do sistema: `pt-BR`
 
@@ -15,6 +15,7 @@ O scaffold atual esta organizado em um conjunto enxuto de camadas cooperativas:
 - `workers/`: workers especializados para tarefas de runtime, financas, estudio e estudo
 - `runtime/`: bootstrap do runtime e logica de autonomia
 - `main.py`: entrypoint do processo continuo inicial do sistema
+- `interface/api/`: API minima de acesso ao sistema
 - `infrastructure/`: placeholders de deploy, persistencia e monitoramento
 - `interface/`: placeholders de API, CLI e dashboard
 - `tests/`: local da suite de testes e cobertura de regressao
@@ -59,12 +60,23 @@ Inicializa o estado ativo do sistema e aplica controle de autonomia com supervis
 
 Coordena o bootstrap do runtime, recupera fila e memoria semantica persistidas, executa ciclos sucessivos do planner, registra logs por ciclo e realiza encerramento gracioso com persistencia final de estado.
 
+### API de Controle
+
+Exponibiliza acesso externo ao runtime por meio de endpoints seguros para status, execucao de ciclo, fila, objetivos, memoria e relatorio operacional.
+
 ## Execucao Inicial
 
 Exemplo de subida local com um ciclo controlado:
 
 ```powershell
 python main.py --max-cycles 1 --stop-when-idle
+```
+
+Exemplo de subida local da API:
+
+```powershell
+set JARVIS_API_TOKEN=seu_token_seguro
+python -m uvicorn interface.api.app:app --host 0.0.0.0 --port 8000
 ```
 
 ## Fluxo de Desenvolvimento

@@ -117,6 +117,16 @@ class SemanticMemory:
 
         return [deepcopy(entry) for entry in self.entries if entry["domain"] == domain]
 
+    def recent_entries(self, limit: int = 10, domain: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retorna as entradas mais recentes, opcionalmente filtradas por dominio."""
+
+        entries = self.entries
+        if domain is not None:
+            entries = [entry for entry in entries if entry["domain"] == domain]
+
+        recent_entries = entries[-max(limit, 0) :]
+        return [deepcopy(entry) for entry in reversed(recent_entries)]
+
     def snapshot(self) -> Dict[str, Any]:
         """Retorna e persiste o snapshot atual da memoria semantica."""
 

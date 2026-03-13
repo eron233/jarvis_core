@@ -100,3 +100,22 @@ Capacidades atuais:
 - recuperacao segura de reinicio
 
 Essa camada foi mantida propositalmente fina para que futuras interfaces, monitoramento e API controlem o mesmo nucleo sem bifurcar responsabilidades.
+
+## API de Controle
+
+Local: `interface/api/`
+
+A API de controle foi adicionada como uma camada leve em FastAPI sobre o runtime existente. Ela nao cria um novo nucleo; apenas expõe o que o sistema ja sabe fazer por meio de endpoints reutilizaveis.
+
+Capacidades atuais:
+
+- healthcheck publico
+- autenticacao minima por token nos endpoints protegidos
+- consulta de estado do sistema
+- execucao manual de um ciclo do planner
+- listagem e criacao de tarefas
+- consulta de objetivos
+- consulta de memoria recente
+- relatorio operacional resumido
+
+Essa camada prepara o terreno para painel mobile, monitoramento e operacao remota sem romper os contratos internos ja estabilizados.

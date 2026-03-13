@@ -2,19 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- Implementar o BLOCO 3 com `executive_planner/task_generation.py`
+- Implementar o BLOCO 3 com painel web responsivo em `interface/dashboard/`
 
 ## Delta recomendado
 
-- gerar proximas tarefas a partir dos objetivos ativos
-- exigir `parent_goal_id` em toda tarefa derivada
-- limitar a quantidade de tarefas inferidas por ciclo
-- validar toda tarefa gerada antes de entrar na fila
-- registrar geracao em auditoria
-- manter o escopo apenas em dominios seguros
+- criar um painel HTML simples servido pela API
+- priorizar uso mobile-first
+- mostrar estado, objetivos, tarefas e memoria recente
+- permitir executar um ciclo e enviar comando textual estruturado
+- reaproveitar endpoints existentes da API
 
 ## Criterios de aceite
 
-- nenhuma duplicacao da logica de fila, validacao ou planner
-- tarefas geradas sempre auditaveis
-- testes dedicados cobrindo limite, seguranca e vinculo com objetivo
+- nenhuma duplicacao de logica entre API e painel
+- interface protegida pelo mesmo token inicial
+- painel funcional em tela de celular sem dependencias pesadas

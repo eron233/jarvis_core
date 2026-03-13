@@ -36,3 +36,4 @@ tests/_semantic_memory_artifacts/
 tests/_queue_artifacts/
 tests/_main_loop_artifacts/
 tests/_goal_artifacts/
+tests/_api_artifacts/

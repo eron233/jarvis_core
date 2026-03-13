@@ -1,0 +1,129 @@
+"""Testes unitarios para a API real do JARVIS."""
+
+from pathlib import Path
+import sys
+import unittest
+
+from fastapi.testclient import TestClient
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from executive_planner.queue import TaskQueue
+from interface.api.app import create_app
+from intent_layer.goal_manager import GoalManager
+from main import SystemLoopConfig
+from memory_system.episodic_memory import EpisodicMemory
+from memory_system.procedural_memory import ProceduralMemory
+from memory_system.semantic_memory import SemanticMemory
+from runtime.internal_agent_runtime import InternalAgentRuntime
+
+
+def make_api_artifact_path(name: str, suffix: str) -> Path:
+    return PROJECT_ROOT / "tests" / "_api_artifacts" / f"{name}_{suffix}.json"
+
+
+def reset_storage_path(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        path.unlink()
+
+
+class JarvisApiTests(unittest.TestCase):
+    def build_client(self, name: str = "api") -> tuple[TestClient, dict[str, str]]:
+        queue_path = make_api_artifact_path(name, "queue")
+        semantic_path = make_api_artifact_path(name, "semantic")
+        goal_path = make_api_artifact_path(name, "goals")
+        reset_storage_path(queue_path)
+        reset_storage_path(semantic_path)
+        reset_storage_path(goal_path)
+
+        runtime = InternalAgentRuntime()
+        runtime.task_queue = TaskQueue(storage_path=queue_path)
+        runtime.goal_manager = GoalManager(storage_path=goal_path)
+        runtime.memory = {
+            "episodic": EpisodicMemory(),
+            "semantic": SemanticMemory(storage_path=semantic_path),
+            "procedural": ProceduralMemory(),
+        }
+
+        app = create_app(
+            runtime=runtime,
+            api_token="token-teste",
+            config=SystemLoopConfig(
+                queue_storage_path=queue_path,
+                semantic_storage_path=semantic_path,
+                install_signal_handlers=False,
+            ),
+        )
+        return TestClient(app), {"X-Jarvis-Token": "token-teste"}
+
+    def test_api_inicializa_e_responde_healthcheck(self) -> None:
+        client, _headers = self.build_client("health")
+
+        response = client.get("/api/saude")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["status_ptbr"], "saudavel")
+
+    def test_api_exige_token_nos_endpoints_protegidos(self) -> None:
+        client, _headers = self.build_client("auth")
+
+        response = client.get("/api/status")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertIn("Token de acesso", response.json()["detail"])
+
+    def test_endpoints_principais_operam_sobre_runtime_real(self) -> None:
+        client, headers = self.build_client("core")
+
+        goal_response = client.app.state.runtime.goal_manager.add_active_goal(
+            title="Organizar estudo semanal",
+            description="Objetivo operacional de estudo",
+            priority=6,
+        )
+
+        task_response = client.post(
+            "/api/tarefas",
+            headers=headers,
+            json={
+                "task_id": "api-task-1",
+                "goal": "Organizar estudo semanal",
+                "description": "Revisar plano de estudo",
+                "domain": "study",
+                "impact": 2,
+                "urgency": 3,
+                "parent_goal_id": goal_response["goal_id"],
+            },
+        )
+        self.assertEqual(task_response.status_code, 200)
+        self.assertEqual(task_response.json()["tarefa"]["parent_goal_id"], goal_response["goal_id"])
+
+        list_response = client.get("/api/tarefas", headers=headers)
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(list_response.json()["total"], 1)
+
+        cycle_response = client.post("/api/ciclos/executar", headers=headers)
+        self.assertEqual(cycle_response.status_code, 200)
+        self.assertEqual(cycle_response.json()["resultado"]["status"], "executed")
+
+        goals_response = client.get("/api/objetivos", headers=headers)
+        self.assertEqual(goals_response.status_code, 200)
+        self.assertEqual(goals_response.json()["dados"]["resumo"]["objetivos_concluidos"], 1)
+
+        memory_response = client.get("/api/memoria/recente?limit=3", headers=headers)
+        self.assertEqual(memory_response.status_code, 200)
+        self.assertGreaterEqual(len(memory_response.json()["entradas_semanticas"]), 1)
+
+        report_response = client.get("/api/relatorio", headers=headers)
+        self.assertEqual(report_response.status_code, 200)
+        report_payload = report_response.json()
+        self.assertEqual(report_payload["saude_runtime"]["status"], "ok")
+        self.assertEqual(report_payload["objetivos"]["resumo"]["objetivos_concluidos"], 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

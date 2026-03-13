@@ -249,7 +249,7 @@ class InternalAgentRuntime:
         parent_goal_id = task_to_enqueue.get("parent_goal_id")
         if parent_goal_id is not None:
             task_to_enqueue = self.goal_manager.link_task_to_goal(task_to_enqueue, str(parent_goal_id))
-        self.task_queue.enqueue(task_to_enqueue)
+        return self.task_queue.enqueue(task_to_enqueue)
 
     def run_planner_cycle(self) -> Dict[str, Any]:
         """Executa um ciclo do planner a partir de um runtime inicializado."""
@@ -270,6 +270,53 @@ class InternalAgentRuntime:
 
         self.bootstrap()
         return self.goal_manager.goal_report(goal_id)
+
+    def list_tasks(self) -> list[Dict[str, Any]]:
+        """Retorna uma copia da fila atual de tarefas."""
+
+        self.bootstrap()
+        return [deepcopy(task) for task in self.task_queue.items]
+
+    def get_recent_events(self, limit: int = 10) -> list[Dict[str, Any]]:
+        """Retorna os eventos episodicos mais recentes."""
+
+        self.bootstrap()
+        return self.memory["episodic"].recent(limit)
+
+    def get_recent_semantic_entries(
+        self,
+        limit: int = 10,
+        domain: str | None = None,
+    ) -> list[Dict[str, Any]]:
+        """Retorna as entradas semanticas mais recentes."""
+
+        self.bootstrap()
+        return self.memory["semantic"].recent_entries(limit=limit, domain=domain)
+
+    def build_system_report(self, last_cycle_result: Dict[str, Any] | None = None) -> Dict[str, Any]:
+        """Monta um relatorio operacional resumido do sistema."""
+
+        self.bootstrap()
+        tasks = self.list_tasks()
+        recent_events = self.get_recent_events(limit=5)
+        recent_memories = self.get_recent_semantic_entries(limit=5)
+
+        return {
+            "mensagem": "Relatorio operacional do JARVIS.",
+            "estado_geral": self.describe_state(),
+            "fila_atual": {
+                "total": len(tasks),
+                "tarefas": tasks,
+            },
+            "objetivos": self.get_goal_report(),
+            "ultima_execucao": deepcopy(last_cycle_result),
+            "ultimos_eventos": recent_events,
+            "ultimas_memorias": recent_memories,
+            "saude_runtime": {
+                "status": "ok" if self.status == "initialized" else "degradado",
+                "status_ptbr": "saudavel" if self.status == "initialized" else "degradado",
+            },
+        }
 
     def persist_runtime_state(self) -> Dict[str, Any]:
         """Persiste os artefatos de runtime necessarios para reinicio seguro."""
