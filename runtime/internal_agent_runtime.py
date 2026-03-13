@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timezone
+import json
 from typing import Any, Dict
 
 from executive_planner.audit import traduzir_estado, traduzir_motivo, traduzir_status
@@ -15,6 +17,10 @@ class InternalAgentRuntime:
     def __init__(self, autonomy_controller: AutonomyController | None = None) -> None:
         self.autonomy_controller = autonomy_controller or AutonomyController()
         self.status = "cold"
+        self.started_at: str | None = None
+        self.last_cycle_at: str | None = None
+        self.last_cycle_result: Dict[str, Any] | None = None
+        self.total_cycles_executed = 0
         self.goal_manager: Any = None
         self.task_queue: Any = None
         self.prioritizer: Any = None
@@ -140,6 +146,8 @@ class InternalAgentRuntime:
             }
         )
 
+        if self.started_at is None:
+            self.started_at = self._utc_now()
         self.status = "initialized"
         return self.describe_state()
 
@@ -255,7 +263,11 @@ class InternalAgentRuntime:
         """Executa um ciclo do planner a partir de um runtime inicializado."""
 
         self.bootstrap()
-        return self.planner.run_cycle()
+        cycle_result = self.planner.run_cycle()
+        self.total_cycles_executed += 1
+        self.last_cycle_at = self._utc_now()
+        self.last_cycle_result = deepcopy(cycle_result)
+        return cycle_result
 
     def query_semantic_memory(
         self, query: str, domain: str | None = None, limit: int = 5
@@ -297,25 +309,256 @@ class InternalAgentRuntime:
         """Monta um relatorio operacional resumido do sistema."""
 
         self.bootstrap()
-        tasks = self.list_tasks()
-        recent_events = self.get_recent_events(limit=5)
-        recent_memories = self.get_recent_semantic_entries(limit=5)
+        queue_report = self.build_queue_report()
+        memory_report = self.build_memory_report()
+        goals_report = self.build_goal_operational_report()
+        audit_report = self.build_audit_report()
+        planner_report = self.build_planner_report()
+        current_cycle = deepcopy(last_cycle_result or self.last_cycle_result)
 
         return {
             "mensagem": "Relatorio operacional do JARVIS.",
-            "estado_geral": self.describe_state(),
-            "fila_atual": {
-                "total": len(tasks),
-                "tarefas": tasks,
-            },
-            "objetivos": self.get_goal_report(),
-            "ultima_execucao": deepcopy(last_cycle_result),
-            "ultimos_eventos": recent_events,
-            "ultimas_memorias": recent_memories,
+            "status_runtime": self.describe_state(),
+            "uptime_segundos": self._uptime_seconds(),
+            "ultimo_ciclo_executado": current_cycle,
+            "total_ciclos_executados": self.total_cycles_executed,
+            "estado_do_planner": planner_report,
+            "estado_da_fila": queue_report["resumo"],
+            "estado_da_memoria": memory_report["resumo"],
+            "objetivos": goals_report["resumo"],
+            "quantidade_objetivos_ativos": goals_report["resumo"]["total_objetivos_ativos"],
+            "quantidade_tarefas_pendentes": queue_report["resumo"]["tarefas_pendentes"],
+            "quantidade_tarefas_concluidas": queue_report["resumo"]["tarefas_concluidas_total"],
+            "ultimas_falhas_registradas": audit_report["ultimas_falhas"],
+            "ultimos_eventos": audit_report["ultimas_acoes_relevantes"],
+            "ultimas_memorias": memory_report["memorias_recentes"],
             "saude_runtime": {
                 "status": "ok" if self.status == "initialized" else "degradado",
                 "status_ptbr": "saudavel" if self.status == "initialized" else "degradado",
             },
+        }
+
+    def build_planner_report(self) -> Dict[str, Any]:
+        """Retorna o estado operacional atual do planner."""
+
+        self.bootstrap()
+        planner_entries = [
+            deepcopy(entry)
+            for entry in self.audit_logger.entries
+            if entry["event"] in {"plan", "prioritize", "validate", "schedule", "execute", "review"}
+        ]
+        return {
+            "acoplado": self.planner is not None and self.planner.runtime is self,
+            "classe": self._planner_path(),
+            "total_entradas_auditoria": len(planner_entries),
+            "ultima_decisao": planner_entries[-1] if planner_entries else None,
+        }
+
+    def build_queue_report(self) -> Dict[str, Any]:
+        """Retorna um relatorio operacional da fila."""
+
+        self.bootstrap()
+        tasks = self.list_tasks()
+        pending_states = {"queued", "scheduled", "deferred"}
+        top_tasks = sorted(
+            tasks,
+            key=lambda task: (
+                -self.prioritizer.score(task),
+                task.get("created_at", ""),
+                task.get("task_id", ""),
+            ),
+        )[:5]
+
+        return {
+            "resumo": {
+                "total_tarefas": len(tasks),
+                "tarefas_pendentes": len([task for task in tasks if task.get("state") in pending_states]),
+                "tarefas_em_execucao": len([task for task in tasks if task.get("state") == "executing"]),
+                "tarefas_bloqueadas": len([task for task in tasks if task.get("state") == "blocked"]),
+                "tarefas_concluidas_total": self._count_completed_tasks(),
+                "tarefas_aguardando_aprovacao": len(
+                    [
+                        task
+                        for task in tasks
+                        if task.get("requires_supervision") and not task.get("approved", False)
+                    ]
+                ),
+                "tarefas_vinculadas_a_objetivos": len([task for task in tasks if task.get("parent_goal_id")]),
+            },
+            "principais_tarefas": [
+                {
+                    "task_id": task.get("task_id"),
+                    "goal": task.get("goal"),
+                    "estado": task.get("state"),
+                    "estado_ptbr": task.get("state_ptbr"),
+                    "prioridade_calculada": self.prioritizer.score(task),
+                    "parent_goal_id": task.get("parent_goal_id"),
+                    "parent_goal": task.get("parent_goal"),
+                }
+                for task in top_tasks
+            ],
+            "tarefas": tasks,
+        }
+
+    def build_goal_operational_report(self) -> Dict[str, Any]:
+        """Retorna um relatorio enriquecido da camada de objetivos."""
+
+        self.bootstrap()
+        tasks = self.list_tasks()
+        queued_tasks_by_goal: Dict[str, list[Dict[str, Any]]] = {}
+        for task in tasks:
+            goal_id = task.get("parent_goal_id")
+            if not goal_id:
+                continue
+            queued_tasks_by_goal.setdefault(str(goal_id), []).append(
+                {
+                    "task_id": task.get("task_id"),
+                    "goal": task.get("goal"),
+                    "estado": task.get("state"),
+                    "estado_ptbr": task.get("state_ptbr"),
+                }
+            )
+
+        base_report = self.goal_manager.goal_report()
+        strategic_raw = {goal["goal_id"]: goal for goal in self.goal_manager.list_strategic_goals()}
+        active_raw = {goal["goal_id"]: goal for goal in self.goal_manager.list_active_goals()}
+
+        strategic_reports = []
+        for item in base_report["metas_estrategicas"]:
+            raw_goal = strategic_raw.get(item["goal_id"], {})
+            strategic_reports.append(
+                {
+                    **item,
+                    "tarefas_ids": list(raw_goal.get("task_ids", [])),
+                    "tarefas_concluidas_ids": list(raw_goal.get("completed_task_ids", [])),
+                    "tarefas_na_fila": queued_tasks_by_goal.get(item["goal_id"], []),
+                }
+            )
+
+        active_reports = []
+        for item in base_report["objetivos_ativos"]:
+            raw_goal = active_raw.get(item["goal_id"], {})
+            active_reports.append(
+                {
+                    **item,
+                    "tarefas_ids": list(raw_goal.get("task_ids", [])),
+                    "tarefas_concluidas_ids": list(raw_goal.get("completed_task_ids", [])),
+                    "tarefas_na_fila": queued_tasks_by_goal.get(item["goal_id"], []),
+                }
+            )
+
+        return {
+            "metas_estrategicas": strategic_reports,
+            "objetivos_ativos": active_reports,
+            "resumo": base_report["resumo"],
+        }
+
+    def build_memory_report(self) -> Dict[str, Any]:
+        """Retorna um relatorio operacional da memoria semantica."""
+
+        self.bootstrap()
+        semantic_memory = self.memory["semantic"]
+        domain_counts: Dict[str, int] = {}
+        for entry in semantic_memory.entries:
+            domain_counts[entry["domain"]] = domain_counts.get(entry["domain"], 0) + 1
+
+        integrity = {
+            "arquivo_configurado": str(semantic_memory.storage_path),
+            "arquivo_existe": semantic_memory.storage_path.exists(),
+            "json_valido": True,
+            "contagem_consistente": True,
+        }
+        if semantic_memory.storage_path.exists():
+            try:
+                persisted_snapshot = json.loads(semantic_memory.storage_path.read_text(encoding="utf-8"))
+                persisted_entry_count = int(persisted_snapshot.get("entry_count", 0))
+                integrity["contagem_consistente"] = persisted_entry_count == len(semantic_memory.entries)
+            except json.JSONDecodeError:
+                integrity["json_valido"] = False
+                integrity["contagem_consistente"] = False
+
+        latest_write = None
+        if semantic_memory.entries:
+            latest_write = max(entry["created_at"] for entry in semantic_memory.entries)
+
+        return {
+            "resumo": {
+                "total_entradas_semanticas": len(semantic_memory.entries),
+                "total_fatos_semanticos": len(semantic_memory.facts),
+                "ultima_escrita": latest_write,
+                "integridade_basica": integrity,
+            },
+            "memorias_recentes": self.get_recent_semantic_entries(limit=5),
+            "memorias_por_dominio": [
+                {"dominio": domain, "total": total}
+                for domain, total in sorted(domain_counts.items(), key=lambda item: item[0])
+            ],
+        }
+
+    def build_audit_report(self) -> Dict[str, Any]:
+        """Retorna um relatorio consolidado de auditoria."""
+
+        self.bootstrap()
+        planner_entries = [
+            deepcopy(entry)
+            for entry in self.audit_logger.entries
+            if entry["event"] in {"plan", "prioritize", "validate", "schedule", "execute", "review"}
+        ][-10:]
+        access_entries = self.get_access_events(limit=10)
+        denied_entries = self.get_access_events(limit=10, denied_only=True)
+        recent_actions = self.get_recent_events(limit=10)
+
+        failures: list[Dict[str, Any]] = []
+        for entry in reversed(self.audit_logger.entries):
+            payload = entry.get("payload", {})
+            if payload.get("status") in {"failed", "denied", "rejected"} or payload.get("reason") or payload.get("valid") is False:
+                failures.append(deepcopy(entry))
+            if len(failures) >= 5:
+                break
+
+        return {
+            "ultimas_decisoes_planner": planner_entries,
+            "ultimos_acessos": access_entries,
+            "ultimas_tentativas_negadas": denied_entries,
+            "ultimas_acoes_relevantes": recent_actions,
+            "ultimas_falhas": failures,
+        }
+
+    def build_health_report(
+        self,
+        api_started_at: str | None = None,
+        token_configurado: bool = False,
+        dispositivo_confiavel_configurado: bool = False,
+    ) -> Dict[str, Any]:
+        """Retorna um health report operacional do sistema."""
+
+        self.bootstrap()
+        queue_loaded = self.task_queue is not None and self.task_queue.storage_path is not None
+        memory_loaded = all(key in self.memory for key in ("episodic", "semantic", "procedural"))
+        planner_attached = self.planner is not None and self.planner.runtime is self
+        config_valid = token_configurado and dispositivo_confiavel_configurado
+        status = "ok" if all([api_started_at, self.status == "initialized", planner_attached, queue_loaded, memory_loaded, config_valid]) else "degradado"
+
+        return {
+            "status": status,
+            "status_ptbr": "saudavel" if status == "ok" else "degradado",
+            "api_ativa": api_started_at is not None,
+            "runtime_ativo": self.status == "initialized",
+            "planner_acoplado": planner_attached,
+            "fila_carregada": queue_loaded,
+            "memoria_carregada": memory_loaded,
+            "configuracao_minima_valida": config_valid,
+            "dispositivo_confiavel_configurado": dispositivo_confiavel_configurado,
+            "token_configurado": token_configurado,
+            "uptime_segundos": self._uptime_seconds(),
+            "api_iniciada_em": api_started_at,
+            "runtime_iniciado_em": self.started_at,
+            "ultima_persistencia_fila": self._last_persisted_at(
+                getattr(self.task_queue, "storage_path", None)
+            ),
+            "ultima_persistencia_memoria": self._last_persisted_at(
+                getattr(self.memory.get("semantic"), "storage_path", None)
+            ),
         }
 
     def record_access_attempt(
@@ -399,6 +642,8 @@ class InternalAgentRuntime:
             "status": self.status,
             "status_ptbr": traduzir_status(self.status),
             "default_locale": "pt-BR",
+            "started_at": self.started_at,
+            "uptime_segundos": self._uptime_seconds(),
             "planner": self._planner_path(),
             "memory": "memory_system",
             "memory_modules": list(self.memory),
@@ -408,6 +653,21 @@ class InternalAgentRuntime:
             "queue_depth": queue_depth,
             "queue_store": str(self.task_queue.storage_path) if self.task_queue is not None else None,
         }
+
+    def _uptime_seconds(self) -> int:
+        if self.started_at is None:
+            return 0
+        started_at = self._parse_isoformat(self.started_at)
+        return int((datetime.now(timezone.utc) - started_at).total_seconds())
+
+    def _count_completed_tasks(self) -> int:
+        completed_task_ids = {
+            entry["metadata"]["task_id"]
+            for entry in self.memory["semantic"].entries
+            if entry.get("metadata", {}).get("dispatch_status") == "executed"
+            and entry.get("metadata", {}).get("task_id") is not None
+        }
+        return len(completed_task_ids)
 
     def _planner_path(self) -> str:
         if self.planner is None:
@@ -430,3 +690,19 @@ class InternalAgentRuntime:
         goal = task.get("goal", "Tarefa concluida")
         runtime_status = result["result"]["runtime_status_ptbr"]
         return f"{goal} concluida por {worker_id} com status de runtime {runtime_status}"
+
+    @staticmethod
+    def _last_persisted_at(storage_path: Any) -> str | None:
+        if storage_path is None:
+            return None
+        if not storage_path.exists():
+            return None
+        return datetime.fromtimestamp(storage_path.stat().st_mtime, timezone.utc).isoformat()
+
+    @staticmethod
+    def _parse_isoformat(value: str) -> datetime:
+        return datetime.fromisoformat(value)
+
+    @staticmethod
+    def _utc_now() -> str:
+        return datetime.now(timezone.utc).isoformat()

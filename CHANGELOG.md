@@ -23,6 +23,9 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Implementada autenticacao inicial por dispositivo confiavel na API e no painel.
 - Adicionados `X-Jarvis-Token` e `X-Jarvis-Device-Id` como contrato de acesso protegido.
 - Adicionada auditoria de acessos autorizados e negados no runtime.
+- Implementados relatorios operacionais completos no runtime e na API.
+- Adicionados endpoints dedicados de relatorio e healthcheck rico.
+- Atualizado o painel para exibir saude, fila, objetivos, memoria e ocorrencias recentes.
 
 ## v0.1.0 - Scaffold inicial
 

@@ -130,6 +130,18 @@ def create_app(
             "api_iniciada_em": app.state.started_at,
         }
 
+    @app.get("/api/health", dependencies=[Depends(require_trusted_device)])
+    def detailed_healthcheck(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.build_health_report(
+            api_started_at=app.state.started_at,
+            token_configurado=_is_runtime_secret_configured(app.state.api_token, DEFAULT_API_TOKEN),
+            dispositivo_confiavel_configurado=_is_runtime_secret_configured(
+                app.state.trusted_device_id,
+                DEFAULT_TRUSTED_DEVICE_ID,
+            ),
+        )
+
     @app.get("/api/status", dependencies=[Depends(require_trusted_device)])
     def get_status(request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
@@ -200,6 +212,31 @@ def create_app(
     def get_report(request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
         return runtime.build_system_report(last_cycle_result=app.state.last_cycle_result)
+
+    @app.get("/api/relatorio/sistema", dependencies=[Depends(require_trusted_device)])
+    def get_system_report(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.build_system_report(last_cycle_result=app.state.last_cycle_result)
+
+    @app.get("/api/relatorio/fila", dependencies=[Depends(require_trusted_device)])
+    def get_queue_report(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.build_queue_report()
+
+    @app.get("/api/relatorio/objetivos", dependencies=[Depends(require_trusted_device)])
+    def get_goals_report(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.build_goal_operational_report()
+
+    @app.get("/api/relatorio/memoria", dependencies=[Depends(require_trusted_device)])
+    def get_memory_report(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.build_memory_report()
+
+    @app.get("/api/relatorio/auditoria", dependencies=[Depends(require_trusted_device)])
+    def get_audit_report(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.build_audit_report()
 
     return app
 
@@ -297,6 +334,10 @@ def _has_valid_dashboard_session(request: Request) -> bool:
 
 def _build_trusted_session_value(api_token: str, device_id: str) -> str:
     return hashlib.sha256(f"{api_token}:{device_id}".encode("utf-8")).hexdigest()
+
+
+def _is_runtime_secret_configured(value: str | None, default_value: str) -> bool:
+    return bool(value) and value != default_value
 
 
 app = create_app()

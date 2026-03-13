@@ -23,7 +23,7 @@ Este roadmap acompanha os blocos de construcao previstos para levar o JARVIS do 
 
 ## Proxima prioridade
 
-- BLOCO 5 — Relatorios operacionais completos
+- BLOCO 6 — Preparacao para nuvem
 
 ## Criterio de continuidade
 

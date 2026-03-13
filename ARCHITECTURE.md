@@ -146,3 +146,23 @@ A autenticacao inicial do JARVIS agora combina:
 - headers `X-Jarvis-Token` e `X-Jarvis-Device-Id`
 
 O objetivo nao e criar um sistema de usuarios, mas limitar o acesso ao dispositivo principal confiavel nesta fase inicial. A API valida o token e o device id em cada endpoint protegido, registra tentativas negadas em auditoria e libera o painel por meio de uma sessao curta de dispositivo confiavel.
+
+## Relatorios Operacionais
+
+Locais principais:
+
+- `runtime/internal_agent_runtime.py`
+- `interface/api/app.py`
+- `interface/dashboard/index.html`
+
+Os relatorios operacionais foram concentrados no runtime para evitar duplicacao de logica. A API apenas expõe esses relatórios, e o painel os consome para apresentar uma visao continua do sistema.
+
+Capacidades atuais:
+
+- relatorio geral do sistema
+- relatorio da fila
+- relatorio de objetivos
+- relatorio da memoria
+- relatorio de auditoria
+- healthcheck rico
+- reflexo dos relatorios no painel mobile-first

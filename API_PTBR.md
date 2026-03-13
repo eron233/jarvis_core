@@ -46,6 +46,18 @@ Se `JARVIS_TOKEN` ou `JARVIS_TRUSTED_DEVICE_ID` nao estiverem definidos, a API u
   Retorna memoria semantica recente e eventos episodicos
 - `GET /api/relatorio`
   Retorna um resumo operacional do sistema
+- `GET /api/health`
+  Retorna o healthcheck rico do sistema, protegido por token e dispositivo
+- `GET /api/relatorio/sistema`
+  Retorna o relatorio geral do sistema
+- `GET /api/relatorio/fila`
+  Retorna o relatorio detalhado da fila
+- `GET /api/relatorio/objetivos`
+  Retorna o relatorio operacional de metas e objetivos
+- `GET /api/relatorio/memoria`
+  Retorna o relatorio operacional da memoria semantica
+- `GET /api/relatorio/auditoria`
+  Retorna o relatorio consolidado de auditoria
 
 ## Observacoes
 
@@ -54,3 +66,4 @@ Se `JARVIS_TOKEN` ou `JARVIS_TRUSTED_DEVICE_ID` nao estiverem definidos, a API u
 - A autenticacao atual combina token secreto e identificador do dispositivo confiavel.
 - Toda tentativa negada gera registro de auditoria de acesso no runtime.
 - O painel web usa o mesmo token da API e uma sessao curta derivada do dispositivo confiavel.
+- O painel agora consome os endpoints de relatorio para mostrar saude, fila, objetivos, memoria e auditoria em formato operacional.

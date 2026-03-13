@@ -55,6 +55,8 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertEqual(unlocked_response.status_code, 200)
         self.assertIn("<title>Painel JARVIS</title>", unlocked_response.text)
         self.assertIn("Comando textual", unlocked_response.text)
+        self.assertIn("Saude do sistema", unlocked_response.text)
+        self.assertIn("Ultimas ocorrencias importantes", unlocked_response.text)
 
 
 if __name__ == "__main__":

@@ -219,20 +219,28 @@
 
     <section class="grid">
       <article class="card">
-        <label>Estado do sistema</label>
+        <label>Resumo geral do sistema</label>
         <pre id="stateBox">Sem dados.</pre>
       </article>
       <article class="card">
-        <label>Objetivos ativos</label>
+        <label>Relatorio de objetivos</label>
         <pre id="goalsBox">Sem dados.</pre>
       </article>
       <article class="card">
-        <label>Tarefas pendentes</label>
+        <label>Relatorio da fila</label>
         <pre id="tasksBox">Sem dados.</pre>
       </article>
       <article class="card">
-        <label>Memoria recente</label>
+        <label>Relatorio de memoria</label>
         <pre id="memoryBox">Sem dados.</pre>
+      </article>
+      <article class="card">
+        <label>Saude do sistema</label>
+        <pre id="healthBox">Sem dados.</pre>
+      </article>
+      <article class="card">
+        <label>Ultimas ocorrencias importantes</label>
+        <pre id="auditBox">Sem dados.</pre>
       </article>
     </section>
   </main>
@@ -296,21 +304,24 @@
 
     async function atualizarResumo() {
       try {
-        const [saude, estado, objetivos, tarefas, memoria] = await Promise.all([
-          apiFetch("/api/saude"),
-          apiFetch("/api/status"),
-          apiFetch("/api/objetivos"),
-          apiFetch("/api/tarefas"),
-          apiFetch("/api/memoria/recente?limit=4"),
+        const [health, systemReport, queueReport, goalsReport, memoryReport, auditReport] = await Promise.all([
+          apiFetch("/api/health"),
+          apiFetch("/api/relatorio/sistema"),
+          apiFetch("/api/relatorio/fila"),
+          apiFetch("/api/relatorio/objetivos"),
+          apiFetch("/api/relatorio/memoria"),
+          apiFetch("/api/relatorio/auditoria"),
         ]);
 
-        document.getElementById("healthStatus").textContent = "API " + saude.status_ptbr;
-        document.getElementById("runtimeStatus").textContent = "Runtime " + estado.dados.status_ptbr;
+        document.getElementById("healthStatus").textContent = "Saude " + health.status_ptbr;
+        document.getElementById("runtimeStatus").textContent = "Runtime " + systemReport.status_runtime.status_ptbr;
         document.getElementById("deviceStatus").textContent = "Dispositivo " + getDeviceId();
-        renderJson("stateBox", estado.dados);
-        renderJson("goalsBox", objetivos.dados);
-        renderJson("tasksBox", tarefas.tarefas);
-        renderJson("memoryBox", memoria.entradas_semanticas);
+        renderJson("stateBox", systemReport);
+        renderJson("goalsBox", goalsReport);
+        renderJson("tasksBox", queueReport);
+        renderJson("memoryBox", memoryReport);
+        renderJson("healthBox", health);
+        renderJson("auditBox", auditReport);
         escreverResposta("Resumo atualizado com sucesso.");
       } catch (error) {
         escreverResposta(error.message);
@@ -336,26 +347,32 @@
 
       try {
         if (command.includes("status")) {
-          const payload = await apiFetch("/api/status");
-          escreverResposta(JSON.stringify(payload.dados, null, 2));
+          const payload = await apiFetch("/api/relatorio/sistema");
+          escreverResposta(JSON.stringify(payload, null, 2));
           return;
         }
 
         if (command.includes("objetiv")) {
-          const payload = await apiFetch("/api/objetivos");
-          escreverResposta(JSON.stringify(payload.dados, null, 2));
+          const payload = await apiFetch("/api/relatorio/objetivos");
+          escreverResposta(JSON.stringify(payload, null, 2));
           return;
         }
 
         if (command.includes("taref")) {
-          const payload = await apiFetch("/api/tarefas");
-          escreverResposta(JSON.stringify(payload.tarefas, null, 2));
+          const payload = await apiFetch("/api/relatorio/fila");
+          escreverResposta(JSON.stringify(payload, null, 2));
           return;
         }
 
         if (command.includes("memoria")) {
-          const payload = await apiFetch("/api/memoria/recente?limit=5");
-          escreverResposta(JSON.stringify(payload.entradas_semanticas, null, 2));
+          const payload = await apiFetch("/api/relatorio/memoria");
+          escreverResposta(JSON.stringify(payload, null, 2));
+          return;
+        }
+
+        if (command.includes("saude")) {
+          const payload = await apiFetch("/api/health");
+          escreverResposta(JSON.stringify(payload, null, 2));
           return;
         }
 

@@ -160,7 +160,7 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(report_response.status_code, 200)
         report_payload = report_response.json()
         self.assertEqual(report_payload["saude_runtime"]["status"], "ok")
-        self.assertEqual(report_payload["objetivos"]["resumo"]["objetivos_concluidos"], 1)
+        self.assertEqual(report_payload["objetivos"]["objetivos_concluidos"], 1)
 
 
 if __name__ == "__main__":

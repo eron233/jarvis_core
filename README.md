@@ -1,6 +1,6 @@
 # Sistema Cognitivo JARVIS
 
-O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, objetivos, controle de execucao, API de acesso, painel mobile-first e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica, loop continuo de sistema, camada real de objetivos, API FastAPI integrada ao nucleo, painel web servido pela propria API e autenticacao inicial por dispositivo confiavel.
+O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, objetivos, controle de execucao, API de acesso, painel mobile-first e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica, loop continuo de sistema, camada real de objetivos, API FastAPI integrada ao nucleo, painel web servido pela propria API, autenticacao inicial por dispositivo confiavel e relatorios operacionais completos.
 
 Idioma padrao do sistema: `pt-BR`
 
@@ -72,6 +72,10 @@ Disponibiliza uma interface web simples, servida pela propria API, com foco em c
 ### Autenticacao Inicial
 
 Restringe o acesso ao sistema por meio de token secreto e identificador de dispositivo confiavel, com auditoria de tentativas negadas e sessao dedicada para liberar o painel web.
+
+### Relatorios Operacionais
+
+Expõem visao técnica e direta do estado do sistema, da fila, da memória, dos objetivos, da saúde do runtime e da auditoria recente tanto pela API quanto pelo painel mobile.
 
 ## Execucao Inicial
 

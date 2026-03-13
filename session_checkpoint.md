@@ -2,23 +2,23 @@
 
 ## Ciclo atual
 
-- Ciclo: 5
-- Capacidade implementada: autenticacao por dispositivo confiavel
+- Ciclo: 6
+- Capacidade implementada: relatorios operacionais completos
 - Estado: concluido com testes verdes
 
 ## Entregas do ciclo
 
-- validacao de `X-Jarvis-Token` e `X-Jarvis-Device-Id`
-- sessao do painel por dispositivo confiavel
-- auditoria de acessos autorizados e negados
-- gate de acesso dedicado para o painel
-- documentacao e testes de seguranca atualizados
+- builders de relatorio no runtime para sistema, fila, objetivos, memoria, auditoria e health
+- endpoints dedicados de relatorio e `/api/health`
+- painel atualizado para exibir saude e ocorrencias recentes
+- testes dedicados dos relatorios operacionais
+- documentacao de operacao atualizada
 
 ## Validacao
 
 - suite executada: `python -m unittest discover -s tests -v`
-- resultado: `26 testes aprovados`
+- resultado: `28 testes aprovados`
 
 ## Proximo bloco
 
-- BLOCO 5 — Relatorios operacionais completos
+- BLOCO 6 — Preparacao para nuvem
