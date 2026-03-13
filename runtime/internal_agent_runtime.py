@@ -535,9 +535,10 @@ class InternalAgentRuntime:
         self.bootstrap()
         queue_loaded = self.task_queue is not None and self.task_queue.storage_path is not None
         memory_loaded = all(key in self.memory for key in ("episodic", "semantic", "procedural"))
+        goals_loaded = self.goal_manager is not None and self.goal_manager.storage_path is not None
         planner_attached = self.planner is not None and self.planner.runtime is self
         config_valid = token_configurado and dispositivo_confiavel_configurado
-        status = "ok" if all([api_started_at, self.status == "initialized", planner_attached, queue_loaded, memory_loaded, config_valid]) else "degradado"
+        status = "ok" if all([api_started_at, self.status == "initialized", planner_attached, queue_loaded, memory_loaded, goals_loaded, config_valid]) else "degradado"
 
         return {
             "status": status,
@@ -547,6 +548,7 @@ class InternalAgentRuntime:
             "planner_acoplado": planner_attached,
             "fila_carregada": queue_loaded,
             "memoria_carregada": memory_loaded,
+            "objetivos_carregados": goals_loaded,
             "configuracao_minima_valida": config_valid,
             "dispositivo_confiavel_configurado": dispositivo_confiavel_configurado,
             "token_configurado": token_configurado,
@@ -558,6 +560,9 @@ class InternalAgentRuntime:
             ),
             "ultima_persistencia_memoria": self._last_persisted_at(
                 getattr(self.memory.get("semantic"), "storage_path", None)
+            ),
+            "ultima_persistencia_objetivos": self._last_persisted_at(
+                getattr(self.goal_manager, "storage_path", None)
             ),
         }
 
@@ -626,9 +631,14 @@ class InternalAgentRuntime:
         if semantic_memory is not None:
             semantic_snapshot = semantic_memory.snapshot()
 
+        goals_snapshot = None
+        if self.goal_manager is not None:
+            goals_snapshot = self.goal_manager.snapshot()
+
         return {
             "queue": deepcopy(queue_snapshot),
             "semantic_memory": deepcopy(semantic_snapshot),
+            "goals": deepcopy(goals_snapshot),
         }
 
     def describe_state(self) -> Dict[str, Any]:
@@ -652,6 +662,12 @@ class InternalAgentRuntime:
             "strategic_goal_count": len(self.goal_manager.list_strategic_goals()),
             "queue_depth": queue_depth,
             "queue_store": str(self.task_queue.storage_path) if self.task_queue is not None else None,
+            "goal_store": str(self.goal_manager.storage_path) if self.goal_manager is not None else None,
+            "semantic_store": (
+                str(self.memory["semantic"].storage_path) if self.memory.get("semantic") is not None else None
+            ),
+            "last_cycle_at": self.last_cycle_at,
+            "total_cycles_executed": self.total_cycles_executed,
         }
 
     def _uptime_seconds(self) -> int:

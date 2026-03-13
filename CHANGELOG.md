@@ -26,6 +26,15 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Implementados relatorios operacionais completos no runtime e na API.
 - Adicionados endpoints dedicados de relatorio e healthcheck rico.
 - Atualizado o painel para exibir saude, fila, objetivos, memoria e ocorrencias recentes.
+- Implementada configuracao central de ambiente em `runtime/system_config.py`.
+- Adicionado runner de servidor em `runtime/server.py` para subir API + loop continuo opcional.
+- Adicionada recuperacao segura de arquivos JSON corrompidos com backup no bootstrap.
+- Criados `Dockerfile`, `.dockerignore`, `.env.example` e `docker-compose.yml`.
+- Definidos diretorios persistentes `data/`, `logs/` e `reports/`.
+- Adicionado healthcheck publico em `/health` com resumo de ambiente.
+- Escrita de `environment_report.json`, `shutdown_report.json` e `jarvis.log` preparada para deploy.
+- Adicionados testes de configuracao, startup e deploy em `tests/test_cloud_deploy.py`.
+- Atualizada a documentacao de deploy em `DEPLOY_PTBR.md`.
 
 ## v0.1.0 - Scaffold inicial
 

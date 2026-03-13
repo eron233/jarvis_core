@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
-import os
 from pathlib import Path
 from typing import Annotated, Any, Dict, Optional
 
@@ -14,12 +13,15 @@ from pydantic import BaseModel, Field
 
 from main import SystemLoopConfig, bootstrap_runtime
 from runtime.internal_agent_runtime import InternalAgentRuntime
+from runtime.system_config import (
+    DEFAULT_API_TOKEN,
+    DEFAULT_TRUSTED_DEVICE_ID,
+    JarvisEnvironmentConfig,
+)
 
 TOKEN_HEADER = "X-Jarvis-Token"
 DEVICE_HEADER = "X-Jarvis-Device-Id"
 SESSION_COOKIE = "jarvis_trusted_device"
-DEFAULT_API_TOKEN = "jarvis-local-dev-token"
-DEFAULT_TRUSTED_DEVICE_ID = "jarvis-dispositivo-local"
 SAFE_WORKER_IDS = {"runtime", "finance", "study", "studio"}
 DASHBOARD_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "index.html"
 ACCESS_GATE_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "access_gate.html"
@@ -49,8 +51,21 @@ def create_app(
     api_token: str | None = None,
     trusted_device_id: str | None = None,
     config: SystemLoopConfig | None = None,
+    deployment_config: JarvisEnvironmentConfig | None = None,
 ) -> FastAPI:
     """Cria uma aplicacao FastAPI ligada ao runtime atual."""
+
+    effective_deployment_config = deployment_config or JarvisEnvironmentConfig.from_env()
+
+    if effective_deployment_config is not None and config is None:
+        config = SystemLoopConfig(
+            cycle_sleep_seconds=effective_deployment_config.loop_interval_seconds,
+            idle_sleep_seconds=effective_deployment_config.idle_sleep_seconds,
+            install_signal_handlers=False,
+            queue_storage_path=effective_deployment_config.queue_storage_path,
+            semantic_storage_path=effective_deployment_config.semantic_storage_path,
+            goal_storage_path=effective_deployment_config.goals_storage_path,
+        )
 
     app = FastAPI(
         title="API do JARVIS",
@@ -59,13 +74,26 @@ def create_app(
     )
     app.state.runtime = runtime or InternalAgentRuntime()
     app.state.system_config = config or SystemLoopConfig()
-    app.state.bootstrap_state = None
-    app.state.started_at = datetime.now(timezone.utc).isoformat()
-    app.state.last_cycle_result = None
-    app.state.api_token = api_token or os.getenv("JARVIS_TOKEN") or os.getenv("JARVIS_API_TOKEN") or DEFAULT_API_TOKEN
-    app.state.trusted_device_id = (
-        trusted_device_id or os.getenv("JARVIS_TRUSTED_DEVICE_ID") or DEFAULT_TRUSTED_DEVICE_ID
+    app.state.deployment_config = effective_deployment_config
+    app.state.bootstrap_state = (
+        app.state.runtime.describe_state() if app.state.runtime.status == "initialized" else None
     )
+    app.state.started_at = datetime.now(timezone.utc).isoformat()
+    app.state.last_cycle_result = getattr(app.state.runtime, "last_cycle_result", None)
+    app.state.api_token = (
+        api_token
+        or getattr(effective_deployment_config, "token", None)
+        or DEFAULT_API_TOKEN
+    )
+    app.state.trusted_device_id = (
+        trusted_device_id
+        or getattr(effective_deployment_config, "trusted_device_id", None)
+        or DEFAULT_TRUSTED_DEVICE_ID
+    )
+    app.state.enable_dashboard = (
+        True if effective_deployment_config is None else effective_deployment_config.enable_dashboard
+    )
+    app.state.environment_report = _build_environment_report(app)
 
     def require_trusted_device(
         request: Request,
@@ -84,6 +112,11 @@ def create_app(
 
     @app.get("/painel", include_in_schema=False, response_class=HTMLResponse)
     def get_dashboard(request: Request) -> HTMLResponse:
+        if not request.app.state.enable_dashboard:
+            return HTMLResponse(
+                "<html><body><h1>Painel desabilitado neste ambiente.</h1></body></html>",
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         if _has_valid_dashboard_session(request):
             return HTMLResponse(DASHBOARD_PATH.read_text(encoding="utf-8"))
         return HTMLResponse(ACCESS_GATE_PATH.read_text(encoding="utf-8"))
@@ -130,10 +163,10 @@ def create_app(
             "api_iniciada_em": app.state.started_at,
         }
 
-    @app.get("/api/health", dependencies=[Depends(require_trusted_device)])
-    def detailed_healthcheck(request: Request) -> Dict[str, Any]:
+    @app.get("/health")
+    def deploy_healthcheck(request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
-        return runtime.build_health_report(
+        payload = runtime.build_health_report(
             api_started_at=app.state.started_at,
             token_configurado=_is_runtime_secret_configured(app.state.api_token, DEFAULT_API_TOKEN),
             dispositivo_confiavel_configurado=_is_runtime_secret_configured(
@@ -141,6 +174,23 @@ def create_app(
                 DEFAULT_TRUSTED_DEVICE_ID,
             ),
         )
+        payload["mensagem"] = "Healthcheck de deploy do JARVIS."
+        payload["ambiente"] = _build_environment_report(request.app)
+        return payload
+
+    @app.get("/api/health", dependencies=[Depends(require_trusted_device)])
+    def detailed_healthcheck(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        payload = runtime.build_health_report(
+            api_started_at=app.state.started_at,
+            token_configurado=_is_runtime_secret_configured(app.state.api_token, DEFAULT_API_TOKEN),
+            dispositivo_confiavel_configurado=_is_runtime_secret_configured(
+                app.state.trusted_device_id,
+                DEFAULT_TRUSTED_DEVICE_ID,
+            ),
+        )
+        payload["ambiente"] = _build_environment_report(request.app)
+        return payload
 
     @app.get("/api/status", dependencies=[Depends(require_trusted_device)])
     def get_status(request: Request) -> Dict[str, Any]:
@@ -211,12 +261,16 @@ def create_app(
     @app.get("/api/relatorio", dependencies=[Depends(require_trusted_device)])
     def get_report(request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
-        return runtime.build_system_report(last_cycle_result=app.state.last_cycle_result)
+        report = runtime.build_system_report(last_cycle_result=app.state.last_cycle_result)
+        report["ambiente"] = _build_environment_report(request.app)
+        return report
 
     @app.get("/api/relatorio/sistema", dependencies=[Depends(require_trusted_device)])
     def get_system_report(request: Request) -> Dict[str, Any]:
         runtime = _ensure_runtime_initialized(request)
-        return runtime.build_system_report(last_cycle_result=app.state.last_cycle_result)
+        report = runtime.build_system_report(last_cycle_result=app.state.last_cycle_result)
+        report["ambiente"] = _build_environment_report(request.app)
+        return report
 
     @app.get("/api/relatorio/fila", dependencies=[Depends(require_trusted_device)])
     def get_queue_report(request: Request) -> Dict[str, Any]:
@@ -259,6 +313,7 @@ def _ensure_runtime_initialized(request: Request) -> InternalAgentRuntime:
     )
     request.app.state.runtime = runtime
     request.app.state.bootstrap_state = bootstrap_state
+    request.app.state.environment_report = _build_environment_report(request.app)
     return runtime
 
 
@@ -338,6 +393,33 @@ def _build_trusted_session_value(api_token: str, device_id: str) -> str:
 
 def _is_runtime_secret_configured(value: str | None, default_value: str) -> bool:
     return bool(value) and value != default_value
+
+
+def _build_environment_report(app: FastAPI) -> Dict[str, Any]:
+    deployment_config = getattr(app.state, "deployment_config", None)
+    if deployment_config is not None:
+        return deployment_config.build_environment_report()
+
+    return {
+        "ambiente": "local",
+        "host_api": "0.0.0.0",
+        "porta_api": 8000,
+        "loop_runtime_ativo": False,
+        "painel_ativo": bool(getattr(app.state, "enable_dashboard", True)),
+        "nivel_log": "INFO",
+        "paths_persistentes": {
+            "queue_storage_path": str(getattr(app.state.system_config, "queue_storage_path", "")),
+            "semantic_storage_path": str(getattr(app.state.system_config, "semantic_storage_path", "")),
+            "goals_storage_path": str(getattr(app.state.system_config, "goal_storage_path", "")),
+        },
+        "autenticacao_configurada": {
+            "token_configurado": _is_runtime_secret_configured(app.state.api_token, DEFAULT_API_TOKEN),
+            "dispositivo_confiavel_configurado": _is_runtime_secret_configured(
+                app.state.trusted_device_id,
+                DEFAULT_TRUSTED_DEVICE_ID,
+            ),
+        },
+    }
 
 
 app = create_app()

@@ -1,103 +1,127 @@
 # Sistema Cognitivo JARVIS
 
-O JARVIS e um sistema cognitivo modular em construcao, projetado para coordenar planejamento, memoria, objetivos, controle de execucao, API de acesso, painel mobile-first e workers especializados. O repositorio ja opera em um estado funcional inicial com bootstrap do runtime, fila persistente, memoria semantica, loop continuo de sistema, camada real de objetivos, API FastAPI integrada ao nucleo, painel web servido pela propria API, autenticacao inicial por dispositivo confiavel e relatorios operacionais completos.
+O JARVIS e um sistema cognitivo modular em construcao, orientado por planejamento deterministico, memoria persistente, objetivos, API de controle, painel mobile-first, auditoria e operacao supervisionada. Nesta etapa, o projeto ja consegue subir como servico HTTP, manter fila e memoria entre reinicios, proteger acesso por token + dispositivo confiavel e ser preparado para deploy em VPS simples com Docker.
 
-Idioma padrao do sistema: `pt-BR`
+Idioma padrao da camada visivel: `pt-BR`
 
 ## Visao Geral da Arquitetura
 
-O scaffold atual esta organizado em um conjunto enxuto de camadas cooperativas:
-
-- `constitutional_core/`: identidade e principios de governanca do sistema
-- `executive_planner/`: fila, priorizacao, validacao, auditoria e construcao de planos
-- `intent_layer/`: metas estrategicas, objetivos ativos, restricoes e preferencias operacionais
+- `constitutional_core/`: identidade e principios do sistema
+- `executive_planner/`: fila, priorizacao, validacao, auditoria e ciclo do planner
+- `intent_layer/`: metas estrategicas e objetivos ativos
 - `memory_system/`: memoria episodica, semantica e procedural
-- `workers/`: workers especializados para tarefas de runtime, financas, estudio e estudo
-- `runtime/`: bootstrap do runtime e logica de autonomia
-- `main.py`: entrypoint do processo continuo inicial do sistema
-- `interface/api/`: API minima de acesso ao sistema
-- `interface/dashboard/`: painel web responsivo para acesso por celular
-- `infrastructure/`: placeholders de deploy, persistencia e monitoramento
-- `interface/`: placeholders de API, CLI e dashboard
-- `tests/`: local da suite de testes e cobertura de regressao
+- `workers/`: workers por dominio
+- `runtime/`: bootstrap do runtime, autonomia, configuracao e servidor
+- `interface/api/`: API FastAPI integrada ao nucleo
+- `interface/dashboard/`: painel web mobile-first servido pela API
+- `data/`, `logs/`, `reports/`: paths padrao de persistencia e observabilidade
+- `tests/`: suite automatizada de regressao
 
 ## Entrypoints
 
-Bootstrap interno do runtime:
+- Runtime interno: `runtime/internal_agent_runtime.py`
+- Loop continuo local: `main.py`
+- Servidor para VPS/API/painel: `runtime/server.py`
 
-- `runtime/internal_agent_runtime.py`
+## O que o sistema ja faz
 
-Processo continuo inicial do sistema:
+- bootstrap do runtime com planner acoplado
+- fila persistente em JSON
+- memoria semantica persistente em JSON
+- objetivos persistentes com progresso
+- loop continuo com encerramento gracioso
+- API protegida por token e dispositivo confiavel
+- painel web para uso em celular
+- relatorios operacionais completos
+- healthcheck publico de deploy em `/health`
+- configuracao central por variaveis de ambiente
+- preparacao para container e `docker-compose`
 
-- `main.py`
+## Execucao Local
 
-## Explicacao dos Modulos
-
-### Nucleo Constitucional
-
-Define a identidade do sistema e os principios que restringem planejamento e execucao.
-
-### Planejador Executivo
-
-Fornece a cadeia inicial de planejamento: entrada de tarefas, priorizacao, validacao, auditoria e montagem de plano.
-
-### Camada de Intencao
-
-Armazena metas estrategicas, objetivos ativos, restricoes e preferencias operacionais que orientam as decisoes do planejador. A camada agora conta com `GoalManager` para leitura, atualizacao, progresso, prioridades e relatarios em pt-BR.
-
-### Sistema de Memoria
-
-Separa as responsabilidades de memoria entre lembrancas episodicas, fatos semanticos e rotinas procedurais.
-
-### Estrutura de Workers
-
-Hospeda adaptadores especializados que podem aceitar tarefas orientadas por dominio.
-
-### Motor de Runtime
-
-Inicializa o estado ativo do sistema e aplica controle de autonomia com supervisao.
-
-### Processo Continuo do Sistema
-
-Coordena o bootstrap do runtime, recupera fila e memoria semantica persistidas, executa ciclos sucessivos do planner, registra logs por ciclo e realiza encerramento gracioso com persistencia final de estado.
-
-### API de Controle
-
-Exponibiliza acesso externo ao runtime por meio de endpoints seguros para status, execucao de ciclo, fila, objetivos, memoria e relatorio operacional.
-
-### Painel Mobile-First
-
-Disponibiliza uma interface web simples, servida pela propria API, com foco em consulta rapida, execucao de ciclo e uso cotidiano a partir do celular.
-
-### Autenticacao Inicial
-
-Restringe o acesso ao sistema por meio de token secreto e identificador de dispositivo confiavel, com auditoria de tentativas negadas e sessao dedicada para liberar o painel web.
-
-### Relatorios Operacionais
-
-Expõem visao técnica e direta do estado do sistema, da fila, da memória, dos objetivos, da saúde do runtime e da auditoria recente tanto pela API quanto pelo painel mobile.
-
-## Execucao Inicial
-
-Exemplo de subida local com um ciclo controlado:
+Loop continuo controlado:
 
 ```powershell
 python main.py --max-cycles 1 --stop-when-idle
 ```
 
-Exemplo de subida local da API:
+Servidor HTTP completo:
 
 ```powershell
+set JARVIS_ENV=development
 set JARVIS_TOKEN=seu_token_seguro
 set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
-python -m uvicorn interface.api.app:app --host 0.0.0.0 --port 8000
+python -m runtime.server
 ```
+
+## Execucao com Docker
+
+Build:
+
+```powershell
+docker build -t jarvis-core .
+```
+
+Subida com compose:
+
+```powershell
+copy .env.example .env
+docker compose up --build -d
+```
+
+Healthcheck:
+
+```powershell
+curl http://localhost:8000/health
+```
+
+Painel:
+
+```text
+http://localhost:8000/painel
+```
+
+## Variaveis de Ambiente Principais
+
+- `JARVIS_TOKEN`
+- `JARVIS_TRUSTED_DEVICE_ID`
+- `JARVIS_API_HOST`
+- `JARVIS_API_PORT`
+- `JARVIS_LOOP_INTERVAL_SECONDS`
+- `JARVIS_ENV`
+- `JARVIS_DATA_DIR`
+- `JARVIS_LOG_LEVEL`
+- `JARVIS_ENABLE_RUNTIME_LOOP`
+- `JARVIS_ENABLE_DASHBOARD`
+
+O arquivo base fica em `.env.example`.
+
+## Persistencia
+
+Por padrao, o modo de servidor usa:
+
+- `data/task_queue_store.json`
+- `data/semantic_memory_store.json`
+- `data/goals.json`
+- `logs/jarvis.log`
+- `reports/environment_report.json`
+- `reports/shutdown_report.json`
+
+Esses caminhos podem ser trocados por variaveis de ambiente.
 
 ## Fluxo de Desenvolvimento
 
-1. Crie ou atualize modulos de arquitetura dentro do subsistema correspondente.
-2. Adicione ou expanda testes em `tests/` conforme a integracao do runtime evoluir.
-3. Atualize `ARCHITECTURE.md`, `system_capabilities_index.md` e os relatorios obrigatorios ao concluir um bloco.
-4. Registre marcos arquiteturais visiveis ao usuario em `CHANGELOG.md`.
-5. Gere um checkpoint git ao final de cada ciclo de implementacao.
-6. Revise `git status` antes de cada commit para garantir que apenas arquivos intencionais sejam rastreados.
+1. Implementar apenas o delta faltante do bloco atual.
+2. Cobrir comportamento novo com testes em `tests/`.
+3. Atualizar `ARCHITECTURE.md`, `system_capabilities_index.md` e os relatorios obrigatorios.
+4. Registrar a mudanca em `CHANGELOG.md`.
+5. Rodar `python -m unittest discover -s tests -v`.
+6. Criar checkpoint git ao final de cada ciclo.
+
+## Documentacao Relacionada
+
+- `ARCHITECTURE.md`
+- `API_PTBR.md`
+- `DEPLOY_PTBR.md`
+- `system_capabilities_index.md`
+- `SYSTEM_MATURITY_REPORT_PTBR.md`

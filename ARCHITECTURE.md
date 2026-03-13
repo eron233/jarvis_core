@@ -1,12 +1,12 @@
 # Visao Geral da Arquitetura
 
-Este documento descreve a estrutura base do scaffold do Sistema Cognitivo JARVIS.
+Este documento descreve a arquitetura funcional atual do JARVIS e como os modulos cooperam para manter um unico nucleo operativo, auditavel e pronto para deploy simples.
 
 ## Nucleo Constitucional
 
 Local: `constitutional_core/`
 
-O Nucleo Constitucional define a identidade do sistema e os principios que governam seu comportamento. No scaffold atual, essa camada e representada por arquivos JSON de configuracao que estabelecem missao, modo de operacao, capacidades e principios de alto nivel, como alinhamento, seguranca, rastreabilidade e adaptacao.
+Define identidade, principios, limites operacionais e diretrizes de governanca. Essa camada continua sendo configuracional e nao foi alterada no bloco de preparacao para nuvem.
 
 Artefatos principais:
 
@@ -17,135 +17,138 @@ Artefatos principais:
 
 Local: `executive_planner/`
 
-O Planejador Executivo e responsavel por transformar metas em planos preliminares e manter ordem na execucao das tarefas. Atualmente ele inclui:
+Responsavel por executar o ciclo deterministico do planner:
 
-- uma fila para entrada de tarefas
-- um priorizador para pontuacao ponderada
-- um validador para verificacoes estruturais
-- um logger de auditoria para rastreabilidade de decisoes
-- um planejador para criacao de rascunhos de plano
+- carregar tarefas da fila
+- priorizar por impacto, urgencia e contexto
+- validar tarefas antes da execucao
+- selecionar a proxima tarefa executavel
+- despachar para o runtime
+- registrar auditoria de `plan`, `prioritize`, `validate`, `schedule`, `execute` e `review`
 
-Espera-se que essa camada evolua para o cerebro de orquestracao que conecta metas, memoria, workers e politica de runtime.
+Artefatos principais:
+
+- `executive_planner/planner.py`
+- `executive_planner/queue.py`
+- `executive_planner/prioritizer.py`
+- `executive_planner/validator.py`
+- `executive_planner/audit.py`
 
 ## Camada de Objetivos
 
 Local: `intent_layer/`
 
-A Camada de Objetivos agora possui um `GoalManager` persistente que organiza a direcao do sistema em dois niveis:
-
-- metas estrategicas para orientar o sistema em horizonte mais amplo
-- objetivos ativos para execucao operacional e vinculo direto com tarefas
+Mantem metas estrategicas e objetivos ativos por meio de `GoalManager`, com persistencia local, progresso, prioridade e relatorios em pt-BR.
 
 Capacidades atuais:
 
-- leitura e persistencia de `goals.json`
 - separacao entre metas estrategicas e objetivos ativos
 - prioridade por objetivo
-- deadline opcional
-- progresso calculado por tarefas vinculadas
-- relatorios em pt-BR
-- integracao com fila, priorizador e runtime
+- prazo opcional
+- progresso por tarefas vinculadas
+- persistencia de objetivos em JSON
+
+Artefatos principais:
+
+- `intent_layer/goal_manager.py`
+- `intent_layer/goals.json`
 
 ## Sistema de Memoria
 
 Local: `memory_system/`
 
-O Sistema de Memoria separa o conhecimento armazenado em tres formas distintas:
+Divide o conhecimento em tres formas:
 
-- memoria episodica para eventos ordenados no tempo e atividade recente
-- memoria semantica para fatos e conceitos
-- memoria procedural para sequencias de passos reutilizaveis
+- memoria episodica para eventos e historico recente
+- memoria semantica para fatos e entradas pesquisaveis
+- memoria procedural para sequencias reutilizaveis
 
-Essa divisao mantem recuperacao e atualizacao conceitualmente limpas, ao mesmo tempo em que sustenta fluxos futuros de raciocinio e adaptacao.
+No estado atual, a memoria semantica ja possui persistencia configuravel e recuperacao segura no startup.
 
-## Estrutura de Workers
+Artefatos principais:
+
+- `memory_system/episodic_memory.py`
+- `memory_system/semantic_memory.py`
+- `memory_system/procedural_memory.py`
+
+## Workers
 
 Local: `workers/`
 
-A Estrutura de Workers contem stubs especializados que aceitam tarefas em dominios diferentes. O scaffold atual inclui workers para:
+Executores por dominio que recebem tarefas do runtime e devolvem respostas estruturadas e deterministicas. Ainda sao leves, mas ja participam do ciclo real do sistema.
 
-- operacoes de runtime
-- financas
-- estudio e criacao
-- estudo e aprendizado
+Artefatos principais:
 
-Cada worker atualmente expoe um metodo `handle` minimo e retorna um payload padronizado de aceitacao. Versoes futuras podem estender esses workers com capacidades, permissoes e integracoes de ferramentas.
+- `workers/worker_runtime.py`
+- `workers/worker_finance.py`
+- `workers/worker_studio.py`
+- `workers/worker_study.py`
 
-## Motor de Runtime
+## Runtime
 
 Local: `runtime/`
 
-O Motor de Runtime e a camada de execucao que inicializa o sistema e governa o comportamento autonomo. O scaffold atual inclui:
+Camada central de operacao. Inicializa planner, memorias, workers e contexto de objetivos; expoe despacho de tarefas, relatórios operacionais e healthcheck rico.
 
-- `runtime/internal_agent_runtime.py` para inicializacao do runtime
-- `runtime/autonomy.py` para regras simples de aprovacao e supervisao
+Artefatos principais:
 
-O entrypoint do runtime anuncia dependencias de planejador, memoria e workers como um contrato leve de bootstrap. Conforme a arquitetura evoluir, essa camada deve se tornar o coordenador central de ciclo de vida, despacho de workers, validacao e observabilidade.
+- `runtime/internal_agent_runtime.py`
+- `runtime/autonomy.py`
 
-## Processo Continuo do Sistema
+## Processo Continuo
 
 Local: `main.py`
 
-O processo continuo inicial do JARVIS agora fica concentrado em um entrypoint unico que reaproveita os modulos existentes de runtime, planner, fila e memoria. Essa camada nao recria inteligencia nem duplica componentes; ela apenas coordena o ciclo de vida do sistema.
+Coordena o loop do sistema sem recriar inteligencia. Reaproveita o runtime existente, suporta `cycle_id`, fila vazia, reinicio seguro e encerramento gracioso com persistencia.
 
 Capacidades atuais:
 
-- bootstrap do runtime com attachment do planner
-- recarga da fila persistente no startup
-- recarga da memoria semantica no startup
-- loop controlado com `cycle_id`
-- logs legiveis por ciclo em pt-BR
-- protecao para fila vazia
-- encerramento gracioso com persistencia final
-- recuperacao segura de reinicio
-
-Essa camada foi mantida propositalmente fina para que futuras interfaces, monitoramento e API controlem o mesmo nucleo sem bifurcar responsabilidades.
+- bootstrap com fila, memoria e objetivos configuraveis
+- recuperacao de arquivos ausentes
+- recuperacao segura de JSON corrompido com backup
+- logs legiveis em pt-BR durante bootstrap e shutdown
 
 ## API de Controle
 
 Local: `interface/api/`
 
-A API de controle foi adicionada como uma camada leve em FastAPI sobre o runtime existente. Ela nao cria um novo nucleo; apenas expõe o que o sistema ja sabe fazer por meio de endpoints reutilizaveis.
+Camada FastAPI fina sobre o nucleo existente. A API nao substitui o runtime; apenas expõe capacidades ja implementadas.
 
 Capacidades atuais:
 
-- healthcheck publico
-- autenticacao minima por token nos endpoints protegidos
-- consulta de estado do sistema
-- execucao manual de um ciclo do planner
-- listagem e criacao de tarefas
+- `/health` publico para deploy
+- `/api/health` protegido com diagnostico rico
+- status do sistema
+- execucao manual de ciclos
+- listagem e inclusao de tarefas
 - consulta de objetivos
 - consulta de memoria recente
-- relatorio operacional resumido
+- relatorios operacionais detalhados
 
-Essa camada prepara o terreno para painel mobile, monitoramento e operacao remota sem romper os contratos internos ja estabilizados.
-
-## Painel de Acesso
+## Painel Mobile-First
 
 Local: `interface/dashboard/`
 
-O painel inicial foi implementado como HTML responsivo servido pela propria API. Essa escolha reduz atrito operacional, evita uma segunda stack de frontend e reaproveita integralmente os endpoints ja criados.
+Painel HTML servido pela propria API. Mantem uma interface simples para celular, sem uma segunda stack de frontend.
 
 Capacidades atuais:
 
-- acesso por rota web unica
-- layout mobile-first
-- entrada de comando textual simples
-- acoes rapidas para atualizar resumo e executar ciclo
-- visualizacao de estado, objetivos, tarefas e memoria recente
-- reutilizacao do token da API para acesso operacional
+- acesso por `/painel`
+- sessao de dispositivo confiavel
+- consulta de relatorios operacionais
+- atualizacao de estado e memoria recente
 
-## Seguranca de Dispositivo Confiavel
+## Autenticacao por Dispositivo Confiavel
 
 Local principal: `interface/api/app.py`
 
-A autenticacao inicial do JARVIS agora combina:
+Modelo atual de protecao:
 
 - `JARVIS_TOKEN`
 - `JARVIS_TRUSTED_DEVICE_ID`
 - headers `X-Jarvis-Token` e `X-Jarvis-Device-Id`
-
-O objetivo nao e criar um sistema de usuarios, mas limitar o acesso ao dispositivo principal confiavel nesta fase inicial. A API valida o token e o device id em cada endpoint protegido, registra tentativas negadas em auditoria e libera o painel por meio de uma sessao curta de dispositivo confiavel.
+- sessao derivada para liberar o painel
+- auditoria de acessos autorizados e negados
 
 ## Relatorios Operacionais
 
@@ -155,7 +158,7 @@ Locais principais:
 - `interface/api/app.py`
 - `interface/dashboard/index.html`
 
-Os relatorios operacionais foram concentrados no runtime para evitar duplicacao de logica. A API apenas expõe esses relatórios, e o painel os consome para apresentar uma visao continua do sistema.
+Os relatórios foram centralizados no runtime para evitar duplicacao de logica. A API os expõe e o painel apenas os consome.
 
 Capacidades atuais:
 
@@ -165,4 +168,37 @@ Capacidades atuais:
 - relatorio da memoria
 - relatorio de auditoria
 - healthcheck rico
-- reflexo dos relatorios no painel mobile-first
+
+## Preparacao para Nuvem
+
+Locais principais:
+
+- `runtime/system_config.py`
+- `runtime/server.py`
+- `Dockerfile`
+- `docker-compose.yml`
+- `.env.example`
+- `DEPLOY_PTBR.md`
+
+O bloco 6 adicionou a camada minima de operacao em servidor simples:
+
+- configuracao central por variaveis de ambiente
+- paths persistentes configuraveis para fila, memoria, objetivos, logs e reports
+- runner de servidor com API e loop continuo opcional
+- logs de startup e shutdown
+- relatorio de ambiente persistido em `reports/`
+- preparacao para volume Docker em `data/`, `logs/` e `reports/`
+
+## Estrategia de Deploy
+
+O modo recomendado de operacao agora e:
+
+1. carregar configuracao a partir de variaveis de ambiente
+2. garantir diretorios persistentes
+3. recuperar fila, memoria e objetivos
+4. bootstrapar o runtime
+5. subir a API
+6. iniciar o loop continuo em background, se habilitado
+7. persistir estado e emitir relatorio de shutdown ao encerrar
+
+Essa estrategia foi mantida propositalmente simples para caber em uma VPS Linux barata, sem Kubernetes, sem filas distribuidas e sem componentes extras nesta fase.

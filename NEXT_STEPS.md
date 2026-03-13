@@ -2,18 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- Implementar o BLOCO 6 com preparacao para nuvem e deploy minimo
+- BLOCO 7 — continuidade de estado em ambiente de servidor
 
 ## Delta recomendado
 
-- adicionar Dockerfile e configuracao minima de ambiente
-- explicitar paths de persistencia configuraveis
-- documentar start em VPS simples
-- preparar logs e comando de subida do processo continuo e da API
-- manter a autenticacao por dispositivo confiavel no modelo de deploy
+- validar retomada real apos restart de container
+- ampliar o relatorio de shutdown com historico de ultima retomada
+- adicionar smoke test real de Docker quando houver ambiente com Docker disponivel
+- reforcar observabilidade de infraestrutura sobre o deploy simples ja criado
 
 ## Criterios de aceite
 
-- nenhuma duplicacao de logica entre runtime, API, painel e deploy
-- setup simples e barato para servidor real
-- preservacao dos artefatos persistentes e da seguranca atual
+- restart do servico preserva fila, memoria e objetivos
+- relatorios de ambiente e shutdown permanecem consistentes
+- nenhum enfraquecimento da autenticacao por token e dispositivo confiavel
+- nenhuma duplicacao entre runner de servidor, runtime e API

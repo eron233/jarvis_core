@@ -2,10 +2,11 @@
 
 ## Estado atual
 
-- Nivel atual: `M1 - inicial funcional`
-- Subnivel: `M1.5 - observabilidade operacional inicial`
+- Nivel atual: `M2 - operacional inicial`
+- Subnivel: `M2.1 - pronto para deploy simples`
 - Idioma visivel: `pt-BR`
-- Entrypoint do processo continuo: `jarvis_core/main.py`
+- Entrypoint do loop local: `jarvis_core/main.py`
+- Entrypoint do servidor: `jarvis_core/runtime/server.py`
 
 ## Capacidades consolidadas
 
@@ -13,45 +14,44 @@
 - planner deterministico com auditoria
 - fila persistente de tarefas
 - memoria semantica com persistencia local
-- loop continuo inicial com encerramento gracioso
 - camada de objetivos com progresso e prioridade
-- API minima em FastAPI com token de acesso
+- loop continuo com encerramento gracioso
+- API FastAPI integrada ao nucleo
 - painel web mobile-first servido pela API
-- autenticacao inicial por dispositivo confiavel
-- relatorios operacionais completos via API e painel
-- workers minimos por dominio
+- autenticacao por token + dispositivo confiavel
+- relatorios operacionais completos
+- configuracao central por variaveis de ambiente
+- runner de servidor para VPS simples
+- preparacao para Docker e `docker-compose`
 
-## Blocos concluídos
+## Blocos concluidos
 
-- BLOCO 1 — Loop continuo do sistema
-- BLOCO 2 — Camada de objetivos real
-- BLOCO 2 — API real do JARVIS
-- BLOCO 3 — Acesso por celular
-- BLOCO 4 — Autenticacao inicial por dispositivo confiavel
-- BLOCO 5 — Relatorios operacionais completos
+- BLOCO 1 — loop continuo do sistema
+- BLOCO 2 — camada de objetivos real
+- BLOCO 3 — API real do JARVIS e acesso por celular
+- BLOCO 4 — autenticacao inicial por dispositivo confiavel
+- BLOCO 5 — relatorios operacionais completos
+- BLOCO 6 — preparacao para nuvem
 
 ## Blocos parciais
 
-- BLOCO 4 — Memoria procedural real
-- BLOCO 10 — Workers mais reais
+- memoria procedural real
+- workers mais reais
 
 ## Blocos ainda nao iniciados de forma funcional
 
-- BLOCO 3 — Geracao controlada de tarefas
-- BLOCO 5 — Consolidacao de memoria
-- BLOCO 6 — Ingestao de conhecimento
-- BLOCO 7 — API de controle do sistema
-- BLOCO 8 — Interface de acesso inicial
-- BLOCO 9 — Modos de operacao
-- BLOCO 11 — Monitoramento e saude do sistema
-- BLOCO 12 — Preparacao para nuvem
+- geracao controlada de tarefas
+- consolidacao de memoria
+- ingestao de conhecimento
+- modos de operacao
+- monitoramento de infraestrutura externa
 
 ## Riscos atuais
 
-- a camada de objetivos ainda nao gera tarefas derivadas nem fecha o ciclo completo de planejamento estrategico
-- os workers ainda retornam respostas minimas
-- ainda nao existe monitoramento externo de infraestrutura nem autenticacao acima do modelo de dispositivo confiavel
+- ainda nao foi executado um smoke test real de Docker neste ambiente porque `docker` nao esta disponivel aqui
+- os workers continuam seguros e minimos, mas ainda nao sao executores ricos
+- ainda nao existe monitoramento externo de infraestrutura alem do healthcheck e dos logs locais
 
 ## Leitura objetiva
 
-O JARVIS ja saiu do estado de scaffold puro e entrou em um estado funcional inicial real. Ele ainda nao e um sistema operacional completo, mas ja consegue iniciar, recuperar estado persistido, executar ciclos controlados e encerrar com seguranca.
+O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel operacional inicial. O sistema agora pode ser configurado para VPS simples, subir API e painel, manter estado persistente e preservar seguranca basica de acesso sem depender do PC como maquina principal.

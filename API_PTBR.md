@@ -2,9 +2,20 @@
 
 ## Objetivo
 
-Fornecer uma camada minima de acesso externo ao nucleo operacional do JARVIS sem duplicar runtime, planner, memoria, fila ou objetivos.
+Fornecer acesso HTTP ao nucleo operacional do JARVIS sem duplicar planner, runtime, memoria, fila, objetivos ou relatorios.
 
-## Inicializacao local
+## Inicializacao Recomendada
+
+Modo servidor completo:
+
+```powershell
+set JARVIS_ENV=development
+set JARVIS_TOKEN=seu_token_seguro
+set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
+python -m runtime.server
+```
+
+Modo FastAPI direto:
 
 ```powershell
 set JARVIS_TOKEN=seu_token_seguro
@@ -12,58 +23,75 @@ set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
 python -m uvicorn interface.api.app:app --host 0.0.0.0 --port 8000
 ```
 
-Se `JARVIS_TOKEN` ou `JARVIS_TRUSTED_DEVICE_ID` nao estiverem definidos, a API usa valores locais de desenvolvimento.
-
 ## Autenticacao
 
-- Headers obrigatorios para endpoints protegidos:
-  - `X-Jarvis-Token`
-  - `X-Jarvis-Device-Id`
-- Painel protegido por sessao de dispositivo confiavel, criada via `POST /api/auth/device-session`
-- Healthcheck publico: `GET /api/saude`
+Contrato atual:
 
-## Endpoints atuais
+- header `X-Jarvis-Token`
+- header `X-Jarvis-Device-Id`
+- sessao de painel criada via `POST /api/auth/device-session`
 
+Endpoints protegidos exigem token valido e `device id` do dispositivo confiavel. O healthcheck publico de deploy em `/health` nao exige autenticacao.
+
+## Endpoints Principais
+
+- `GET /health`
+  Healthcheck publico de deploy com resumo de ambiente
+- `GET /api/saude`
+  Saude basica da API
 - `GET /painel`
-  Entrega o painel web do JARVIS ou a tela de validacao do dispositivo
+  Painel web do JARVIS ou tela de validacao do dispositivo
 - `POST /api/auth/device-session`
-  Valida token + device id e cria a sessao do painel
+  Valida token + dispositivo e cria sessao do painel
 - `DELETE /api/auth/device-session`
   Remove a sessao atual do painel
-- `GET /api/saude`
-  Retorna saude basica da API e do runtime
 - `GET /api/status`
-  Retorna o estado atual do sistema
+  Estado atual do sistema
 - `POST /api/ciclos/executar`
-  Executa um ciclo unico do planner
+  Executa um ciclo do planner
 - `GET /api/tarefas`
-  Lista as tarefas atuais da fila
+  Lista a fila atual
 - `POST /api/tarefas`
-  Adiciona uma tarefa a fila
+  Adiciona tarefa a fila
 - `GET /api/objetivos`
-  Retorna relatorio de objetivos
+  Consulta objetivos
 - `GET /api/memoria/recente`
-  Retorna memoria semantica recente e eventos episodicos
+  Consulta memoria recente
 - `GET /api/relatorio`
-  Retorna um resumo operacional do sistema
+  Relatorio operacional geral
 - `GET /api/health`
-  Retorna o healthcheck rico do sistema, protegido por token e dispositivo
+  Healthcheck rico protegido
 - `GET /api/relatorio/sistema`
-  Retorna o relatorio geral do sistema
+  Relatorio geral do sistema
 - `GET /api/relatorio/fila`
-  Retorna o relatorio detalhado da fila
+  Relatorio detalhado da fila
 - `GET /api/relatorio/objetivos`
-  Retorna o relatorio operacional de metas e objetivos
+  Relatorio detalhado dos objetivos
 - `GET /api/relatorio/memoria`
-  Retorna o relatorio operacional da memoria semantica
+  Relatorio da memoria semantica
 - `GET /api/relatorio/auditoria`
-  Retorna o relatorio consolidado de auditoria
+  Relatorio de auditoria
 
-## Observacoes
+## Configuracao de Ambiente
 
-- Respostas visiveis foram mantidas em pt-BR.
-- Identificadores internos estaveis continuam preservados dentro dos payloads para evitar quebra de integracao.
-- A autenticacao atual combina token secreto e identificador do dispositivo confiavel.
-- Toda tentativa negada gera registro de auditoria de acesso no runtime.
-- O painel web usa o mesmo token da API e uma sessao curta derivada do dispositivo confiavel.
-- O painel agora consome os endpoints de relatorio para mostrar saude, fila, objetivos, memoria e auditoria em formato operacional.
+Principais variaveis:
+
+- `JARVIS_ENV`
+- `JARVIS_TOKEN`
+- `JARVIS_TRUSTED_DEVICE_ID`
+- `JARVIS_API_HOST`
+- `JARVIS_API_PORT`
+- `JARVIS_ENABLE_RUNTIME_LOOP`
+- `JARVIS_ENABLE_DASHBOARD`
+- `JARVIS_DATA_DIR`
+- `JARVIS_LOGS_DIR`
+- `JARVIS_REPORTS_DIR`
+
+Arquivo base: `.env.example`
+
+## Observacoes Operacionais
+
+- respostas visiveis continuam em pt-BR
+- endpoints protegidos continuam protegidos no modo de servidor
+- o painel e servido pela mesma API
+- o deploy recomendado usa `python -m runtime.server` ou `docker compose up -d`

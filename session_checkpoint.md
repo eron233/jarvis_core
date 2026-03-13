@@ -2,23 +2,26 @@
 
 ## Ciclo atual
 
-- Ciclo: 6
-- Capacidade implementada: relatorios operacionais completos
+- Ciclo: 7
+- Capacidade implementada: preparacao para nuvem
 - Estado: concluido com testes verdes
 
 ## Entregas do ciclo
 
-- builders de relatorio no runtime para sistema, fila, objetivos, memoria, auditoria e health
-- endpoints dedicados de relatorio e `/api/health`
-- painel atualizado para exibir saude e ocorrencias recentes
-- testes dedicados dos relatorios operacionais
-- documentacao de operacao atualizada
+- configuracao central de ambiente em `runtime/system_config.py`
+- runner de servidor em `runtime/server.py`
+- startup seguro com recuperacao de fila, memoria e objetivos
+- backup de JSON corrompido durante bootstrap
+- `Dockerfile`, `.dockerignore`, `.env.example` e `docker-compose.yml`
+- paths persistentes `data/`, `logs/` e `reports/`
+- documentacao de deploy em `DEPLOY_PTBR.md`
 
 ## Validacao
 
 - suite executada: `python -m unittest discover -s tests -v`
-- resultado: `28 testes aprovados`
+- resultado: `32 testes aprovados`
+- smoke test de Docker: nao executado neste ambiente, porque o comando `docker` nao esta disponivel
 
 ## Proximo bloco
 
-- BLOCO 6 — Preparacao para nuvem
+- BLOCO 7 — continuidade de estado no servidor

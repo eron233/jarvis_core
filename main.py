@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import json
 from pathlib import Path
 import signal
 import time
@@ -36,11 +37,13 @@ class SystemLoopConfig:
     install_signal_handlers: bool = True
     queue_storage_path: Optional[Path] = None
     semantic_storage_path: Optional[Path] = None
+    goal_storage_path: Optional[Path] = None
 
 
 def bootstrap_runtime(
     runtime: Optional[InternalAgentRuntime] = None,
     config: Optional[SystemLoopConfig] = None,
+    logger: Callable[[str], None] | None = None,
 ) -> tuple[InternalAgentRuntime, Dict[str, Any]]:
     """Prepara o runtime com os caminhos de persistencia desejados."""
 
@@ -49,6 +52,10 @@ def bootstrap_runtime(
 
     if config.queue_storage_path is not None:
         runtime.task_queue = TaskQueue(storage_path=config.queue_storage_path)
+        _load_queue_storage(runtime.task_queue, logger)
+
+    if config.goal_storage_path is not None:
+        runtime.goal_manager = _load_goal_manager(config.goal_storage_path, logger)
 
     episodic_memory = runtime.memory.get("episodic") if runtime.memory else None
     procedural_memory = runtime.memory.get("procedural") if runtime.memory else None
@@ -63,6 +70,7 @@ def bootstrap_runtime(
     if semantic_memory is None or config.semantic_storage_path is not None:
         semantic_path = config.semantic_storage_path or getattr(semantic_memory, "storage_path", None)
         semantic_memory = SemanticMemory(storage_path=semantic_path) if semantic_path else SemanticMemory()
+        _load_semantic_storage(semantic_memory, logger)
 
     runtime.memory = {
         "episodic": episodic_memory,
@@ -70,7 +78,16 @@ def bootstrap_runtime(
         "procedural": procedural_memory,
     }
 
-    return runtime, runtime.bootstrap()
+    state = runtime.bootstrap()
+    _log_message(
+        logger,
+        "[bootstrap] runtime={status} fila={queue_depth} memoria_semantica={memory_entries}".format(
+            status=state["status_ptbr"],
+            queue_depth=state["queue_depth"],
+            memory_entries=len(runtime.memory["semantic"].entries),
+        ),
+    )
+    return runtime, state
 
 
 @dataclass
@@ -89,7 +106,7 @@ class JarvisSystemLoop:
     def bootstrap(self) -> Dict[str, Any]:
         """Inicializa o runtime e instala handlers de sinal quando permitido."""
 
-        self.runtime, state = bootstrap_runtime(runtime=self.runtime, config=self.config)
+        self.runtime, state = bootstrap_runtime(runtime=self.runtime, config=self.config, logger=self.logger)
 
         if self.config.install_signal_handlers and not self._signal_handlers_installed:
             self._install_signal_handlers()
@@ -246,6 +263,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=None,
         help="Caminho alternativo do arquivo de persistencia da memoria semantica.",
     )
+    parser.add_argument(
+        "--goal-storage-path",
+        type=Path,
+        default=None,
+        help="Caminho alternativo do arquivo de persistencia dos objetivos.",
+    )
     return parser
 
 
@@ -262,10 +285,122 @@ def main(argv: Optional[List[str]] = None) -> int:
         stop_when_idle=args.stop_when_idle,
         queue_storage_path=args.queue_storage_path,
         semantic_storage_path=args.semantic_storage_path,
+        goal_storage_path=args.goal_storage_path,
     )
     loop = JarvisSystemLoop(config=config)
     loop.run()
     return 0
+
+
+def _load_queue_storage(task_queue: TaskQueue, logger: Callable[[str], None] | None) -> None:
+    task_queue.storage_path.parent.mkdir(parents=True, exist_ok=True)
+    if not task_queue.storage_path.exists():
+        snapshot = task_queue.save_to_disk()
+        _log_message(
+            logger,
+            f"[bootstrap] fila persistente criada em {task_queue.storage_path} com {snapshot['task_count']} tarefa(s).",
+        )
+        return
+
+    try:
+        snapshot = task_queue.load_from_disk()
+    except json.JSONDecodeError:
+        backup_path = _backup_corrupted_storage(task_queue.storage_path)
+        _log_message(
+            logger,
+            f"[bootstrap] fila persistente corrompida. Backup salvo em {backup_path}. Reinicializando arquivo limpo.",
+        )
+        snapshot = task_queue.save_to_disk()
+
+    _log_message(
+        logger,
+        f"[bootstrap] fila persistente carregada de {task_queue.storage_path} com {snapshot['task_count']} tarefa(s).",
+    )
+
+
+def _load_semantic_storage(
+    semantic_memory: SemanticMemory,
+    logger: Callable[[str], None] | None,
+) -> None:
+    semantic_memory.storage_path.parent.mkdir(parents=True, exist_ok=True)
+    if not semantic_memory.storage_path.exists():
+        snapshot = semantic_memory.snapshot()
+        _log_message(
+            logger,
+            "[bootstrap] memoria semantica criada em {path} com {count} entrada(s).".format(
+                path=semantic_memory.storage_path,
+                count=snapshot["entry_count"],
+            ),
+        )
+        return
+
+    try:
+        snapshot = semantic_memory.load_snapshot()
+    except json.JSONDecodeError:
+        backup_path = _backup_corrupted_storage(semantic_memory.storage_path)
+        _log_message(
+            logger,
+            "[bootstrap] memoria semantica corrompida. Backup salvo em {path}. Reinicializando armazenamento.".format(
+                path=backup_path,
+            ),
+        )
+        semantic_memory.entries = []
+        semantic_memory.facts = {}
+        snapshot = semantic_memory.snapshot()
+
+    _log_message(
+        logger,
+        "[bootstrap] memoria semantica carregada de {path} com {count} entrada(s).".format(
+            path=semantic_memory.storage_path,
+            count=snapshot["entry_count"],
+        ),
+    )
+
+
+def _load_goal_manager(
+    storage_path: Path,
+    logger: Callable[[str], None] | None,
+):
+    from intent_layer.goal_manager import GoalManager
+
+    storage_path.parent.mkdir(parents=True, exist_ok=True)
+    if not storage_path.exists():
+        goal_manager = GoalManager(storage_path=storage_path)
+        goal_manager.save()
+        _log_message(logger, f"[bootstrap] camada de objetivos criada em {storage_path}.")
+        return goal_manager
+
+    try:
+        goal_manager = GoalManager(storage_path=storage_path)
+    except json.JSONDecodeError:
+        backup_path = _backup_corrupted_storage(storage_path)
+        _log_message(
+            logger,
+            f"[bootstrap] objetivos corrompidos. Backup salvo em {backup_path}. Reinicializando arquivo limpo.",
+        )
+        goal_manager = GoalManager(storage_path=storage_path)
+        goal_manager.save()
+
+    _log_message(
+        logger,
+        "[bootstrap] objetivos carregados de {path} com {count} objetivo(s) ativo(s).".format(
+            path=storage_path,
+            count=len(goal_manager.list_active_goals()),
+        ),
+    )
+    return goal_manager
+
+
+def _backup_corrupted_storage(storage_path: Path) -> Path:
+    suffix = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    backup_path = storage_path.with_name(f"{storage_path.stem}.corrompido-{suffix}{storage_path.suffix}")
+    storage_path.rename(backup_path)
+    return backup_path
+
+
+def _log_message(logger: Callable[[str], None] | None, message: str) -> None:
+    if logger is not None:
+        logger(message)
 
 
 if __name__ == "__main__":
