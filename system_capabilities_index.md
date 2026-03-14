@@ -33,6 +33,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Modelagem de ameaca interna | Implementada | `security/threat_model_engine.py`, `security/__init__.py` | Reaproveita estado do runtime e relatorios de ambiente | `tests/test_threat_model_engine.py` |
 | Gemeo de seguranca isolado | Implementada | `security/security_twin.py`, `security/twin_state/.gitkeep` | JSON isolado em `security/twin_state/` ou path configurado | `tests/test_security_twin.py` |
 | Validacao interna controlada | Implementada | `security/security_validation_engine.py`, `security/security_twin.py` | Executa apenas sobre o snapshot isolado | `tests/test_security_validation_engine.py` |
+| Remediacao hibrida | Implementada | `security/remediation_engine.py`, `executive_planner/audit.py` | Reaproveita runtime, twin e relatorios de validacao | `tests/test_remediation_engine.py` |
 
 ## Capacidades do Runtime
 
@@ -82,6 +83,9 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - validar integridade do gemeo antes de simular falhas defensivas
 - simular cenarios de autenticacao, configuracao, persistencia, observabilidade, continuidade e integridade operacional
 - gerar fraquezas com score de risco, evidencias e cenarios afetados
+- propor tres solucoes estruturadas por fraqueza
+- aplicar automaticamente apenas correcoes seguras, reversiveis e auditadas
+- escalar para aprovacao humana tudo o que afetar autenticacao, identidade ou arquitetura sensivel
 
 ## Artefatos de Persistencia
 
@@ -128,12 +132,14 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Snapshot isolado, sanitizacao real e deteccao de adulteracao do gemeo
 - `tests/test_security_validation_engine.py`
   Suite defensiva no gemeo com deteccao de fraquezas por categoria
+- `tests/test_remediation_engine.py`
+  Plano de remediacao, autoaplicacao segura e escalonamento para aprovacao humana
 
 ## Lacunas Atuais
 
 - ainda nao houve smoke test real de container neste ambiente por ausencia de `docker`
 - os workers continuam minimos e seguros
-- a remediacao assistida e o relatorio consolidado de seguranca ainda nao foram implementados
+- o relatorio consolidado de seguranca e a consolidacao por excecao ainda nao foram implementados
 - a geracao controlada de tarefas ainda nao foi implementada
 - a memoria procedural ainda nao saiu do nivel inicial
 - o monitoramento externo de infraestrutura ainda nao foi adicionado

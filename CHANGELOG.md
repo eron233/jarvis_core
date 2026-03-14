@@ -50,6 +50,10 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Adicionadas simulacoes defensivas de autenticacao, configuracao, persistencia, observabilidade, continuidade e integridade operacional.
 - Adicionada geracao de fraquezas com score de risco, evidencias e cenarios afetados apenas sobre o gemeo.
 - Adicionados testes da validacao interna controlada em `tests/test_security_validation_engine.py`.
+- Criado o modulo `security/remediation_engine.py` para remediacao hibrida.
+- Adicionadas tres solucoes estruturadas por fraqueza: imediata, estrutural e mitigacao operacional.
+- Adicionada autoaplicacao limitada a correcoes seguras e reversiveis com auditoria em `security_remediation`.
+- Adicionados testes do motor de remediacao em `tests/test_remediation_engine.py`.
 
 ## v0.1.0 - Scaffold inicial
 

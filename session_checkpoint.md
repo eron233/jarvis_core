@@ -2,24 +2,24 @@
 
 ## Ciclo atual
 
-- Ciclo: 14
-- Capacidade implementada: validacao interna controlada
+- Ciclo: 15
+- Capacidade implementada: remediacao hibrida
 - Estado: concluido com testes verdes
 
 ## Entregas do ciclo
 
-- modulo `security/security_validation_engine.py`
-- suite defensiva executada apenas sobre o gemeo autorizado
-- fraquezas classificadas com evidencias, score de risco e cenarios afetados
-- cobertura de autenticacao, configuracao, persistencia, observabilidade, continuidade e integridade operacional
-- gate de integridade do gemeo antes das simulacoes
-- testes dedicados da validacao interna controlada
+- modulo `security/remediation_engine.py`
+- tres solucoes estruturadas por fraqueza
+- separacao entre correcao automatica segura e correcao assistida
+- autoaplicacao limitada a persistencia, observabilidade e regeneracao segura do gemeo
+- registro de remediacao em auditoria com evento `security_remediation`
+- testes dedicados do motor de remediacao
 
 ## Validacao
 
 - suite executada: `python -m unittest discover -s tests -v`
-- resultado: `45 testes aprovados`
+- resultado: `48 testes aprovados`
 
 ## Proximo bloco
 
-- BLOCO 12.5 - remediacao hibrida
+- BLOCO 12.6 - relatorio semanal de seguranca

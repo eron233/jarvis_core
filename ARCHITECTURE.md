@@ -208,6 +208,7 @@ Essa estrategia foi mantida propositalmente simples para caber em uma VPS Linux 
 Locais principais:
 
 - `security/security_knowledge_core.py`
+- `security/remediation_engine.py`
 - `security/security_twin.py`
 - `security/security_validation_engine.py`
 - `security/threat_model_engine.py`
@@ -235,5 +236,8 @@ Capacidades atuais:
 - simulacao controlada de falhas apenas sobre o gemeo
 - classificacao de fraquezas com evidencias e score de risco
 - cobertura de autenticacao, configuracao, persistencia, observabilidade, continuidade e integridade operacional
+- geracao de tres solucoes por fraqueza
+- autoaplicacao restrita a correcoes seguras, reversiveis e auditadas
+- bloqueio de autoalteracao para autenticacao estrutural, constitutional core e identidade fundamental
 
-Essa base agora ja cobre conhecimento defensivo, modelagem de ameaca interna, o gemeo de seguranca e a validacao interna controlada. Os proximos subblocos devem reutilizar esses artefatos para a remediacao assistida e o relatorio consolidado de seguranca.
+Essa base agora ja cobre conhecimento defensivo, modelagem de ameaca interna, o gemeo de seguranca, a validacao interna controlada e a remediacao hibrida. Os proximos subblocos devem reutilizar esses artefatos para o relatorio consolidado de seguranca e a politica de consolidacao por excecao.

@@ -40,6 +40,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - motor de modelagem de ameaca sobre o proprio estado do sistema
 - gemeo de seguranca isolado com snapshots sanitizados
 - validacao interna controlada apenas sobre o gemeo autorizado
+- remediacao hibrida com autoaplicacao limitada a correcoes seguras
 
 ## Execucao Local
 
@@ -148,6 +149,14 @@ O modulo `security/security_validation_engine.py` executa cenarios defensivos co
 - observabilidade
 - continuidade
 - integridade operacional
+
+O modulo `security/remediation_engine.py` transforma fraquezas detectadas em:
+
+- solucao imediata
+- solucao estrutural
+- mitigacao operacional
+
+Quando o risco e baixo e a correcao e reversivel, o proprio sistema pode aplicar automaticamente apenas a parte segura, mantendo auditoria e sem tocar em autenticacao estrutural ou no constitutional core.
 
 ## Fluxo de Desenvolvimento
 

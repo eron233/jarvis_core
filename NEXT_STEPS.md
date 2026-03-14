@@ -2,18 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- BLOCO 12.5 - remediacao hibrida
+- BLOCO 12.6 - relatorio semanal de seguranca
 
 ## Delta recomendado
 
-- transformar cada fraqueza detectada em no minimo tres propostas estruturadas
-- separar correcoes automaticas seguras das correcoes que exigem aprovacao humana
-- garantir rastreabilidade de antes e depois para qualquer correcao aplicada
-- preservar constitutional core, autenticacao e auditoria como areas protegidas
+- consolidar fraquezas, remedios e acoes automaticas em relatorio semanal em pt-BR
+- destacar imediatamente apenas riscos criticos e excecoes reais
+- separar novidades da semana de achados recorrentes
+- transformar a saida em base reutilizavel para painel e API
 
 ## Criterios de aceite
 
 - nenhuma duplicacao da logica de runtime, API, deploy ou auditoria
-- correcoes automaticas limitadas a mudancas seguras, reversiveis e de baixo risco
+- consolidacao periodica com escalonamento imediato apenas para urgencias criticas
 - saidas tecnicas, diretas e auditaveis
-- base pronta para o relatorio semanal de seguranca do ciclo seguinte
+- base pronta para a consolidacao por excecao do ciclo seguinte

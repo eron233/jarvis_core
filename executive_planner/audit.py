@@ -14,6 +14,7 @@ EVENTOS_PTBR = {
     "bootstrap": "inicializar",
     "dispatch": "despachar",
     "access": "acesso",
+    "security_remediation": "remediacao_de_seguranca",
 }
 
 STATUS_PTBR = {
@@ -37,6 +38,8 @@ STATUS_PTBR = {
     "selected": "selecionada",
     "authorized": "autorizado",
     "denied": "negado",
+    "applied": "aplicada",
+    "skipped": "nao_aplicada",
 }
 
 MOTIVOS_PTBR = {
@@ -48,6 +51,10 @@ MOTIVOS_PTBR = {
     "invalid_token": "token_invalido",
     "missing_device_id": "device_id_ausente",
     "untrusted_device": "dispositivo_nao_autorizado",
+    "requires_human_approval": "requer_aprovacao_humana",
+    "missing_runtime_context": "contexto_de_runtime_ausente",
+    "missing_environment_context": "contexto_de_ambiente_ausente",
+    "safe_correction_not_available": "correcao_segura_indisponivel",
 }
 
 
