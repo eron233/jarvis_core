@@ -38,6 +38,7 @@ tests/_main_loop_artifacts/
 tests/_goal_artifacts/
 tests/_api_artifacts/
 tests/_cloud_artifacts/
+tests/_security_artifacts/
 data/*
 !data/.gitkeep
 logs/*

@@ -42,6 +42,10 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Criado o modulo `security/threat_model_engine.py` para modelagem de ameaca interna.
 - Adicionados inventario de ativos, mapa de superficies, dependencias criticas e classificacao de risco.
 - Adicionados testes do motor de ameaca em `tests/test_threat_model_engine.py`.
+- Criado o modulo `security/security_twin.py` para o gemeo de seguranca isolado.
+- Adicionados snapshots sanitizados de configuracao, fila, memoria, objetivos e estado operacional.
+- Adicionada validacao de integridade do gemeo e persistencia dedicada em `security/twin_state/`.
+- Adicionados testes do gemeo de seguranca em `tests/test_security_twin.py`.
 
 ## v0.1.0 - Scaffold inicial
 

@@ -3,7 +3,7 @@
 ## Estado atual
 
 - Nivel atual: `M2 - operacional inicial`
-- Subnivel: `M2.3 - operacao inicial com modelagem de ameaca interna`
+- Subnivel: `M2.4 - operacao inicial com gemeo de seguranca`
 - Idioma visivel: `pt-BR`
 - Entrypoint do loop local: `jarvis_core/main.py`
 - Entrypoint do servidor: `jarvis_core/runtime/server.py`
@@ -25,6 +25,7 @@
 - preparacao para Docker e `docker-compose`
 - nucleo de conhecimento defensivo para autodiagnostico
 - motor de modelagem de ameaca sobre ativos, superficies e dependencias
+- gemeo de seguranca isolado com validacao de integridade
 
 ## Blocos concluidos
 
@@ -36,12 +37,13 @@
 - BLOCO 6 - preparacao para nuvem
 - BLOCO 12.1 - nucleo de conhecimento de seguranca
 - BLOCO 12.2 - modelagem de ameaca
+- BLOCO 12.3 - gemeo de seguranca
 
 ## Blocos parciais
 
 - memoria procedural real
 - workers mais reais
-- autodefesa interna alem da modelagem de ameaca
+- autodefesa interna alem do gemeo de seguranca
 
 ## Blocos ainda nao iniciados de forma funcional
 
@@ -56,8 +58,8 @@
 - ainda nao foi executado um smoke test real de Docker neste ambiente porque `docker` nao esta disponivel aqui
 - os workers continuam seguros e minimos, mas ainda nao sao executores ricos
 - ainda nao existe monitoramento externo de infraestrutura alem do healthcheck e dos logs locais
-- a autodefesa ja cobre conhecimento defensivo e modelagem de ameaca, mas ainda nao executa gemeo de seguranca, validacao controlada ou remediacao assistida
+- a autodefesa ja cobre conhecimento defensivo, modelagem de ameaca e o gemeo de seguranca, mas ainda nao executa validacao controlada ou remediacao assistida
 
 ## Leitura objetiva
 
-O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel operacional inicial. O sistema agora pode ser configurado para VPS simples, subir API e painel, manter estado persistente, preservar seguranca basica de acesso e manter uma camada real de autodefesa interna capaz de mapear ativos, superficies, dependencias e niveis de risco sem depender do PC como maquina principal.
+O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel operacional inicial. O sistema agora pode ser configurado para VPS simples, subir API e painel, manter estado persistente, preservar seguranca basica de acesso e manter uma camada real de autodefesa interna capaz de mapear riscos e espelhar o proprio estado em um ambiente sanitizado e isolado sem depender do PC como maquina principal.

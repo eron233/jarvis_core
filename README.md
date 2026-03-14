@@ -38,6 +38,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - preparacao para container e `docker-compose`
 - nucleo de conhecimento defensivo para autodefesa interna
 - motor de modelagem de ameaca sobre o proprio estado do sistema
+- gemeo de seguranca isolado com snapshots sanitizados
 
 ## Execucao Local
 
@@ -129,6 +130,14 @@ O modulo `security/threat_model_engine.py` complementa essa base transformando o
 - mapa de superficies de contato
 - classificacao de risco em baixo, medio, alto e critico
 - dependencias criticas do sistema
+
+O modulo `security/security_twin.py` amplia a autodefesa criando um espelho isolado do estado atual do JARVIS com:
+
+- snapshot sanitizado de configuracao, fila, memoria e objetivos
+- resumo operacional seguro do runtime
+- metadados de API e seguranca sem expor segredos
+- persistencia isolada em `security/twin_state/`
+- validacao de integridade do espelho antes de qualquer simulacao defensiva
 
 ## Fluxo de Desenvolvimento
 

@@ -208,6 +208,7 @@ Essa estrategia foi mantida propositalmente simples para caber em uma VPS Linux 
 Locais principais:
 
 - `security/security_knowledge_core.py`
+- `security/security_twin.py`
 - `security/threat_model_engine.py`
 - `security/__init__.py`
 
@@ -227,5 +228,8 @@ Capacidades atuais:
 - mapa de superficies de contato
 - classificacao de risco por ativo
 - resumo interno de ameaca em pt-BR
+- snapshot isolado e sanitizado do estado atual
+- validacao de integridade do espelho defensivo
+- persistencia dedicada em `security/twin_state/`
 
-Essa base agora ja cobre conhecimento defensivo e modelagem de ameaca interna. Os proximos subblocos devem reutilizar esses artefatos para o gemeo de seguranca, a validacao interna controlada e a remediacao assistida.
+Essa base agora ja cobre conhecimento defensivo, modelagem de ameaca interna e o gemeo de seguranca. Os proximos subblocos devem reutilizar esses artefatos para a validacao interna controlada e a remediacao assistida.
