@@ -183,6 +183,7 @@ class JarvisServerContext:
             install_signal_handlers=install_signal_handlers,
             queue_storage_path=self.config.queue_storage_path,
             semantic_storage_path=self.config.semantic_storage_path,
+            procedural_storage_path=self.config.procedural_storage_path,
             goal_storage_path=self.config.goals_storage_path,
         )
 

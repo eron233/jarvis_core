@@ -90,9 +90,13 @@ class InternalAgentRuntime:
         self.memory.setdefault("procedural", ProceduralMemory())
 
         semantic_memory = self.memory["semantic"]
+        procedural_memory = self.memory["procedural"]
         if not semantic_memory.entries and not semantic_memory.facts:
             semantic_memory.load_snapshot()
         semantic_memory.auto_persist = True
+        if not procedural_memory.procedures:
+            procedural_memory.load_snapshot()
+        procedural_memory.auto_persist = True
 
         if not self.workers:
             self.workers = {
@@ -150,6 +154,12 @@ class InternalAgentRuntime:
         self.memory["procedural"].register(
             "planner_cycle",
             ["planejar", "priorizar", "validar", "agendar", "executar", "revisar"],
+            domain="system",
+            task_type="planner_cycle",
+            heuristic="Seguir a ordem deterministica do planner e registrar todas as decisoes.",
+            observed_result="ciclo_base_registrado",
+            success=True,
+            metadata={"source": "runtime.bootstrap"},
         )
         self.memory["episodic"].remember(
             {
@@ -212,6 +222,7 @@ class InternalAgentRuntime:
 
         worker_id = self._normalize_worker_id(task.get("worker") or task.get("worker_id") or "runtime")
         worker = self.workers.get(worker_id)
+        procedural_guidance = self.get_procedural_guidance(task, worker_id=worker_id)
 
         if worker is None:
             self._apply_state(task, "rejected")
@@ -235,6 +246,10 @@ class InternalAgentRuntime:
             )
             return result
 
+        if procedural_guidance:
+            task["procedural_guidance"] = deepcopy(procedural_guidance[0]["steps"])
+            task["procedural_guidance_source"] = procedural_guidance[0]["name"]
+
         worker_response = worker.handle(task)
         self._apply_state(task, "completed")
         result = {
@@ -243,6 +258,10 @@ class InternalAgentRuntime:
             "task": task,
             "worker": worker_id,
             "worker_response": worker_response,
+            "procedural_context": {
+                "guidance_used": deepcopy(procedural_guidance[0]) if procedural_guidance else None,
+                "guidance_candidates": len(procedural_guidance),
+            },
             "result": {
                 "runtime_status": "completed",
                 "runtime_status_ptbr": traduzir_status("completed"),
@@ -274,6 +293,7 @@ class InternalAgentRuntime:
                 "runtime_status_ptbr": result["result"]["runtime_status_ptbr"],
             },
         )
+        self._record_procedural_outcome(task, worker_id, result)
         self.goal_manager.record_task_result(task, result)
         return result
 
@@ -305,6 +325,25 @@ class InternalAgentRuntime:
         self.bootstrap()
         return self.memory["semantic"].search(query=query, domain=domain, limit=limit)
 
+    def query_procedural_memory(
+        self,
+        query: str = "",
+        domain: str | None = None,
+        task_type: str | None = None,
+        success_only: bool = False,
+        limit: int = 5,
+    ) -> list[Dict[str, Any]]:
+        """Consulta a memoria procedural em busca de heuristicas relevantes."""
+
+        self.bootstrap()
+        return self.memory["procedural"].search(
+            query=query,
+            domain=domain,
+            task_type=task_type,
+            success_only=success_only,
+            limit=limit,
+        )
+
     def get_goal_report(self, goal_id: str | None = None) -> Dict[str, Any]:
         """Retorna um relatorio de objetivos em pt-BR."""
 
@@ -332,6 +371,16 @@ class InternalAgentRuntime:
 
         self.bootstrap()
         return self.memory["semantic"].recent_entries(limit=limit, domain=domain)
+
+    def get_recent_procedural_entries(
+        self,
+        limit: int = 10,
+        domain: str | None = None,
+    ) -> list[Dict[str, Any]]:
+        """Retorna os procedimentos mais recentes, opcionalmente por dominio."""
+
+        self.bootstrap()
+        return self.memory["procedural"].recent_entries(limit=limit, domain=domain)
 
     def build_system_report(self, last_cycle_result: Dict[str, Any] | None = None) -> Dict[str, Any]:
         """Monta um relatorio operacional resumido do sistema."""
@@ -487,6 +536,7 @@ class InternalAgentRuntime:
 
         self.bootstrap()
         semantic_memory = self.memory["semantic"]
+        procedural_memory = self.memory["procedural"]
         domain_counts: Dict[str, int] = {}
         for entry in semantic_memory.entries:
             domain_counts[entry["domain"]] = domain_counts.get(entry["domain"], 0) + 1
@@ -514,10 +564,13 @@ class InternalAgentRuntime:
             "resumo": {
                 "total_entradas_semanticas": len(semantic_memory.entries),
                 "total_fatos_semanticos": len(semantic_memory.facts),
+                "total_procedimentos": len(procedural_memory.procedures),
                 "ultima_escrita": latest_write,
+                "ultima_atualizacao_procedural": procedural_memory.latest_updated_at(),
                 "integridade_basica": integrity,
             },
             "memorias_recentes": self.get_recent_semantic_entries(limit=5),
+            "procedimentos_recentes": self.get_recent_procedural_entries(limit=5),
             "memorias_por_dominio": [
                 {"dominio": domain, "total": total}
                 for domain, total in sorted(domain_counts.items(), key=lambda item: item[0])
@@ -661,6 +714,11 @@ class InternalAgentRuntime:
         if semantic_memory is not None:
             semantic_snapshot = semantic_memory.snapshot()
 
+        procedural_snapshot = None
+        procedural_memory = self.memory.get("procedural")
+        if procedural_memory is not None:
+            procedural_snapshot = procedural_memory.snapshot()
+
         goals_snapshot = None
         if self.goal_manager is not None:
             goals_snapshot = self.goal_manager.snapshot()
@@ -668,6 +726,7 @@ class InternalAgentRuntime:
         return {
             "queue": deepcopy(queue_snapshot),
             "semantic_memory": deepcopy(semantic_snapshot),
+            "procedural_memory": deepcopy(procedural_snapshot),
             "goals": deepcopy(goals_snapshot),
         }
 
@@ -701,6 +760,11 @@ class InternalAgentRuntime:
             "semantic_store": (
                 str(self.memory["semantic"].storage_path) if self.memory.get("semantic") is not None else None
             ),
+            "procedural_store": (
+                str(self.memory["procedural"].storage_path)
+                if self.memory.get("procedural") is not None and self.memory["procedural"].storage_path is not None
+                else None
+            ),
             "last_cycle_at": self.last_cycle_at,
             "total_cycles_executed": self.total_cycles_executed,
         }
@@ -710,6 +774,77 @@ class InternalAgentRuntime:
 
         self.bootstrap()
         return self.constitutional_policy.describe()
+
+    def get_procedural_guidance(self, task: Dict[str, Any], worker_id: str | None = None) -> list[Dict[str, Any]]:
+        """Busca heuristicas relevantes para a tarefa atual."""
+
+        self.bootstrap()
+        normalized_worker = self._normalize_worker_id(worker_id or task.get("worker") or task.get("worker_id") or task.get("domain") or "general")
+        query = " ".join(
+            item
+            for item in [
+                str(task.get("goal", "")),
+                str(task.get("description", "")),
+            ]
+            if item
+        )
+        return self.query_procedural_memory(
+            query=query,
+            domain=str(task.get("domain") or normalized_worker),
+            task_type=normalized_worker,
+            success_only=True,
+            limit=3,
+        )
+
+    def _record_procedural_outcome(self, task: Dict[str, Any], worker_id: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Registra um padrao util de execucao para reutilizacao futura."""
+
+        procedure_name = f"{worker_id}_execution_pattern"
+        guidance_source = task.get("procedural_guidance_source")
+        base_steps = task.get("procedural_guidance") or [
+            "validar contexto da tarefa",
+            f"executar o worker {worker_id}",
+            "registrar evidencias",
+            "persistir resultado nas memorias",
+        ]
+        evidence = list(task.get("evidence", []))
+        worker_response = result.get("worker_response", {})
+        if isinstance(worker_response, dict):
+            evidence.extend(str(item) for item in worker_response.get("evidence", []))
+
+        heuristic = (
+            f"Reaproveitar o padrao de {worker_id} no dominio {task.get('domain', worker_id)} "
+            "mantendo evidencia explicita e registro de memoria."
+        )
+        if guidance_source:
+            heuristic += f" Guia reaproveitado: {guidance_source}."
+
+        return self.memory["procedural"].register(
+            name=procedure_name,
+            steps=[str(step) for step in base_steps],
+            domain=str(task.get("domain") or worker_id),
+            task_type=worker_id,
+            heuristic=heuristic,
+            context={
+                "goal": task.get("goal"),
+                "description": task.get("description"),
+                "worker": worker_id,
+            },
+            preconditions=[
+                "tarefa validada pelo planner",
+                "politica constitucional carregada",
+            ],
+            observed_result=result["status"],
+            success=result["status"] == "executed",
+            evidence=evidence,
+            metadata={
+                "task_id": task.get("task_id"),
+                "worker": worker_id,
+                "guidance_source": guidance_source,
+                "dispatch_status": result["status"],
+                "dispatch_status_ptbr": result["status_ptbr"],
+            },
+        )
 
     def _uptime_seconds(self) -> int:
         if self.started_at is None:

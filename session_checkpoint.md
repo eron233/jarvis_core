@@ -2,23 +2,23 @@
 
 ## Ciclo atual
 
-- Ciclo: 21
-- Capacidade implementada: constitutional core como politica viva
+- Ciclo: 22
+- Capacidade implementada: memoria procedural forte
 - Estado: concluido com testes verdes
 
 ## Entregas do ciclo
 
-- carregamento central da politica via `constitutional_core/policy.py`
-- integracao da politica viva com `executive_planner/validator.py`
-- gate de autonomia do runtime orientado por politica constitucional e aprovacao humana
-- introspeccao segura da politica ativa em estado, healthcheck e relatorio do sistema
-- testes dedicados de carregamento, bloqueio absoluto e escalonamento por aprovacao humana
+- memoria procedural estruturada com dominio, tipo, heuristica, contexto e evidencias
+- persistencia configuravel da memoria procedural em JSON
+- consulta procedural por texto, dominio, tipo e sucesso
+- guidance procedural aplicado pelo runtime em tarefas semelhantes
+- registro automatico de padroes apos execucao real
 
 ## Validacao
 
 - suite executada: `python -m unittest discover -s tests -v`
-- resultado: `56 testes aprovados`
+- resultado: `60 testes aprovados`
 
 ## Proximo bloco
 
-- BLOCO C - memoria procedural forte
+- BLOCO D - workers uteis por dominio

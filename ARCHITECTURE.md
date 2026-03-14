@@ -77,13 +77,20 @@ Divide o conhecimento em tres formas:
 - memoria semantica para fatos e entradas pesquisaveis
 - memoria procedural para sequencias reutilizaveis
 
-No estado atual, a memoria semantica ja possui persistencia configuravel e recuperacao segura no startup. A memoria procedural ainda esta em etapa inicial e e o proximo alvo de fortalecimento.
+No estado atual, a memoria semantica e a memoria procedural ja possuem persistencia configuravel e recuperacao segura no startup.
 
 Artefatos principais:
 
 - `memory_system/episodic_memory.py`
 - `memory_system/semantic_memory.py`
 - `memory_system/procedural_memory.py`
+
+Capacidades atuais:
+
+- procedimentos estruturados com dominio, tipo de tarefa, heuristica, contexto e evidencias
+- persistencia configuravel em JSON
+- busca deterministica por texto, dominio, tipo e sucesso
+- reaproveitamento de guidance procedural pelo runtime antes da execucao
 
 ## Workers
 
@@ -113,6 +120,8 @@ Capacidades atuais:
 
 - gate de autonomia orientado por politica constitucional
 - bloqueio de tarefas proibidas ou ainda sem aprovacao humana
+- consulta de guidance procedural antes do dispatch
+- registro de padroes de execucao bem-sucedidos apos o dispatch
 - introspeccao segura da politica ativa em relatorios e estado do runtime
 
 ## Processo Continuo

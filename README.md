@@ -30,6 +30,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - constitutional core carregado como politica viva de validator e runtime
 - fila persistente em JSON
 - memoria semantica persistente em JSON
+- memoria procedural persistente com heuristicas reutilizaveis
 - objetivos persistentes com progresso
 - loop continuo com encerramento gracioso
 - API protegida por token e dispositivo confiavel
@@ -55,6 +56,18 @@ Capacidades atuais:
 - exigir aprovacao humana para escopos sensiveis
 - orientar o gate de autonomia do runtime
 - expor um resumo seguro da politica ativa nos relatorios operacionais
+
+## Memoria Procedural
+
+O JARVIS agora registra padroes de execucao reutilizaveis em `memory_system/procedural_memory.py`.
+
+Capacidades atuais:
+
+- armazenar procedimentos estruturados por dominio e tipo de tarefa
+- persistir heuristicas em JSON configuravel
+- buscar procedimentos por texto, dominio, tipo e sucesso
+- registrar padroes apos execucao real do runtime
+- reaproveitar guidance procedural em tarefas semelhantes
 
 ## Execucao Local
 
@@ -130,6 +143,7 @@ http://localhost:8000/painel
 - `JARVIS_LOG_LEVEL`
 - `JARVIS_ENABLE_RUNTIME_LOOP`
 - `JARVIS_ENABLE_DASHBOARD`
+- `JARVIS_PROCEDURAL_STORAGE_PATH`
 
 O arquivo base fica em `.env.example`.
 
@@ -139,6 +153,7 @@ Por padrao, o modo de servidor usa:
 
 - `data/task_queue_store.json`
 - `data/semantic_memory_store.json`
+- `data/procedural_memory_store.json`
 - `data/goals.json`
 - `logs/jarvis.log`
 - `reports/environment_report.json`

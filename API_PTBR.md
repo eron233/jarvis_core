@@ -103,6 +103,7 @@ Principais variaveis:
 - `JARVIS_DATA_DIR`
 - `JARVIS_LOGS_DIR`
 - `JARVIS_REPORTS_DIR`
+- `JARVIS_PROCEDURAL_STORAGE_PATH`
 
 Arquivo base: `.env.example`
 

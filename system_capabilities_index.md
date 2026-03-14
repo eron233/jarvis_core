@@ -21,6 +21,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Fila persistente de tarefas | Implementada | `executive_planner/queue.py` | JSON configuravel | `tests/test_task_queue_persistence.py` |
 | Camada de objetivos | Implementada | `intent_layer/goal_manager.py` | JSON configuravel | `tests/test_goal_manager.py` |
 | Memoria semantica persistente | Implementada | `memory_system/semantic_memory.py` | JSON configuravel | `tests/test_semantic_memory.py` |
+| Memoria procedural persistente | Implementada | `memory_system/procedural_memory.py` | JSON configuravel | `tests/test_procedural_memory.py` |
 | Loop continuo local | Implementada | `main.py`, `startup_bootstrap.py` | Persistencia final de fila e memoria | `tests/test_main_loop.py`, `tests/test_startup_portability.py` |
 | Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py`, `constitutional_core/policy.py` | Reaproveita fila, memoria e objetivos | `tests/test_runtime_bootstrap.py`, `tests/test_constitutional_policy.py` |
 | API HTTP | Implementada | `interface/api/app.py` | Reaproveita o nucleo | `tests/test_api.py` |
@@ -41,6 +42,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - bootstrapar planner, fila, memoria, objetivos e workers
 - carregar e expor a politica constitucional ativa
 - recuperar fila, memoria e objetivos no startup
+- consultar e registrar guidance procedural
 - registrar eventos episodicos e relatorios operacionais
 - proteger execucao por regras de autonomia
 - persistir estado no shutdown
@@ -97,6 +99,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Finalidade: fila persistente do planner
 - `data/semantic_memory_store.json`
   Finalidade: memoria semantica persistente
+- `data/procedural_memory_store.json`
+  Finalidade: memoria procedural persistente
 - `data/goals.json`
   Finalidade: objetivos persistentes
 - `logs/jarvis.log`
@@ -126,6 +130,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Carregamento da politica, bloqueios absolutos, aprovacao humana e gate de autonomia
 - `tests/test_semantic_memory.py`
   Busca, dominio e persistencia da memoria semantica
+- `tests/test_procedural_memory.py`
+  Estrutura, busca, persistencia e guidance procedural no runtime
 - `tests/test_task_queue_persistence.py`
   Persistencia e recuperacao da fila
 - `tests/test_cloud_deploy.py`
@@ -151,5 +157,4 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - os workers continuam minimos e seguros
 - o relatorio consolidado de seguranca e a consolidacao por excecao ainda nao foram implementados
 - a geracao controlada de tarefas ainda nao foi implementada
-- a memoria procedural ainda nao saiu do nivel inicial
 - o monitoramento externo de infraestrutura ainda nao foi adicionado

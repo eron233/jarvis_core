@@ -66,6 +66,7 @@ class JarvisEnvironmentConfig:
     trusted_device_id: str = DEFAULT_TRUSTED_DEVICE_ID
     queue_storage_path: Path | None = None
     semantic_storage_path: Path | None = None
+    procedural_storage_path: Path | None = None
     goals_storage_path: Path | None = None
 
     def __post_init__(self) -> None:
@@ -82,6 +83,11 @@ class JarvisEnvironmentConfig:
             self.semantic_storage_path = self.data_dir / "semantic_memory_store.json"
         else:
             self.semantic_storage_path = Path(self.semantic_storage_path)
+
+        if self.procedural_storage_path is None:
+            self.procedural_storage_path = self.data_dir / "procedural_memory_store.json"
+        else:
+            self.procedural_storage_path = Path(self.procedural_storage_path)
 
         if self.goals_storage_path is None:
             self.goals_storage_path = self.data_dir / "goals.json"
@@ -137,6 +143,7 @@ class JarvisEnvironmentConfig:
             ),
             queue_storage_path=env_map.get("JARVIS_QUEUE_STORAGE_PATH"),
             semantic_storage_path=env_map.get("JARVIS_SEMANTIC_STORAGE_PATH"),
+            procedural_storage_path=env_map.get("JARVIS_PROCEDURAL_STORAGE_PATH"),
             goals_storage_path=env_map.get("JARVIS_GOALS_STORAGE_PATH"),
         )
         config.validate()
@@ -175,6 +182,7 @@ class JarvisEnvironmentConfig:
             self.reports_dir,
             self.queue_storage_path.parent,
             self.semantic_storage_path.parent,
+            self.procedural_storage_path.parent,
             self.goals_storage_path.parent,
         }
         for directory in directories:
@@ -196,6 +204,7 @@ class JarvisEnvironmentConfig:
                 "reports_dir": str(self.reports_dir),
                 "queue_storage_path": str(self.queue_storage_path),
                 "semantic_storage_path": str(self.semantic_storage_path),
+                "procedural_storage_path": str(self.procedural_storage_path),
                 "goals_storage_path": str(self.goals_storage_path),
             },
             "autenticacao_configurada": {

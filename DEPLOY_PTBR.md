@@ -51,6 +51,8 @@ Variaveis principais:
   Diretorio dos logs.
 - `JARVIS_REPORTS_DIR`
   Diretorio dos relatorios operacionais do deploy.
+- `JARVIS_PROCEDURAL_STORAGE_PATH`
+  Caminho do store persistente da memoria procedural.
 
 Variaveis de caminho fino:
 
@@ -94,6 +96,7 @@ Arquivos principais:
 
 - fila: `data/task_queue_store.json`
 - memoria semantica: `data/semantic_memory_store.json`
+- memoria procedural: `data/procedural_memory_store.json`
 - objetivos: `data/goals.json`
 - logs: `logs/jarvis.log`
 - relatorio de ambiente: `reports/environment_report.json`

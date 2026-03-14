@@ -2,18 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- BLOCO C - memoria procedural forte
+- BLOCO D - workers uteis por dominio
 
 ## Delta recomendado
 
-- transformar `procedural_memory.py` em store persistente e pesquisavel
-- registrar heuristicas e padroes bem-sucedidos apos execucao real
-- permitir recuperacao por dominio, tipo de tarefa e resultado
-- integrar esse aprendizado ao runtime e ao planner sem duplicar memoria semantica
+- tornar `worker_runtime` util para diagnostico operacional e relatorio tecnico
+- tornar `worker_study` util para resumo e estruturacao de material autorizado
+- tornar `worker_studio` util para briefing e checklist criativo
+- tornar `worker_finance` util para organizacao e sintese analitica sem automacao financeira real
 
 ## Criterios de aceite
 
-- nenhuma duplicacao de logica entre memoria procedural, runtime e planner
-- persistencia real em JSON com roundtrip coberto por testes
-- heuristicas recuperaveis em execucao real
-- atualizacoes auditaveis e relatorios coerentes em pt-BR
+- nenhuma duplicacao de logica entre workers, runtime, memoria e API
+- cada worker com retorno estruturado, evidencia e utilidade concreta
+- integracao com memoria e auditoria mantida
+- comportamento coberto por testes em pt-BR

@@ -4,6 +4,11 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Transformada `memory_system/procedural_memory.py` em memoria procedural persistente e pesquisavel.
+- Adicionado registro estruturado de heuristicas, contexto, precondicoes, evidencias e resultado observado.
+- Integrado o runtime para consultar guidance procedural antes da execucao e registrar novos padroes apos o dispatch.
+- Adicionado suporte configuravel a `JARVIS_PROCEDURAL_STORAGE_PATH`.
+- Adicionados testes dedicados de roundtrip e integracao em `tests/test_procedural_memory.py`.
 - Integrado o constitutional core ao `validator` e ao `runtime` como politica viva.
 - Criado `constitutional_core/policy.py` para carregar identidade, principios e limites operacionais.
 - Atualizado o gate de autonomia para bloquear por politica proibitiva e exigir aprovacao humana em tarefas sensiveis.

@@ -40,6 +40,7 @@ class CloudPreparationTests(unittest.TestCase):
         self.assertTrue(config.enable_dashboard)
         self.assertEqual(config.queue_storage_path, PROJECT_ROOT / "data" / "task_queue_store.json")
         self.assertEqual(config.semantic_storage_path, PROJECT_ROOT / "data" / "semantic_memory_store.json")
+        self.assertEqual(config.procedural_storage_path, PROJECT_ROOT / "data" / "procedural_memory_store.json")
         self.assertEqual(config.goals_storage_path, PROJECT_ROOT / "data" / "goals.json")
 
     def test_environment_config_rejects_production_without_secrets(self) -> None:

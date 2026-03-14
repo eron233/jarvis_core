@@ -46,6 +46,7 @@ class SystemLoopConfig:
     install_signal_handlers: bool = True
     queue_storage_path: Optional[Path] = None
     semantic_storage_path: Optional[Path] = None
+    procedural_storage_path: Optional[Path] = None
     goal_storage_path: Optional[Path] = None
 
 
@@ -73,8 +74,10 @@ def bootstrap_runtime(
     if episodic_memory is None:
         episodic_memory = EpisodicMemory()
 
-    if procedural_memory is None:
-        procedural_memory = ProceduralMemory()
+    if procedural_memory is None or config.procedural_storage_path is not None:
+        procedural_path = config.procedural_storage_path or getattr(procedural_memory, "storage_path", None)
+        procedural_memory = ProceduralMemory(storage_path=procedural_path)
+        _load_procedural_storage(procedural_memory, logger)
 
     if semantic_memory is None or config.semantic_storage_path is not None:
         semantic_path = config.semantic_storage_path or getattr(semantic_memory, "storage_path", None)
@@ -273,6 +276,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Caminho alternativo do arquivo de persistencia da memoria semantica.",
     )
     parser.add_argument(
+        "--procedural-storage-path",
+        type=Path,
+        default=None,
+        help="Caminho alternativo do arquivo de persistencia da memoria procedural.",
+    )
+    parser.add_argument(
         "--goal-storage-path",
         type=Path,
         default=None,
@@ -294,6 +303,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         stop_when_idle=args.stop_when_idle,
         queue_storage_path=args.queue_storage_path,
         semantic_storage_path=args.semantic_storage_path,
+        procedural_storage_path=args.procedural_storage_path,
         goal_storage_path=args.goal_storage_path,
     )
     loop = JarvisSystemLoop(config=config)
@@ -362,6 +372,47 @@ def _load_semantic_storage(
         "[bootstrap] memoria semantica carregada de {path} com {count} entrada(s).".format(
             path=semantic_memory.storage_path,
             count=snapshot["entry_count"],
+        ),
+    )
+
+
+def _load_procedural_storage(
+    procedural_memory: ProceduralMemory,
+    logger: Callable[[str], None] | None,
+) -> None:
+    if procedural_memory.storage_path is None:
+        return
+
+    procedural_memory.storage_path.parent.mkdir(parents=True, exist_ok=True)
+    if not procedural_memory.storage_path.exists():
+        snapshot = procedural_memory.snapshot()
+        _log_message(
+            logger,
+            "[bootstrap] memoria procedural criada em {path} com {count} procedimento(s).".format(
+                path=procedural_memory.storage_path,
+                count=snapshot["procedure_count"],
+            ),
+        )
+        return
+
+    try:
+        snapshot = procedural_memory.load_snapshot()
+    except json.JSONDecodeError:
+        backup_path = _backup_corrupted_storage(procedural_memory.storage_path)
+        _log_message(
+            logger,
+            "[bootstrap] memoria procedural corrompida. Backup salvo em {path}. Reinicializando armazenamento.".format(
+                path=backup_path,
+            ),
+        )
+        procedural_memory.procedures = {}
+        snapshot = procedural_memory.snapshot()
+
+    _log_message(
+        logger,
+        "[bootstrap] memoria procedural carregada de {path} com {count} procedimento(s).".format(
+            path=procedural_memory.storage_path,
+            count=snapshot["procedure_count"],
         ),
     )
 

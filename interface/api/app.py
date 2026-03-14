@@ -64,6 +64,7 @@ def create_app(
             install_signal_handlers=False,
             queue_storage_path=effective_deployment_config.queue_storage_path,
             semantic_storage_path=effective_deployment_config.semantic_storage_path,
+            procedural_storage_path=effective_deployment_config.procedural_storage_path,
             goal_storage_path=effective_deployment_config.goals_storage_path,
         )
 
