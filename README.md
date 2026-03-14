@@ -27,6 +27,7 @@ Idioma padrao da camada visivel: `pt-BR`
 ## O que o sistema ja faz
 
 - bootstrap do runtime com planner acoplado
+- constitutional core carregado como politica viva de validator e runtime
 - fila persistente em JSON
 - memoria semantica persistente em JSON
 - objetivos persistentes com progresso
@@ -42,6 +43,18 @@ Idioma padrao da camada visivel: `pt-BR`
 - gemeo de seguranca isolado com snapshots sanitizados
 - validacao interna controlada apenas sobre o gemeo autorizado
 - remediacao hibrida com autoaplicacao limitada a correcoes seguras
+
+## Politica Constitucional Viva
+
+O constitutional core agora deixa de ser apenas configuracional e passa a governar o sistema por meio de `constitutional_core/policy.py`.
+
+Capacidades atuais:
+
+- carregar identidade e principios como politica ativa
+- marcar tarefas proibidas por politica constitucional
+- exigir aprovacao humana para escopos sensiveis
+- orientar o gate de autonomia do runtime
+- expor um resumo seguro da politica ativa nos relatorios operacionais
 
 ## Execucao Local
 

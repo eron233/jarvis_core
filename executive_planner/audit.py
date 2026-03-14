@@ -46,6 +46,8 @@ MOTIVOS_PTBR = {
     "no_tasks": "sem_tarefas",
     "no_executable_task": "sem_tarefa_executavel",
     "autonomy_gate": "bloqueada_pela_politica_de_autonomia",
+    "policy_denied": "negada_pela_politica_constitucional",
+    "outside_autonomy_scope": "fora_do_escopo_autonomo",
     "unknown_worker": "worker_desconhecido",
     "missing_token": "token_ausente",
     "invalid_token": "token_invalido",

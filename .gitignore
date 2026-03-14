@@ -40,6 +40,7 @@ tests/_api_artifacts/
 tests/_cloud_artifacts/
 tests/_security_artifacts/
 tests/_startup_artifacts/
+tests/_policy_artifacts/
 data/*
 !data/.gitkeep
 logs/*

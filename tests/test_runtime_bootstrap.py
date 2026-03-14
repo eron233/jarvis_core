@@ -56,9 +56,15 @@ class RuntimeBootstrapTests(unittest.TestCase):
         )
         self.assertEqual(state["queue_depth"], 0)
         self.assertEqual(state["default_locale"], "pt-BR")
+        self.assertTrue(state["politica_constitucional_carregada"])
+        self.assertEqual(state["modo_autonomia"], "supervisionada_por_politica_constitucional")
         self.assertIsNotNone(runtime.planner)
         self.assertIs(runtime.planner.runtime, runtime)
         self.assertEqual(runtime.memory["semantic"].get("runtime_status"), "inicializado")
+        self.assertEqual(
+            runtime.memory["semantic"].get("constitutional_operating_mode"),
+            "autonomia_supervisionada_por_humanos",
+        )
         self.assertEqual(
             runtime.memory["procedural"].get("planner_cycle"),
             ["planejar", "priorizar", "validar", "agendar", "executar", "revisar"],
@@ -109,6 +115,11 @@ class RuntimeBootstrapTests(unittest.TestCase):
         self.assertEqual(len(semantic_results), 1)
         self.assertEqual(semantic_results[0]["metadata"]["task_id"], "finance-1")
         self.assertEqual(semantic_results[0]["domain"], "finance")
+        system_report = runtime.build_system_report(last_cycle_result=result)
+        self.assertEqual(
+            system_report["politica_ativa"]["identidade"]["modo_operacao"],
+            "autonomia_supervisionada_por_humanos",
+        )
 
 
 if __name__ == "__main__":

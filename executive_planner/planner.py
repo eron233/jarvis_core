@@ -141,6 +141,7 @@ class ExecutivePlanner:
 
         for candidate in ranked_tasks:
             is_valid, issues = self.validator.validate_task(candidate["task"])
+            policy_evaluation = candidate["task"].get("policy_evaluation", {})
             self.audit_logger.record(
                 "validate",
                 {
@@ -148,6 +149,8 @@ class ExecutivePlanner:
                     "valid": is_valid,
                     "issues": issues,
                     "score": candidate["score"],
+                    "denied_by_policy": policy_evaluation.get("denied", False),
+                    "requires_human_approval": policy_evaluation.get("requires_human_approval", False),
                 },
             )
 

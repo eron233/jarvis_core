@@ -16,13 +16,13 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 
 | Capacidade | Estado | Arquivos principais | Persistencia | Testes |
 | --- | --- | --- | --- | --- |
-| Identidade e principios constitucionais | Implementada | `constitutional_core/identity.json`, `constitutional_core/principles.json` | JSON de configuracao | Indireta |
+| Identidade e principios constitucionais | Implementada | `constitutional_core/identity.json`, `constitutional_core/principles.json`, `constitutional_core/policy.py` | JSON de configuracao | `tests/test_constitutional_policy.py` |
 | Planejador executivo deterministico | Implementada | `executive_planner/planner.py`, `executive_planner/prioritizer.py`, `executive_planner/validator.py`, `executive_planner/audit.py` | Auditoria em memoria | `tests/test_planner.py` |
 | Fila persistente de tarefas | Implementada | `executive_planner/queue.py` | JSON configuravel | `tests/test_task_queue_persistence.py` |
 | Camada de objetivos | Implementada | `intent_layer/goal_manager.py` | JSON configuravel | `tests/test_goal_manager.py` |
 | Memoria semantica persistente | Implementada | `memory_system/semantic_memory.py` | JSON configuravel | `tests/test_semantic_memory.py` |
 | Loop continuo local | Implementada | `main.py`, `startup_bootstrap.py` | Persistencia final de fila e memoria | `tests/test_main_loop.py`, `tests/test_startup_portability.py` |
-| Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py` | Reaproveita fila, memoria e objetivos | `tests/test_runtime_bootstrap.py` |
+| Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py`, `constitutional_core/policy.py` | Reaproveita fila, memoria e objetivos | `tests/test_runtime_bootstrap.py`, `tests/test_constitutional_policy.py` |
 | API HTTP | Implementada | `interface/api/app.py` | Reaproveita o nucleo | `tests/test_api.py` |
 | Painel mobile-first | Implementada | `interface/dashboard/index.html`, `interface/dashboard/access_gate.html` | Sessao de dispositivo confiavel | `tests/test_dashboard.py` |
 | Autenticacao por dispositivo confiavel | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py` | Variaveis de ambiente + auditoria | `tests/test_api.py`, `tests/test_dashboard.py` |
@@ -39,6 +39,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 ## Capacidades do Runtime
 
 - bootstrapar planner, fila, memoria, objetivos e workers
+- carregar e expor a politica constitucional ativa
 - recuperar fila, memoria e objetivos no startup
 - registrar eventos episodicos e relatorios operacionais
 - proteger execucao por regras de autonomia
@@ -121,6 +122,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Healthcheck rico e endpoints de relatorio
 - `tests/test_runtime_bootstrap.py`
   Bootstrap do runtime e execucao de ciclo
+- `tests/test_constitutional_policy.py`
+  Carregamento da politica, bloqueios absolutos, aprovacao humana e gate de autonomia
 - `tests/test_semantic_memory.py`
   Busca, dominio e persistencia da memoria semantica
 - `tests/test_task_queue_persistence.py`
@@ -143,6 +146,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 ## Lacunas Atuais
 
 - ainda nao houve smoke test real de container neste ambiente por ausencia de `docker`
+- a politica viva ja governa validator e runtime, mas ainda nao existe geracao controlada de tarefas alinhada a essa mesma politica
 - o launcher local oficial existe para Windows atual, mas o servidor Linux continua dependendo de um interpretador Python valido no host
 - os workers continuam minimos e seguros
 - o relatorio consolidado de seguranca e a consolidacao por excecao ainda nao foram implementados

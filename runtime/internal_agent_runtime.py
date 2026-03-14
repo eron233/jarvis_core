@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import json
 from typing import Any, Dict
 
+from constitutional_core.policy import load_constitutional_policy
 from executive_planner.audit import traduzir_estado, traduzir_motivo, traduzir_status
 from runtime.autonomy import AutonomyController
 
@@ -29,6 +30,7 @@ class InternalAgentRuntime:
         self.planner: Any = None
         self.memory: Dict[str, Any] = {}
         self.workers: Dict[str, Any] = {}
+        self.constitutional_policy: Any = None
 
     def attach_planner(
         self,
@@ -66,12 +68,17 @@ class InternalAgentRuntime:
         from workers.worker_studio import StudioWorker
         from workers.worker_study import StudyWorker
 
+        self.constitutional_policy = self.constitutional_policy or load_constitutional_policy()
         self.task_queue = self.task_queue if self.task_queue is not None else TaskQueue()
         if len(self.task_queue) == 0:
             self.task_queue.load_from_disk()
         self.task_queue.auto_persist_on_change(True)
         self.prioritizer = self.prioritizer if self.prioritizer is not None else Prioritizer()
-        self.validator = self.validator if self.validator is not None else PlanValidator()
+        self.validator = self.validator if self.validator is not None else PlanValidator(policy=self.constitutional_policy)
+        if hasattr(self.validator, "set_policy"):
+            self.validator.set_policy(self.constitutional_policy)
+        if hasattr(self.autonomy_controller, "set_policy"):
+            self.autonomy_controller.set_policy(self.constitutional_policy)
         self.audit_logger = self.audit_logger if self.audit_logger is not None else AuditLogger()
         self.goal_manager = self.goal_manager if self.goal_manager is not None else GoalManager()
 
@@ -131,6 +138,15 @@ class InternalAgentRuntime:
             importance=3,
             metadata={"goal_count": len(self.goal_manager.list_active_goals())},
         )
+        self.memory["semantic"].upsert(
+            "constitutional_operating_mode",
+            self.constitutional_policy.identity.get("operating_mode"),
+            domain="system",
+            tags=["constitucional", "politica", "autonomia"],
+            source="runtime.bootstrap",
+            importance=5,
+            metadata={"modo_autonomia": "supervisionada_por_politica_constitucional"},
+        )
         self.memory["procedural"].register(
             "planner_cycle",
             ["planejar", "priorizar", "validar", "agendar", "executar", "revisar"],
@@ -143,6 +159,7 @@ class InternalAgentRuntime:
                 "status_ptbr": "inicializado",
                 "planner": self._planner_path(),
                 "worker_count": len(self.workers),
+                "politica_constitucional": self.constitutional_policy.identity.get("operating_mode"),
             }
         )
 
@@ -156,19 +173,28 @@ class InternalAgentRuntime:
 
         return self.autonomy_controller.should_execute(task)
 
+    def evaluate_task_execution(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """Explica a decisao de autonomia para a tarefa atual."""
+
+        self.bootstrap()
+        return self.autonomy_controller.evaluate(task)
+
     def dispatch_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """Executa uma tarefa por meio do gate de autonomia do runtime."""
 
         self.bootstrap()
 
-        if not self.can_execute(task):
+        autonomy_decision = self.evaluate_task_execution(task)
+        if not autonomy_decision["should_execute"]:
             self._apply_state(task, "blocked")
+            blocking_reason = autonomy_decision.get("reason") or "autonomy_gate"
             result = {
                 "status": "blocked",
                 "status_ptbr": traduzir_status("blocked"),
                 "task": task,
-                "reason": "autonomy_gate",
-                "reason_ptbr": traduzir_motivo("autonomy_gate"),
+                "reason": blocking_reason,
+                "reason_ptbr": traduzir_motivo(blocking_reason),
+                "policy_evaluation": autonomy_decision.get("policy_evaluation"),
             }
             self.memory["episodic"].remember(
                 {
@@ -178,6 +204,8 @@ class InternalAgentRuntime:
                     "status_ptbr": result["status_ptbr"],
                     "task_id": task.get("task_id"),
                     "worker": task.get("worker", "runtime"),
+                    "reason": result["reason"],
+                    "reason_ptbr": result["reason_ptbr"],
                 }
             )
             return result
@@ -332,6 +360,7 @@ class InternalAgentRuntime:
             "ultimas_falhas_registradas": audit_report["ultimas_falhas"],
             "ultimos_eventos": audit_report["ultimas_acoes_relevantes"],
             "ultimas_memorias": memory_report["memorias_recentes"],
+            "politica_ativa": self.build_policy_report(),
             "saude_runtime": {
                 "status": "ok" if self.status == "initialized" else "degradado",
                 "status_ptbr": "saudavel" if self.status == "initialized" else "degradado",
@@ -546,6 +575,7 @@ class InternalAgentRuntime:
             "api_ativa": api_started_at is not None,
             "runtime_ativo": self.status == "initialized",
             "planner_acoplado": planner_attached,
+            "politica_constitucional_carregada": self.constitutional_policy is not None,
             "fila_carregada": queue_loaded,
             "memoria_carregada": memory_loaded,
             "objetivos_carregados": goals_loaded,
@@ -652,6 +682,11 @@ class InternalAgentRuntime:
             "status": self.status,
             "status_ptbr": traduzir_status(self.status),
             "default_locale": "pt-BR",
+            "modo_autonomia": "supervisionada_por_politica_constitucional",
+            "politica_constitucional_carregada": self.constitutional_policy is not None,
+            "identidade_constitucional": self.constitutional_policy.identity.get("system_name")
+            if self.constitutional_policy is not None
+            else None,
             "started_at": self.started_at,
             "uptime_segundos": self._uptime_seconds(),
             "planner": self._planner_path(),
@@ -669,6 +704,12 @@ class InternalAgentRuntime:
             "last_cycle_at": self.last_cycle_at,
             "total_cycles_executed": self.total_cycles_executed,
         }
+
+    def build_policy_report(self) -> Dict[str, Any]:
+        """Retorna um resumo seguro da politica constitucional ativa."""
+
+        self.bootstrap()
+        return self.constitutional_policy.describe()
 
     def _uptime_seconds(self) -> int:
         if self.started_at is None:

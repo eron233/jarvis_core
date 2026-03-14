@@ -113,3 +113,4 @@ Arquivo base: `.env.example`
 - o painel e servido pela mesma API
 - o deploy recomendado usa `python -m runtime.server`, `python runtime/server.py` ou `docker compose up -d`
 - `runtime/server.py --check-config` pode ser usado para validar o ambiente antes do start efetivo
+- os relatorios operacionais agora incluem um resumo seguro da politica constitucional ativa

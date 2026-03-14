@@ -6,12 +6,20 @@ Este documento descreve a arquitetura funcional atual do JARVIS e como os modulo
 
 Local: `constitutional_core/`
 
-Define identidade, principios, limites operacionais e diretrizes de governanca. Essa camada continua sendo configuracional e nao foi alterada no bloco de preparacao para nuvem.
+Define identidade, principios, limites operacionais e diretrizes de governanca. A partir do BLOCO B, essa camada tambem passou a alimentar uma politica viva usada pelo validator e pelo runtime.
 
 Artefatos principais:
 
 - `constitutional_core/identity.json`
 - `constitutional_core/principles.json`
+- `constitutional_core/policy.py`
+
+Capacidades atuais:
+
+- carregar identidade e principios do disco
+- derivar dominios autonomos e efeitos sensiveis
+- classificar tarefas proibidas, sensiveis ou fora de escopo
+- expor um resumo seguro da politica ativa
 
 ## Planejador Executivo
 
@@ -25,6 +33,12 @@ Responsavel por executar o ciclo deterministico do planner:
 - selecionar a proxima tarefa executavel
 - despachar para o runtime
 - registrar auditoria de `plan`, `prioritize`, `validate`, `schedule`, `execute` e `review`
+
+No estado atual, `validator.py` passou a aplicar a politica viva do constitutional core antes da execucao. Isso permite:
+
+- bloquear tarefas proibidas por politica
+- marcar tarefas que exigem aprovacao humana
+- manter a decisao auditavel sem duplicar logica no planner
 
 Artefatos principais:
 
@@ -63,7 +77,7 @@ Divide o conhecimento em tres formas:
 - memoria semantica para fatos e entradas pesquisaveis
 - memoria procedural para sequencias reutilizaveis
 
-No estado atual, a memoria semantica ja possui persistencia configuravel e recuperacao segura no startup.
+No estado atual, a memoria semantica ja possui persistencia configuravel e recuperacao segura no startup. A memoria procedural ainda esta em etapa inicial e e o proximo alvo de fortalecimento.
 
 Artefatos principais:
 
@@ -88,12 +102,18 @@ Artefatos principais:
 
 Local: `runtime/`
 
-Camada central de operacao. Inicializa planner, memorias, workers e contexto de objetivos; expoe despacho de tarefas, relatórios operacionais e healthcheck rico.
+Camada central de operacao. Inicializa planner, memorias, workers, politica constitucional ativa e contexto de objetivos; expoe despacho de tarefas, relatorios operacionais e healthcheck rico.
 
 Artefatos principais:
 
 - `runtime/internal_agent_runtime.py`
 - `runtime/autonomy.py`
+
+Capacidades atuais:
+
+- gate de autonomia orientado por politica constitucional
+- bloqueio de tarefas proibidas ou ainda sem aprovacao humana
+- introspeccao segura da politica ativa em relatorios e estado do runtime
 
 ## Processo Continuo
 
@@ -112,7 +132,7 @@ Capacidades atuais:
 
 Local: `interface/api/`
 
-Camada FastAPI fina sobre o nucleo existente. A API nao substitui o runtime; apenas expõe capacidades ja implementadas.
+Camada FastAPI fina sobre o nucleo existente. A API nao substitui o runtime; apenas expoe capacidades ja implementadas.
 
 Capacidades atuais:
 
@@ -123,7 +143,7 @@ Capacidades atuais:
 - listagem e inclusao de tarefas
 - consulta de objetivos
 - consulta de memoria recente
-- relatorios operacionais detalhados
+- relatorios operacionais detalhados, incluindo politica ativa
 
 ## Painel Mobile-First
 
@@ -158,7 +178,7 @@ Locais principais:
 - `interface/api/app.py`
 - `interface/dashboard/index.html`
 
-Os relatórios foram centralizados no runtime para evitar duplicacao de logica. A API os expõe e o painel apenas os consome.
+Os relatorios foram centralizados no runtime para evitar duplicacao de logica. A API os expoe e o painel apenas os consome.
 
 Capacidades atuais:
 
@@ -168,6 +188,7 @@ Capacidades atuais:
 - relatorio da memoria
 - relatorio de auditoria
 - healthcheck rico
+- resumo da politica constitucional ativa
 
 ## Preparacao para Nuvem
 

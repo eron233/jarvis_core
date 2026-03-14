@@ -2,23 +2,23 @@
 
 ## Ciclo atual
 
-- Ciclo: 20
-- Capacidade implementada: subida limpa e portavel do sistema
+- Ciclo: 21
+- Capacidade implementada: constitutional core como politica viva
 - Estado: concluido com testes verdes
 
 ## Entregas do ciclo
 
-- bootstrap de imports em `main.py` e `runtime/server.py` para ambientes Python isolados
-- comando oficial `jarvis.cmd` para loop, servidor, API direta e validacao de configuracao
-- modo `runtime/server.py --check-config` para validar ambiente sem subir a API
-- testes de portabilidade dos entrypoints e do launcher Windows
-- smoke test real de subida do servidor com respostas em `/health`, `/docs` e `/painel`
+- carregamento central da politica via `constitutional_core/policy.py`
+- integracao da politica viva com `executive_planner/validator.py`
+- gate de autonomia do runtime orientado por politica constitucional e aprovacao humana
+- introspeccao segura da politica ativa em estado, healthcheck e relatorio do sistema
+- testes dedicados de carregamento, bloqueio absoluto e escalonamento por aprovacao humana
 
 ## Validacao
 
 - suite executada: `python -m unittest discover -s tests -v`
-- resultado: `52 testes aprovados`
+- resultado: `56 testes aprovados`
 
 ## Proximo bloco
 
-- BLOCO B - constitutional core como politica viva
+- BLOCO C - memoria procedural forte

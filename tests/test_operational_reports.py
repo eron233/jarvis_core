@@ -102,6 +102,7 @@ class OperationalReportsTests(unittest.TestCase):
         self.assertTrue(payload["api_ativa"])
         self.assertTrue(payload["runtime_ativo"])
         self.assertTrue(payload["planner_acoplado"])
+        self.assertTrue(payload["politica_constitucional_carregada"])
         self.assertTrue(payload["token_configurado"])
         self.assertTrue(payload["dispositivo_confiavel_configurado"])
 
@@ -131,6 +132,11 @@ class OperationalReportsTests(unittest.TestCase):
         self.assertIn("estado_do_planner", system_payload)
         self.assertIn("quantidade_tarefas_concluidas", system_payload)
         self.assertIn("ultimas_falhas_registradas", system_payload)
+        self.assertIn("politica_ativa", system_payload)
+        self.assertEqual(
+            system_payload["politica_ativa"]["identidade"]["modo_operacao"],
+            "autonomia_supervisionada_por_humanos",
+        )
 
         self.assertIn("resumo", queue_payload)
         self.assertIn("principais_tarefas", queue_payload)

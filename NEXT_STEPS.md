@@ -2,18 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- BLOCO B - constitutional core como politica viva
+- BLOCO C - memoria procedural forte
 
 ## Delta recomendado
 
-- carregar identidade e principios de forma central
-- fazer validator e runtime respeitarem limites, escopo de autonomia e confirmacao humana
-- expor introspeccao segura da politica ativa
-- manter toda decisao auditavel sem tocar destrutivamente no constitutional core
+- transformar `procedural_memory.py` em store persistente e pesquisavel
+- registrar heuristicas e padroes bem-sucedidos apos execucao real
+- permitir recuperacao por dominio, tipo de tarefa e resultado
+- integrar esse aprendizado ao runtime e ao planner sem duplicar memoria semantica
 
 ## Criterios de aceite
 
-- nenhuma duplicacao da logica de runtime, planner, validator ou auditoria
-- validator e runtime orientados por politica viva
-- bloqueios e escalonamentos sensiveis cobertos por testes
-- introspeccao da politica carregada disponivel em pt-BR
+- nenhuma duplicacao de logica entre memoria procedural, runtime e planner
+- persistencia real em JSON com roundtrip coberto por testes
+- heuristicas recuperaveis em execucao real
+- atualizacoes auditaveis e relatorios coerentes em pt-BR

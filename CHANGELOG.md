@@ -4,6 +4,11 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Integrado o constitutional core ao `validator` e ao `runtime` como politica viva.
+- Criado `constitutional_core/policy.py` para carregar identidade, principios e limites operacionais.
+- Atualizado o gate de autonomia para bloquear por politica proibitiva e exigir aprovacao humana em tarefas sensiveis.
+- Adicionada introspeccao segura da politica ativa em `build_system_report`, `build_health_report` e `describe_state`.
+- Adicionados testes da politica constitucional em `tests/test_constitutional_policy.py`.
 - Tornada portavel a subida de `main.py` e `runtime/server.py` em ambientes Python isolados.
 - Adicionado `startup_bootstrap.py` para localizar a raiz do projeto nos entrypoints oficiais.
 - Adicionado `jarvis.cmd` como launcher oficial no Windows atual para loop, servidor e validacao de configuracao.

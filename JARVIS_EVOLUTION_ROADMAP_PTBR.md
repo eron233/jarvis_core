@@ -14,6 +14,8 @@ Este roadmap acompanha a evolucao do JARVIS de nucleo funcional para sistema res
 | 4 | Autenticacao inicial por dispositivo confiavel | Concluido |
 | 5 | Relatorios operacionais completos | Concluido |
 | 6 | Preparacao para nuvem | Concluido |
+| A | Subida limpa e portavel do sistema | Concluido |
+| B | Constitutional core como politica viva | Concluido |
 | 12.1 | Nucleo de conhecimento de seguranca | Concluido |
 | 12.2 | Modelagem de ameaca | Concluido |
 | 12.3 | Gemeo de seguranca | Concluido |
@@ -24,11 +26,11 @@ Este roadmap acompanha a evolucao do JARVIS de nucleo funcional para sistema res
 
 ## Proxima prioridade
 
-- BLOCO 12.6 - relatorio semanal de seguranca
+- BLOCO C - memoria procedural forte
 
 ## Criterio de continuidade
 
 - reaproveitar auditoria, relatorios, configuracao e memoria ja existentes
-- manter qualquer validacao restrita ao proprio ambiente autorizado
-- preservar reversibilidade e rastreabilidade em toda automacao defensiva
-- escalar para aprovacao humana qualquer correcao alem de baixo risco e baixa complexidade
+- fortalecer aprendizado operacional sem quebrar planner, runtime ou memoria semantica
+- manter qualquer uso de heuristica auditavel, persistente e reversivel
+- reaproveitar a politica viva e os relatorios existentes em vez de abrir uma camada paralela
