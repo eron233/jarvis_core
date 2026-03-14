@@ -3,10 +3,11 @@
 ## Estado atual
 
 - Nivel atual: `M2 - operacional inicial`
-- Subnivel: `M2.6 - operacao inicial com remediacao hibrida`
+- Subnivel: `M2.7 - operacao inicial com subida portavel`
 - Idioma visivel: `pt-BR`
 - Entrypoint do loop local: `jarvis_core/main.py`
 - Entrypoint do servidor: `jarvis_core/runtime/server.py`
+- Launcher local oficial: `jarvis_core/jarvis.cmd`
 
 ## Capacidades consolidadas
 
@@ -22,6 +23,7 @@
 - relatorios operacionais completos
 - configuracao central por variaveis de ambiente
 - runner de servidor para VPS simples
+- subida portavel em Python isolado e Windows local
 - preparacao para Docker e `docker-compose`
 - nucleo de conhecimento defensivo para autodiagnostico
 - motor de modelagem de ameaca sobre ativos, superficies e dependencias
@@ -42,11 +44,13 @@
 - BLOCO 12.3 - gemeo de seguranca
 - BLOCO 12.4 - validacao interna controlada
 - BLOCO 12.5 - remediacao hibrida
+- BLOCO A - subida limpa e portavel do sistema
 
 ## Blocos parciais
 
 - memoria procedural real
 - workers mais reais
+- constitutional core como politica viva
 - autodefesa interna alem da remediacao hibrida
 
 ## Blocos ainda nao iniciados de forma funcional
@@ -60,10 +64,11 @@
 ## Riscos atuais
 
 - ainda nao foi executado um smoke test real de Docker neste ambiente porque `docker` nao esta disponivel aqui
+- o startup local ficou robusto, mas o constitutional core ainda nao governa validator e runtime
 - os workers continuam seguros e minimos, mas ainda nao sao executores ricos
 - ainda nao existe monitoramento externo de infraestrutura alem do healthcheck e dos logs locais
 - a autodefesa ja cobre conhecimento defensivo, modelagem de ameaca, gemeo de seguranca, validacao controlada e remediacao hibrida, mas ainda nao executa relatorio semanal consolidado nem consolidacao por excecao
 
 ## Leitura objetiva
 
-O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel operacional inicial. O sistema agora pode ser configurado para VPS simples, subir API e painel, manter estado persistente, preservar seguranca basica de acesso e manter uma camada real de autodefesa interna capaz de mapear riscos, espelhar o proprio estado, validar cenarios de falha e propor ou aplicar apenas correcoes seguras sem depender do PC como maquina principal.
+O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel operacional inicial. O sistema agora consegue subir de forma mais limpa no ambiente Windows atual e em modos de servidor simples, mantendo API, painel, fila, memoria e autenticacao sem depender de ajustes manuais de `sys.path`, enquanto os proximos gargalos reais passam a ser politica viva, memoria procedural forte e workers mais uteis.

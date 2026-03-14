@@ -183,3 +183,14 @@ Esse runner:
 - sobe a API
 - inicia o loop continuo em background, se habilitado
 - persiste estado no shutdown
+
+## Operacao Local Portavel
+
+No ambiente Windows atual, a forma oficial de menor atrito e:
+
+```powershell
+.\jarvis.cmd check-config
+.\jarvis.cmd server
+```
+
+Isso evita depender de `python` ou `uvicorn` no `PATH` e usa o mesmo `runtime/server.py` do deploy.

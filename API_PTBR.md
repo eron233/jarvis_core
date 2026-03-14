@@ -15,6 +15,18 @@ set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
 python -m runtime.server
 ```
 
+Modo portavel no Windows atual:
+
+```powershell
+.\jarvis.cmd server
+```
+
+Validacao de configuracao antes da subida:
+
+```powershell
+.\jarvis.cmd check-config
+```
+
 Modo FastAPI direto:
 
 ```powershell
@@ -22,6 +34,11 @@ set JARVIS_TOKEN=seu_token_seguro
 set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
 python -m uvicorn interface.api.app:app --host 0.0.0.0 --port 8000
 ```
+
+Observacao operacional:
+
+- em ambientes como o atual, prefira `python -m uvicorn ...` em vez de depender do comando `uvicorn` no `PATH`
+- nao use `--reload` como caminho oficial de operacao
 
 ## Autenticacao
 
@@ -94,4 +111,5 @@ Arquivo base: `.env.example`
 - respostas visiveis continuam em pt-BR
 - endpoints protegidos continuam protegidos no modo de servidor
 - o painel e servido pela mesma API
-- o deploy recomendado usa `python -m runtime.server` ou `docker compose up -d`
+- o deploy recomendado usa `python -m runtime.server`, `python runtime/server.py` ou `docker compose up -d`
+- `runtime/server.py --check-config` pode ser usado para validar o ambiente antes do start efetivo

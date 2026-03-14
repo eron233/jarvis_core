@@ -4,6 +4,11 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Tornada portavel a subida de `main.py` e `runtime/server.py` em ambientes Python isolados.
+- Adicionado `startup_bootstrap.py` para localizar a raiz do projeto nos entrypoints oficiais.
+- Adicionado `jarvis.cmd` como launcher oficial no Windows atual para loop, servidor e validacao de configuracao.
+- Adicionado `runtime/server.py --check-config` para validar ambiente e paths sem subir a API.
+- Adicionados testes de portabilidade dos entrypoints e smoke coverage do launcher em `tests/test_startup_portability.py`.
 - Implementado o loop continuo inicial do sistema em `main.py`.
 - Concluida a recarga automatica da memoria semantica no bootstrap do runtime.
 - Adicionada persistencia explicita de estado do runtime para encerramento gracioso.

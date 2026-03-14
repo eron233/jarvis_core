@@ -22,6 +22,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - Runtime interno: `runtime/internal_agent_runtime.py`
 - Loop continuo local: `main.py`
 - Servidor para VPS/API/painel: `runtime/server.py`
+- Launcher oficial no Windows atual: `jarvis.cmd`
 
 ## O que o sistema ja faz
 
@@ -50,6 +51,12 @@ Loop continuo controlado:
 python main.py --max-cycles 1 --stop-when-idle
 ```
 
+No Windows atual, se `python` nao estiver no `PATH`, use o launcher oficial:
+
+```powershell
+.\jarvis.cmd loop --max-cycles 1 --stop-when-idle
+```
+
 Servidor HTTP completo:
 
 ```powershell
@@ -57,6 +64,18 @@ set JARVIS_ENV=development
 set JARVIS_TOKEN=seu_token_seguro
 set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
 python -m runtime.server
+```
+
+Opcao equivalente, mais robusta no ambiente local atual:
+
+```powershell
+.\jarvis.cmd server
+```
+
+Validacao rapida da configuracao sem subir a API:
+
+```powershell
+.\jarvis.cmd check-config
 ```
 
 ## Execucao com Docker
@@ -166,6 +185,13 @@ Quando o risco e baixo e a correcao e reversivel, o proprio sistema pode aplicar
 4. Registrar a mudanca em `CHANGELOG.md`.
 5. Rodar `python -m unittest discover -s tests -v`.
 6. Criar checkpoint git ao final de cada ciclo.
+
+## Notas de Portabilidade
+
+- `main.py` e `runtime/server.py` agora se bootstrapam de forma explicita para localizar a raiz do projeto em ambientes Python isolados
+- o modo servidor nao depende do executavel `uvicorn` no `PATH`
+- a API pode continuar sendo iniciada por `python -m runtime.server`, `python runtime/server.py` ou `.\jarvis.cmd server`
+- `runtime/server.py --check-config` valida ambiente e paths sem prender o terminal com o servidor
 
 ## Documentacao Relacionada
 

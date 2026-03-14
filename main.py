@@ -8,8 +8,17 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import signal
+import sys
 import time
 from typing import Any, Callable, Dict, List, Optional
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from startup_bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path(__file__)
 
 from executive_planner.queue import TaskQueue
 from memory_system.episodic_memory import EpisodicMemory

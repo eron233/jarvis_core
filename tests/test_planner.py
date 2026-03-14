@@ -11,6 +11,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from executive_planner.audit import AuditLogger
 from executive_planner.planner import run_planner_cycle
 from executive_planner.queue import TaskQueue
+from memory_system.episodic_memory import EpisodicMemory
+from memory_system.procedural_memory import ProceduralMemory
+from memory_system.semantic_memory import SemanticMemory
+from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 def make_queue_storage_path(name: str) -> Path:
@@ -23,6 +27,20 @@ def reset_storage_path(path: Path) -> None:
         path.unlink()
 
 
+def build_runtime(name: str, task_queue: TaskQueue) -> InternalAgentRuntime:
+    semantic_storage_path = PROJECT_ROOT / "tests" / "_semantic_memory_artifacts" / f"{name}.json"
+    reset_storage_path(semantic_storage_path)
+
+    runtime = InternalAgentRuntime()
+    runtime.task_queue = task_queue
+    runtime.memory = {
+        "episodic": EpisodicMemory(),
+        "semantic": SemanticMemory(storage_path=semantic_storage_path),
+        "procedural": ProceduralMemory(),
+    }
+    return runtime
+
+
 def queue_snapshot(task_queue: TaskQueue) -> list[str]:
     return [str(task.get("task_id")) for task in task_queue.items]
 
@@ -33,11 +51,12 @@ class ExecutivePlannerCycleTests(unittest.TestCase):
         reset_storage_path(storage_path)
         task_queue = TaskQueue(storage_path=storage_path)
         audit_logger = AuditLogger()
+        runtime = build_runtime("planner_priority", task_queue)
 
         task_queue.enqueue({"task_id": "task-low", "goal": "Tarefa de baixa prioridade", "impact": 1, "urgency": 1})
         task_queue.enqueue({"task_id": "task-high", "goal": "Tarefa de alta prioridade", "impact": 3, "urgency": 5})
 
-        result = run_planner_cycle(task_queue=task_queue, audit_logger=audit_logger)
+        result = run_planner_cycle(task_queue=task_queue, audit_logger=audit_logger, runtime=runtime)
 
         self.assertEqual(result["status"], "executed")
         self.assertEqual(result["status_ptbr"], "executada")
@@ -55,6 +74,7 @@ class ExecutivePlannerCycleTests(unittest.TestCase):
         reset_storage_path(storage_path)
         task_queue = TaskQueue(storage_path=storage_path)
         audit_logger = AuditLogger()
+        runtime = build_runtime("planner_blocked", task_queue)
 
         task_queue.enqueue({"task_id": "task-invalid", "impact": 5, "urgency": 5})
         task_queue.enqueue(
@@ -69,7 +89,7 @@ class ExecutivePlannerCycleTests(unittest.TestCase):
         )
         task_queue.enqueue({"task_id": "task-ready", "goal": "Tarefa pronta", "impact": 1, "urgency": 1})
 
-        result = run_planner_cycle(task_queue=task_queue, audit_logger=audit_logger)
+        result = run_planner_cycle(task_queue=task_queue, audit_logger=audit_logger, runtime=runtime)
 
         self.assertEqual(result["status"], "executed")
         self.assertEqual(result["status_ptbr"], "executada")
@@ -89,8 +109,9 @@ class ExecutivePlannerCycleTests(unittest.TestCase):
         reset_storage_path(storage_path)
         task_queue = TaskQueue(storage_path=storage_path)
         audit_logger = AuditLogger()
+        runtime = build_runtime("planner_idle", task_queue)
 
-        result = run_planner_cycle(task_queue=task_queue, audit_logger=audit_logger)
+        result = run_planner_cycle(task_queue=task_queue, audit_logger=audit_logger, runtime=runtime)
 
         self.assertEqual(result["status"], "idle")
         self.assertEqual(result["status_ptbr"], "ociosa")

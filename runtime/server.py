@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+import argparse
 from copy import deepcopy
 from datetime import datetime, timezone
 import json
 import logging
 from pathlib import Path
+import sys
 from threading import Thread
 from typing import Any, Dict, Optional
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from startup_bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path(__file__)
 
 from interface.api.app import create_app
 from main import JarvisSystemLoop, SystemLoopConfig, bootstrap_runtime
@@ -233,14 +243,42 @@ def run_server(config: JarvisEnvironmentConfig | None = None) -> int:
     return 0
 
 
-def main() -> int:
+def build_arg_parser() -> argparse.ArgumentParser:
+    """Monta o parser do entrypoint do servidor."""
+
+    parser = argparse.ArgumentParser(description="Sobe o servidor HTTP do JARVIS.")
+    parser.add_argument(
+        "--check-config",
+        action="store_true",
+        help="Valida a configuracao do ambiente e imprime um resumo sem subir a API.",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
     """Ponto de entrada do servidor para deploy em VPS simples."""
+
+    parser = build_arg_parser()
+    args = parser.parse_args(argv)
 
     try:
         config = JarvisEnvironmentConfig.from_env()
     except ValueError as exc:
         print(str(exc))
         return 2
+
+    if args.check_config:
+        print(
+            json.dumps(
+                {
+                    "mensagem": "Configuracao do servidor do JARVIS validada com sucesso.",
+                    "ambiente": config.build_environment_report(),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
 
     return run_server(config=config)
 

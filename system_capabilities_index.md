@@ -6,6 +6,7 @@ Idioma padrao: `pt-BR`
 Entrypoint do runtime: `jarvis_core/runtime/internal_agent_runtime.py`
 Entrypoint do loop local: `jarvis_core/main.py`
 Entrypoint do servidor: `jarvis_core/runtime/server.py`
+Launcher local oficial: `jarvis_core/jarvis.cmd`
 
 ## Objetivo
 
@@ -20,14 +21,14 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Fila persistente de tarefas | Implementada | `executive_planner/queue.py` | JSON configuravel | `tests/test_task_queue_persistence.py` |
 | Camada de objetivos | Implementada | `intent_layer/goal_manager.py` | JSON configuravel | `tests/test_goal_manager.py` |
 | Memoria semantica persistente | Implementada | `memory_system/semantic_memory.py` | JSON configuravel | `tests/test_semantic_memory.py` |
-| Loop continuo local | Implementada | `main.py` | Persistencia final de fila e memoria | `tests/test_main_loop.py` |
+| Loop continuo local | Implementada | `main.py`, `startup_bootstrap.py` | Persistencia final de fila e memoria | `tests/test_main_loop.py`, `tests/test_startup_portability.py` |
 | Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py` | Reaproveita fila, memoria e objetivos | `tests/test_runtime_bootstrap.py` |
 | API HTTP | Implementada | `interface/api/app.py` | Reaproveita o nucleo | `tests/test_api.py` |
 | Painel mobile-first | Implementada | `interface/dashboard/index.html`, `interface/dashboard/access_gate.html` | Sessao de dispositivo confiavel | `tests/test_dashboard.py` |
 | Autenticacao por dispositivo confiavel | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py` | Variaveis de ambiente + auditoria | `tests/test_api.py`, `tests/test_dashboard.py` |
 | Relatorios operacionais completos | Implementada | `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Reaproveita estado do runtime | `tests/test_operational_reports.py` |
 | Configuracao central de ambiente | Implementada | `runtime/system_config.py`, `.env.example` | Variaveis de ambiente | `tests/test_cloud_deploy.py` |
-| Servidor para VPS simples | Implementada | `runtime/server.py` | `logs/` e `reports/` configuraveis | `tests/test_cloud_deploy.py` |
+| Servidor para VPS simples | Implementada | `runtime/server.py`, `startup_bootstrap.py`, `jarvis.cmd` | `logs/` e `reports/` configuraveis | `tests/test_cloud_deploy.py`, `tests/test_startup_portability.py` |
 | Preparacao para container | Implementada | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Volumes `data/`, `logs/`, `reports/` | Validacao documental + `tests/test_cloud_deploy.py` |
 | Nucleo de conhecimento defensivo | Implementada | `security/security_knowledge_core.py`, `security/__init__.py` | Exportavel para memorias do sistema | `tests/test_security_knowledge_core.py` |
 | Modelagem de ameaca interna | Implementada | `security/threat_model_engine.py`, `security/__init__.py` | Reaproveita estado do runtime e relatorios de ambiente | `tests/test_threat_model_engine.py` |
@@ -57,6 +58,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 ## Capacidades do Deploy
 
 - start unico por `python -m runtime.server`
+- start local oficial por `.\jarvis.cmd server`
+- validacao local de ambiente por `.\jarvis.cmd check-config`
 - start em container por `docker compose up --build -d`
 - configuracao por variaveis de ambiente
 - logs em `logs/jarvis.log`
@@ -124,6 +127,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Persistencia e recuperacao da fila
 - `tests/test_cloud_deploy.py`
   Configuracao de ambiente, startup em paths configuraveis, healthcheck de deploy e recuperacao de storage corrompido
+- `tests/test_startup_portability.py`
+  Entrypoints oficiais, bootstrap de imports, launcher Windows e validacao do servidor
 - `tests/test_security_knowledge_core.py`
   Dominios defensivos, controles estruturados e semeadura de memoria semantica/procedural
 - `tests/test_threat_model_engine.py`
@@ -138,6 +143,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 ## Lacunas Atuais
 
 - ainda nao houve smoke test real de container neste ambiente por ausencia de `docker`
+- o launcher local oficial existe para Windows atual, mas o servidor Linux continua dependendo de um interpretador Python valido no host
 - os workers continuam minimos e seguros
 - o relatorio consolidado de seguranca e a consolidacao por excecao ainda nao foram implementados
 - a geracao controlada de tarefas ainda nao foi implementada
