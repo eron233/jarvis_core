@@ -29,6 +29,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Configuracao central de ambiente | Implementada | `runtime/system_config.py`, `.env.example` | Variaveis de ambiente | `tests/test_cloud_deploy.py` |
 | Servidor para VPS simples | Implementada | `runtime/server.py` | `logs/` e `reports/` configuraveis | `tests/test_cloud_deploy.py` |
 | Preparacao para container | Implementada | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Volumes `data/`, `logs/`, `reports/` | Validacao documental + `tests/test_cloud_deploy.py` |
+| Nucleo de conhecimento defensivo | Implementada | `security/security_knowledge_core.py`, `security/__init__.py` | Exportavel para memorias do sistema | `tests/test_security_knowledge_core.py` |
 
 ## Capacidades do Runtime
 
@@ -58,6 +59,17 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - relatorio de ambiente em `reports/environment_report.json`
 - relatorio de shutdown em `reports/shutdown_report.json`
 - recuperacao segura de arquivo JSON corrompido com backup `.corrompido-*.json`
+
+## Capacidades de Autodefesa
+
+- organizar conhecimento defensivo por dominio
+- mapear controles de identidade e acesso
+- mapear controles de aplicacao
+- mapear controles de infraestrutura
+- mapear controles de continuidade
+- mapear controles de observabilidade
+- exportar sementes para memoria semantica
+- exportar guias para memoria procedural
 
 ## Artefatos de Persistencia
 
@@ -96,11 +108,14 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Persistencia e recuperacao da fila
 - `tests/test_cloud_deploy.py`
   Configuracao de ambiente, startup em paths configuraveis, healthcheck de deploy e recuperacao de storage corrompido
+- `tests/test_security_knowledge_core.py`
+  Dominios defensivos, controles estruturados e semeadura de memoria semantica/procedural
 
 ## Lacunas Atuais
 
 - ainda nao houve smoke test real de container neste ambiente por ausencia de `docker`
 - os workers continuam minimos e seguros
+- a modelagem de ameaca, o gemeo de seguranca e a remediacao assistida ainda nao foram implementados
 - a geracao controlada de tarefas ainda nao foi implementada
 - a memoria procedural ainda nao saiu do nivel inicial
 - o monitoramento externo de infraestrutura ainda nao foi adicionado

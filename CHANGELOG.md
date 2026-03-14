@@ -35,6 +35,10 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Escrita de `environment_report.json`, `shutdown_report.json` e `jarvis.log` preparada para deploy.
 - Adicionados testes de configuracao, startup e deploy em `tests/test_cloud_deploy.py`.
 - Atualizada a documentacao de deploy em `DEPLOY_PTBR.md`.
+- Criado o modulo `security/security_knowledge_core.py` como base de conhecimento defensiva interna.
+- Estruturados dominios de identidade, aplicacao, infraestrutura, continuidade e observabilidade.
+- Adicionada exportacao deterministica do conhecimento para memoria semantica e procedural.
+- Adicionados testes do nucleo defensivo em `tests/test_security_knowledge_core.py`.
 
 ## v0.1.0 - Scaffold inicial
 

@@ -1,6 +1,6 @@
 # Sistema Cognitivo JARVIS
 
-O JARVIS e um sistema cognitivo modular em construcao, orientado por planejamento deterministico, memoria persistente, objetivos, API de controle, painel mobile-first, auditoria e operacao supervisionada. Nesta etapa, o projeto ja consegue subir como servico HTTP, manter fila e memoria entre reinicios, proteger acesso por token + dispositivo confiavel e ser preparado para deploy em VPS simples com Docker.
+O JARVIS e um sistema cognitivo modular em construcao, orientado por planejamento deterministico, memoria persistente, objetivos, API de controle, painel mobile-first, auditoria, operacao supervisionada e autodefesa interna. Nesta etapa, o projeto ja consegue subir como servico HTTP, manter fila e memoria entre reinicios, proteger acesso por token + dispositivo confiavel, ser preparado para deploy em VPS simples com Docker e manter um nucleo defensivo de conhecimento para diagnostico de risco do proprio sistema.
 
 Idioma padrao da camada visivel: `pt-BR`
 
@@ -36,6 +36,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - healthcheck publico de deploy em `/health`
 - configuracao central por variaveis de ambiente
 - preparacao para container e `docker-compose`
+- nucleo de conhecimento defensivo para autodefesa interna
 
 ## Execucao Local
 
@@ -108,6 +109,18 @@ Por padrao, o modo de servidor usa:
 - `reports/shutdown_report.json`
 
 Esses caminhos podem ser trocados por variaveis de ambiente.
+
+## Autodefesa Interna
+
+O projeto agora inclui `security/security_knowledge_core.py`, que organiza conhecimento defensivo sobre:
+
+- identidade e acesso
+- aplicacao
+- infraestrutura
+- continuidade
+- observabilidade
+
+Essa base foi feita para apoiar diagnostico, modelagem de risco e propostas futuras de endurecimento sem executar qualquer acao externa nao autorizada.
 
 ## Fluxo de Desenvolvimento
 

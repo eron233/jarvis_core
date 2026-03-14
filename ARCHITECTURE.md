@@ -202,3 +202,25 @@ O modo recomendado de operacao agora e:
 7. persistir estado e emitir relatorio de shutdown ao encerrar
 
 Essa estrategia foi mantida propositalmente simples para caber em uma VPS Linux barata, sem Kubernetes, sem filas distribuidas e sem componentes extras nesta fase.
+
+## Autodefesa e Conhecimento Defensivo
+
+Locais principais:
+
+- `security/security_knowledge_core.py`
+- `security/__init__.py`
+
+O ciclo 11 introduziu a primeira camada dedicada de autodefesa interna do JARVIS. Em vez de executar qualquer verificacao externa, esse modulo organiza conhecimento defensivo sobre a propria superficie de risco do sistema.
+
+Capacidades atuais:
+
+- mapa interno de dominios defensivos
+- controles de identidade e acesso
+- controles de aplicacao
+- controles de infraestrutura
+- controles de continuidade
+- controles de observabilidade
+- exportacao do conhecimento em formato semantico
+- exportacao do conhecimento em formato procedural
+
+Essa base foi desenhada para alimentar os proximos subblocos de modelagem de ameaca, gemeo de seguranca, validacao interna controlada e remediacao assistida.

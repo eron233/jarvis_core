@@ -2,7 +2,7 @@
 
 ## Panorama
 
-Este roadmap acompanha a transicao do JARVIS de nucleo funcional para sistema operacional inicial em ambiente persistente.
+Este roadmap acompanha a evolucao do JARVIS de nucleo funcional para sistema resiliente, auditavel e capaz de autodiagnostico defensivo.
 
 ## Status por bloco
 
@@ -14,19 +14,21 @@ Este roadmap acompanha a transicao do JARVIS de nucleo funcional para sistema op
 | 4 | Autenticacao inicial por dispositivo confiavel | Concluido |
 | 5 | Relatorios operacionais completos | Concluido |
 | 6 | Preparacao para nuvem | Concluido |
-| 7 | Continuidade de estado no servidor | Parcial |
-| 8 | Capacidade de interacao real | Pendente |
-| 9 | Modos de operacao | Pendente |
-| 10 | Workers mais reais | Parcial |
-| 11 | Monitoramento e saude de infraestrutura | Pendente |
+| 12.1 | Nucleo de conhecimento de seguranca | Concluido |
+| 12.2 | Modelagem de ameaca | Pendente |
+| 12.3 | Gemeo de seguranca | Pendente |
+| 12.4 | Validacao interna controlada | Pendente |
+| 12.5 | Remediacao hibrida | Pendente |
+| 12.6 | Relatorio semanal de seguranca | Pendente |
+| 12.7 | Consolidacao e alerta por excecao | Pendente |
 
 ## Proxima prioridade
 
-- BLOCO 7 — continuidade de estado no servidor
+- BLOCO 12.2 — modelagem de ameaca
 
 ## Criterio de continuidade
 
-- maximizar reaproveitamento do runner de servidor, da fila persistente e da memoria existente
-- validar reinicio real com volume persistente
-- manter token + dispositivo confiavel como fronteira minima de seguranca
-- evitar qualquer arquitetura exagerada antes de haver necessidade operacional real
+- reaproveitar auditoria, relatorios, configuracao e memoria ja existentes
+- manter qualquer validacao restrita ao proprio ambiente autorizado
+- preservar reversibilidade e rastreabilidade em toda automacao defensiva
+- escalar para aprovacao humana qualquer correcao alem de baixo risco e baixa complexidade

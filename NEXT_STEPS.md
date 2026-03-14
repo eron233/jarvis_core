@@ -2,18 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- BLOCO 7 — continuidade de estado em ambiente de servidor
+- BLOCO 12.2 — modelagem de ameaca
 
 ## Delta recomendado
 
-- validar retomada real apos restart de container
-- ampliar o relatorio de shutdown com historico de ultima retomada
-- adicionar smoke test real de Docker quando houver ambiente com Docker disponivel
-- reforcar observabilidade de infraestrutura sobre o deploy simples ja criado
+- transformar o conhecimento defensivo em inventario de ativos protegidos
+- mapear superficies de contato do sistema atual
+- classificar consequencias por confidencialidade, integridade, disponibilidade, rastreabilidade e continuidade
+- gerar um resumo de risco em pt-BR sem executar qualquer validacao externa
 
 ## Criterios de aceite
 
-- restart do servico preserva fila, memoria e objetivos
-- relatorios de ambiente e shutdown permanecem consistentes
-- nenhum enfraquecimento da autenticacao por token e dispositivo confiavel
-- nenhuma duplicacao entre runner de servidor, runtime e API
+- nenhuma duplicacao da logica de runtime, API, deploy ou auditoria
+- ameacas modeladas apenas sobre o proprio sistema autorizado
+- saidas tecnicas, diretas e auditaveis
+- base pronta para o gemeo de seguranca do ciclo seguinte
