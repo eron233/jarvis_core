@@ -37,6 +37,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - configuracao central por variaveis de ambiente
 - preparacao para container e `docker-compose`
 - nucleo de conhecimento defensivo para autodefesa interna
+- motor de modelagem de ameaca sobre o proprio estado do sistema
 
 ## Execucao Local
 
@@ -121,6 +122,13 @@ O projeto agora inclui `security/security_knowledge_core.py`, que organiza conhe
 - observabilidade
 
 Essa base foi feita para apoiar diagnostico, modelagem de risco e propostas futuras de endurecimento sem executar qualquer acao externa nao autorizada.
+
+O modulo `security/threat_model_engine.py` complementa essa base transformando o estado atual do JARVIS em:
+
+- inventario de ativos protegidos
+- mapa de superficies de contato
+- classificacao de risco em baixo, medio, alto e critico
+- dependencias criticas do sistema
 
 ## Fluxo de Desenvolvimento
 

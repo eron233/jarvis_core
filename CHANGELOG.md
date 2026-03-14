@@ -39,6 +39,9 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Estruturados dominios de identidade, aplicacao, infraestrutura, continuidade e observabilidade.
 - Adicionada exportacao deterministica do conhecimento para memoria semantica e procedural.
 - Adicionados testes do nucleo defensivo em `tests/test_security_knowledge_core.py`.
+- Criado o modulo `security/threat_model_engine.py` para modelagem de ameaca interna.
+- Adicionados inventario de ativos, mapa de superficies, dependencias criticas e classificacao de risco.
+- Adicionados testes do motor de ameaca em `tests/test_threat_model_engine.py`.
 
 ## v0.1.0 - Scaffold inicial
 

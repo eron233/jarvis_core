@@ -208,6 +208,7 @@ Essa estrategia foi mantida propositalmente simples para caber em uma VPS Linux 
 Locais principais:
 
 - `security/security_knowledge_core.py`
+- `security/threat_model_engine.py`
 - `security/__init__.py`
 
 O ciclo 11 introduziu a primeira camada dedicada de autodefesa interna do JARVIS. Em vez de executar qualquer verificacao externa, esse modulo organiza conhecimento defensivo sobre a propria superficie de risco do sistema.
@@ -222,5 +223,9 @@ Capacidades atuais:
 - controles de observabilidade
 - exportacao do conhecimento em formato semantico
 - exportacao do conhecimento em formato procedural
+- inventario de ativos protegidos
+- mapa de superficies de contato
+- classificacao de risco por ativo
+- resumo interno de ameaca em pt-BR
 
-Essa base foi desenhada para alimentar os proximos subblocos de modelagem de ameaca, gemeo de seguranca, validacao interna controlada e remediacao assistida.
+Essa base agora ja cobre conhecimento defensivo e modelagem de ameaca interna. Os proximos subblocos devem reutilizar esses artefatos para o gemeo de seguranca, a validacao interna controlada e a remediacao assistida.

@@ -2,24 +2,24 @@
 
 ## Ciclo atual
 
-- Ciclo: 11
-- Capacidade implementada: nucleo de conhecimento de seguranca
+- Ciclo: 12
+- Capacidade implementada: modelagem de ameaca
 - Estado: concluido com testes verdes
 
 ## Entregas do ciclo
 
-- modulo `security/security_knowledge_core.py`
-- organizacao defensiva por dominios de risco
-- controles estruturados para identidade, aplicacao, infraestrutura, continuidade e observabilidade
-- exportacao para memoria semantica
-- exportacao para memoria procedural
-- testes dedicados do nucleo defensivo
+- modulo `security/threat_model_engine.py`
+- inventario de ativos protegidos do sistema atual
+- mapa de superficies de contato e dependencias criticas
+- classificacao deterministica de risco por ativo
+- resumo interno de ameaca em pt-BR
+- testes dedicados do motor de ameaca
 
 ## Validacao
 
 - suite executada: `python -m unittest discover -s tests -v`
-- resultado: `36 testes aprovados`
+- resultado: `39 testes aprovados`
 
 ## Proximo bloco
 
-- BLOCO 12.2 — modelagem de ameaca
+- BLOCO 12.3 - gemeo de seguranca

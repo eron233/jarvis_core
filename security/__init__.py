@@ -1,5 +1,6 @@
 """Modulos de autodefesa e seguranca interna do JARVIS."""
 
 from security.security_knowledge_core import SecurityKnowledgeCore
+from security.threat_model_engine import ThreatModelEngine
 
-__all__ = ["SecurityKnowledgeCore"]
+__all__ = ["SecurityKnowledgeCore", "ThreatModelEngine"]

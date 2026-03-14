@@ -30,6 +30,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Servidor para VPS simples | Implementada | `runtime/server.py` | `logs/` e `reports/` configuraveis | `tests/test_cloud_deploy.py` |
 | Preparacao para container | Implementada | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Volumes `data/`, `logs/`, `reports/` | Validacao documental + `tests/test_cloud_deploy.py` |
 | Nucleo de conhecimento defensivo | Implementada | `security/security_knowledge_core.py`, `security/__init__.py` | Exportavel para memorias do sistema | `tests/test_security_knowledge_core.py` |
+| Modelagem de ameaca interna | Implementada | `security/threat_model_engine.py`, `security/__init__.py` | Reaproveita estado do runtime e relatorios de ambiente | `tests/test_threat_model_engine.py` |
 
 ## Capacidades do Runtime
 
@@ -70,6 +71,10 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - mapear controles de observabilidade
 - exportar sementes para memoria semantica
 - exportar guias para memoria procedural
+- inventariar ativos protegidos
+- mapear superficies de contato do sistema
+- classificar risco por ativo em baixo, medio, alto e critico
+- resumir dependencias criticas e risco geral em pt-BR
 
 ## Artefatos de Persistencia
 
@@ -110,12 +115,14 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Configuracao de ambiente, startup em paths configuraveis, healthcheck de deploy e recuperacao de storage corrompido
 - `tests/test_security_knowledge_core.py`
   Dominios defensivos, controles estruturados e semeadura de memoria semantica/procedural
+- `tests/test_threat_model_engine.py`
+  Inventario de ativos, superficies, dependencias e classificacao de risco do sistema atual
 
 ## Lacunas Atuais
 
 - ainda nao houve smoke test real de container neste ambiente por ausencia de `docker`
 - os workers continuam minimos e seguros
-- a modelagem de ameaca, o gemeo de seguranca e a remediacao assistida ainda nao foram implementados
+- o gemeo de seguranca e a remediacao assistida ainda nao foram implementados
 - a geracao controlada de tarefas ainda nao foi implementada
 - a memoria procedural ainda nao saiu do nivel inicial
 - o monitoramento externo de infraestrutura ainda nao foi adicionado

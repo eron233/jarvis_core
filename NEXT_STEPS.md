@@ -2,18 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- BLOCO 12.2 — modelagem de ameaca
+- BLOCO 12.3 - gemeo de seguranca
 
 ## Delta recomendado
 
-- transformar o conhecimento defensivo em inventario de ativos protegidos
-- mapear superficies de contato do sistema atual
-- classificar consequencias por confidencialidade, integridade, disponibilidade, rastreabilidade e continuidade
-- gerar um resumo de risco em pt-BR sem executar qualquer validacao externa
+- criar snapshot isolado do estado atual do JARVIS para validacao defensiva
+- sanitizar configuracao, fila, memoria, objetivos e metadados operacionais sensiveis
+- persistir o estado espelhado em diretorio dedicado de seguranca
+- validar integridade do gemeo sem qualquer conexao com o ambiente produtivo
 
 ## Criterios de aceite
 
 - nenhuma duplicacao da logica de runtime, API, deploy ou auditoria
-- ameacas modeladas apenas sobre o proprio sistema autorizado
+- espelho criado apenas sobre o proprio sistema autorizado
 - saidas tecnicas, diretas e auditaveis
-- base pronta para o gemeo de seguranca do ciclo seguinte
+- base pronta para a validacao interna controlada do ciclo seguinte
