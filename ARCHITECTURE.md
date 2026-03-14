@@ -209,6 +209,7 @@ Locais principais:
 
 - `security/security_knowledge_core.py`
 - `security/security_twin.py`
+- `security/security_validation_engine.py`
 - `security/threat_model_engine.py`
 - `security/__init__.py`
 
@@ -231,5 +232,8 @@ Capacidades atuais:
 - snapshot isolado e sanitizado do estado atual
 - validacao de integridade do espelho defensivo
 - persistencia dedicada em `security/twin_state/`
+- simulacao controlada de falhas apenas sobre o gemeo
+- classificacao de fraquezas com evidencias e score de risco
+- cobertura de autenticacao, configuracao, persistencia, observabilidade, continuidade e integridade operacional
 
-Essa base agora ja cobre conhecimento defensivo, modelagem de ameaca interna e o gemeo de seguranca. Os proximos subblocos devem reutilizar esses artefatos para a validacao interna controlada e a remediacao assistida.
+Essa base agora ja cobre conhecimento defensivo, modelagem de ameaca interna, o gemeo de seguranca e a validacao interna controlada. Os proximos subblocos devem reutilizar esses artefatos para a remediacao assistida e o relatorio consolidado de seguranca.

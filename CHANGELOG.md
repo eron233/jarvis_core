@@ -46,6 +46,10 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Adicionados snapshots sanitizados de configuracao, fila, memoria, objetivos e estado operacional.
 - Adicionada validacao de integridade do gemeo e persistencia dedicada em `security/twin_state/`.
 - Adicionados testes do gemeo de seguranca em `tests/test_security_twin.py`.
+- Criado o modulo `security/security_validation_engine.py` para validacao interna controlada.
+- Adicionadas simulacoes defensivas de autenticacao, configuracao, persistencia, observabilidade, continuidade e integridade operacional.
+- Adicionada geracao de fraquezas com score de risco, evidencias e cenarios afetados apenas sobre o gemeo.
+- Adicionados testes da validacao interna controlada em `tests/test_security_validation_engine.py`.
 
 ## v0.1.0 - Scaffold inicial
 

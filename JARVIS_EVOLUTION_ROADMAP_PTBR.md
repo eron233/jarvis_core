@@ -17,14 +17,14 @@ Este roadmap acompanha a evolucao do JARVIS de nucleo funcional para sistema res
 | 12.1 | Nucleo de conhecimento de seguranca | Concluido |
 | 12.2 | Modelagem de ameaca | Concluido |
 | 12.3 | Gemeo de seguranca | Concluido |
-| 12.4 | Validacao interna controlada | Pendente |
+| 12.4 | Validacao interna controlada | Concluido |
 | 12.5 | Remediacao hibrida | Pendente |
 | 12.6 | Relatorio semanal de seguranca | Pendente |
 | 12.7 | Consolidacao e alerta por excecao | Pendente |
 
 ## Proxima prioridade
 
-- BLOCO 12.4 - validacao interna controlada
+- BLOCO 12.5 - remediacao hibrida
 
 ## Criterio de continuidade
 

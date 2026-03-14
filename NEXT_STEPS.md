@@ -2,18 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- BLOCO 12.4 - validacao interna controlada
+- BLOCO 12.5 - remediacao hibrida
 
 ## Delta recomendado
 
-- simular cenarios internos controlados apenas sobre o gemeo autorizado
-- medir impacto, gravidade, detectabilidade e reversibilidade por fraqueza
-- gerar evidencias e score de risco sem qualquer acao externa
-- manter a execucao toda rastreavel e reversivel
+- transformar cada fraqueza detectada em no minimo tres propostas estruturadas
+- separar correcoes automaticas seguras das correcoes que exigem aprovacao humana
+- garantir rastreabilidade de antes e depois para qualquer correcao aplicada
+- preservar constitutional core, autenticacao e auditoria como areas protegidas
 
 ## Criterios de aceite
 
 - nenhuma duplicacao da logica de runtime, API, deploy ou auditoria
-- validacoes executadas apenas sobre o proprio sistema autorizado e isolado
+- correcoes automaticas limitadas a mudancas seguras, reversiveis e de baixo risco
 - saidas tecnicas, diretas e auditaveis
-- base pronta para a remediacao hibrida do ciclo seguinte
+- base pronta para o relatorio semanal de seguranca do ciclo seguinte

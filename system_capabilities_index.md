@@ -32,6 +32,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Nucleo de conhecimento defensivo | Implementada | `security/security_knowledge_core.py`, `security/__init__.py` | Exportavel para memorias do sistema | `tests/test_security_knowledge_core.py` |
 | Modelagem de ameaca interna | Implementada | `security/threat_model_engine.py`, `security/__init__.py` | Reaproveita estado do runtime e relatorios de ambiente | `tests/test_threat_model_engine.py` |
 | Gemeo de seguranca isolado | Implementada | `security/security_twin.py`, `security/twin_state/.gitkeep` | JSON isolado em `security/twin_state/` ou path configurado | `tests/test_security_twin.py` |
+| Validacao interna controlada | Implementada | `security/security_validation_engine.py`, `security/security_twin.py` | Executa apenas sobre o snapshot isolado | `tests/test_security_validation_engine.py` |
 
 ## Capacidades do Runtime
 
@@ -79,6 +80,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - espelhar configuracao, fila, memoria, objetivos e estado operacional
 - sanitizar conteudo livre e omitir segredos antes da validacao
 - validar integridade do gemeo antes de simular falhas defensivas
+- simular cenarios de autenticacao, configuracao, persistencia, observabilidade, continuidade e integridade operacional
+- gerar fraquezas com score de risco, evidencias e cenarios afetados
 
 ## Artefatos de Persistencia
 
@@ -123,12 +126,14 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Inventario de ativos, superficies, dependencias e classificacao de risco do sistema atual
 - `tests/test_security_twin.py`
   Snapshot isolado, sanitizacao real e deteccao de adulteracao do gemeo
+- `tests/test_security_validation_engine.py`
+  Suite defensiva no gemeo com deteccao de fraquezas por categoria
 
 ## Lacunas Atuais
 
 - ainda nao houve smoke test real de container neste ambiente por ausencia de `docker`
 - os workers continuam minimos e seguros
-- a validacao interna controlada e a remediacao assistida ainda nao foram implementadas
+- a remediacao assistida e o relatorio consolidado de seguranca ainda nao foram implementados
 - a geracao controlada de tarefas ainda nao foi implementada
 - a memoria procedural ainda nao saiu do nivel inicial
 - o monitoramento externo de infraestrutura ainda nao foi adicionado

@@ -39,6 +39,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - nucleo de conhecimento defensivo para autodefesa interna
 - motor de modelagem de ameaca sobre o proprio estado do sistema
 - gemeo de seguranca isolado com snapshots sanitizados
+- validacao interna controlada apenas sobre o gemeo autorizado
 
 ## Execucao Local
 
@@ -138,6 +139,15 @@ O modulo `security/security_twin.py` amplia a autodefesa criando um espelho isol
 - metadados de API e seguranca sem expor segredos
 - persistencia isolada em `security/twin_state/`
 - validacao de integridade do espelho antes de qualquer simulacao defensiva
+
+O modulo `security/security_validation_engine.py` executa cenarios defensivos controlados somente sobre esse espelho para verificar:
+
+- autenticacao e identidade
+- configuracao e startup
+- persistencia
+- observabilidade
+- continuidade
+- integridade operacional
 
 ## Fluxo de Desenvolvimento
 
