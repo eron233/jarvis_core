@@ -49,6 +49,8 @@ MOTIVOS_PTBR = {
     "policy_denied": "negada_pela_politica_constitucional",
     "outside_autonomy_scope": "fora_do_escopo_autonomo",
     "unknown_worker": "worker_desconhecido",
+    "worker_rejected": "worker_rejeitou_a_tarefa",
+    "invalid_domain": "dominio_invalido_para_worker",
     "missing_token": "token_ausente",
     "invalid_token": "token_invalido",
     "missing_device_id": "device_id_ausente",

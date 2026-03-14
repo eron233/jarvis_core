@@ -2,18 +2,18 @@
 
 ## Proximo bloco recomendado
 
-- BLOCO D - workers uteis por dominio
+- BLOCO 12.6 - relatorio semanal de seguranca
 
 ## Delta recomendado
 
-- tornar `worker_runtime` util para diagnostico operacional e relatorio tecnico
-- tornar `worker_study` util para resumo e estruturacao de material autorizado
-- tornar `worker_studio` util para briefing e checklist criativo
-- tornar `worker_finance` util para organizacao e sintese analitica sem automacao financeira real
+- consolidar fraquezas, remedios e acoes automaticas em relatorio semanal em pt-BR
+- destacar imediatamente apenas riscos criticos e excecoes reais
+- separar novidades da semana de achados recorrentes
+- transformar a saida em base reutilizavel para painel e API
 
 ## Criterios de aceite
 
-- nenhuma duplicacao de logica entre workers, runtime, memoria e API
-- cada worker com retorno estruturado, evidencia e utilidade concreta
-- integracao com memoria e auditoria mantida
-- comportamento coberto por testes em pt-BR
+- nenhuma duplicacao da logica de runtime, API, deploy ou auditoria
+- consolidacao periodica com escalonamento imediato apenas para urgencias criticas
+- saidas tecnicas, diretas e auditaveis
+- base pronta para consolidacao por excecao no ciclo seguinte

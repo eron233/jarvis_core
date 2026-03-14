@@ -26,6 +26,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py`, `constitutional_core/policy.py` | Reaproveita fila, memoria e objetivos | `tests/test_runtime_bootstrap.py`, `tests/test_constitutional_policy.py` |
 | API HTTP | Implementada | `interface/api/app.py` | Reaproveita o nucleo | `tests/test_api.py` |
 | Painel mobile-first | Implementada | `interface/dashboard/index.html`, `interface/dashboard/access_gate.html` | Sessao de dispositivo confiavel | `tests/test_dashboard.py` |
+| Workers uteis por dominio | Implementada | `workers/worker_runtime.py`, `workers/worker_study.py`, `workers/worker_studio.py`, `workers/worker_finance.py`, `workers/worker_utils.py` | Reaproveita memoria e auditoria do runtime | `tests/test_workers.py` |
 | Autenticacao por dispositivo confiavel | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py` | Variaveis de ambiente + auditoria | `tests/test_api.py`, `tests/test_dashboard.py` |
 | Relatorios operacionais completos | Implementada | `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Reaproveita estado do runtime | `tests/test_operational_reports.py` |
 | Configuracao central de ambiente | Implementada | `runtime/system_config.py`, `.env.example` | Variaveis de ambiente | `tests/test_cloud_deploy.py` |
@@ -43,6 +44,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - carregar e expor a politica constitucional ativa
 - recuperar fila, memoria e objetivos no startup
 - consultar e registrar guidance procedural
+- enriquecer memoria semantica com resumos e evidencias dos workers
 - registrar eventos episodicos e relatorios operacionais
 - proteger execucao por regras de autonomia
 - persistir estado no shutdown
@@ -132,6 +134,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Busca, dominio e persistencia da memoria semantica
 - `tests/test_procedural_memory.py`
   Estrutura, busca, persistencia e guidance procedural no runtime
+- `tests/test_workers.py`
+  Utilidade concreta dos workers, evidencias e integracao com o dispatch
 - `tests/test_task_queue_persistence.py`
   Persistencia e recuperacao da fila
 - `tests/test_cloud_deploy.py`
@@ -154,7 +158,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - ainda nao houve smoke test real de container neste ambiente por ausencia de `docker`
 - a politica viva ja governa validator e runtime, mas ainda nao existe geracao controlada de tarefas alinhada a essa mesma politica
 - o launcher local oficial existe para Windows atual, mas o servidor Linux continua dependendo de um interpretador Python valido no host
-- os workers continuam minimos e seguros
+- os workers ja sao uteis, mas ainda nao consomem entrada multimodal nem conectores externos autorizados
 - o relatorio consolidado de seguranca e a consolidacao por excecao ainda nao foram implementados
 - a geracao controlada de tarefas ainda nao foi implementada
 - o monitoramento externo de infraestrutura ainda nao foi adicionado

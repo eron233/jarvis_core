@@ -42,6 +42,7 @@ tests/_security_artifacts/
 tests/_startup_artifacts/
 tests/_policy_artifacts/
 tests/_procedural_artifacts/
+tests/_worker_artifacts/
 data/*
 !data/.gitkeep
 logs/*

@@ -250,7 +250,43 @@ class InternalAgentRuntime:
             task["procedural_guidance"] = deepcopy(procedural_guidance[0]["steps"])
             task["procedural_guidance_source"] = procedural_guidance[0]["name"]
 
-        worker_response = worker.handle(task)
+        worker_task = deepcopy(task)
+        worker_task["runtime_context"] = self.describe_state()
+        worker_task["goal_summary"] = self.goal_manager.goal_report().get("resumo", {})
+        if procedural_guidance:
+            worker_task["procedural_guidance"] = deepcopy(procedural_guidance[0]["steps"])
+            worker_task["procedural_guidance_source"] = procedural_guidance[0]["name"]
+            task["procedural_guidance"] = deepcopy(procedural_guidance[0]["steps"])
+            task["procedural_guidance_source"] = procedural_guidance[0]["name"]
+
+        worker_response = worker.handle(worker_task)
+        if worker_response.get("status") in {"rejected", "failed"}:
+            result_status = "rejected" if worker_response.get("status") == "rejected" else "failed"
+            result_reason = worker_response.get("reason") or "worker_rejected"
+            self._apply_state(task, result_status)
+            result = {
+                "status": result_status,
+                "status_ptbr": traduzir_status(result_status),
+                "task": task,
+                "worker": worker_id,
+                "worker_response": worker_response,
+                "reason": result_reason,
+                "reason_ptbr": worker_response.get("reason_ptbr") or traduzir_motivo(result_reason),
+            }
+            self.memory["episodic"].remember(
+                {
+                    "event": "dispatch",
+                    "event_ptbr": "despachar",
+                    "status": result["status"],
+                    "status_ptbr": result["status_ptbr"],
+                    "task_id": task.get("task_id"),
+                    "worker": worker_id,
+                    "reason": result["reason"],
+                    "reason_ptbr": result["reason_ptbr"],
+                }
+            )
+            return result
+
         self._apply_state(task, "completed")
         result = {
             "status": "executed",
@@ -291,6 +327,9 @@ class InternalAgentRuntime:
                 "dispatch_status_ptbr": result["status_ptbr"],
                 "runtime_status": result["result"]["runtime_status"],
                 "runtime_status_ptbr": result["result"]["runtime_status_ptbr"],
+                "worker_summary": worker_response.get("summary"),
+                "worker_result_type": worker_response.get("result_type"),
+                "worker_evidence_count": len(worker_response.get("evidence", [])),
             },
         )
         self._record_procedural_outcome(task, worker_id, result)
@@ -881,6 +920,9 @@ class InternalAgentRuntime:
     def _build_completed_task_content(task: Dict[str, Any], worker_id: str, result: Dict[str, Any]) -> str:
         goal = task.get("goal", "Tarefa concluida")
         runtime_status = result["result"]["runtime_status_ptbr"]
+        worker_summary = result.get("worker_response", {}).get("summary")
+        if worker_summary:
+            return f"{goal} concluida por {worker_id} com status de runtime {runtime_status}. {worker_summary}"
         return f"{goal} concluida por {worker_id} com status de runtime {runtime_status}"
 
     @staticmethod

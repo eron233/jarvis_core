@@ -35,6 +35,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - loop continuo com encerramento gracioso
 - API protegida por token e dispositivo confiavel
 - painel web para uso em celular
+- workers uteis por dominio com resposta estruturada e evidencia
 - relatorios operacionais completos
 - healthcheck publico de deploy em `/health`
 - configuracao central por variaveis de ambiente
@@ -68,6 +69,17 @@ Capacidades atuais:
 - buscar procedimentos por texto, dominio, tipo e sucesso
 - registrar padroes apos execucao real do runtime
 - reaproveitar guidance procedural em tarefas semelhantes
+
+## Workers Uteis por Dominio
+
+Os workers deixaram de ser apenas cascas e agora devolvem saidas deterministicas e estruturadas.
+
+Capacidades atuais:
+
+- `worker_runtime`: diagnostico operacional resumido e relatorio tecnico
+- `worker_study`: resumo de estudo, topicos e proximos passos
+- `worker_studio`: briefing criativo e checklist de producao
+- `worker_finance`: observacoes estruturadas e sintese analitica sem automacao financeira real
 
 ## Execucao Local
 

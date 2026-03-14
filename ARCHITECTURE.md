@@ -96,7 +96,7 @@ Capacidades atuais:
 
 Local: `workers/`
 
-Executores por dominio que recebem tarefas do runtime e devolvem respostas estruturadas e deterministicas. Ainda sao leves, mas ja participam do ciclo real do sistema.
+Executores por dominio que recebem tarefas do runtime e devolvem respostas estruturadas e deterministicas. No estado atual, ja entregam utilidade real por dominio sem depender de servicos externos.
 
 Artefatos principais:
 
@@ -104,6 +104,16 @@ Artefatos principais:
 - `workers/worker_finance.py`
 - `workers/worker_studio.py`
 - `workers/worker_study.py`
+- `workers/worker_utils.py`
+
+Capacidades atuais:
+
+- validacao deterministica de dominio por worker
+- resposta estruturada com `summary`, `details`, `evidence` e `next_steps`
+- diagnostico operacional no worker de runtime
+- resumo de estudo no worker de estudo
+- briefing criativo no worker de estudio
+- sintese analitica no worker de financas
 
 ## Runtime
 
@@ -122,6 +132,7 @@ Capacidades atuais:
 - bloqueio de tarefas proibidas ou ainda sem aprovacao humana
 - consulta de guidance procedural antes do dispatch
 - registro de padroes de execucao bem-sucedidos apos o dispatch
+- enriquecimento de memoria semantica com resumo e evidencias do worker
 - introspeccao segura da politica ativa em relatorios e estado do runtime
 
 ## Processo Continuo

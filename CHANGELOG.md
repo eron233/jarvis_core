@@ -4,6 +4,10 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Evoluidos `worker_runtime.py`, `worker_study.py`, `worker_studio.py` e `worker_finance.py` para utilidade real por dominio.
+- Adicionado `workers/worker_utils.py` para respostas estruturadas deterministicas e validacao de dominio.
+- Integrado o runtime para aproveitar `summary`, `details` e `evidence` dos workers na memoria semantica.
+- Adicionados testes de workers e dispatch em `tests/test_workers.py`.
 - Transformada `memory_system/procedural_memory.py` em memoria procedural persistente e pesquisavel.
 - Adicionado registro estruturado de heuristicas, contexto, precondicoes, evidencias e resultado observado.
 - Integrado o runtime para consultar guidance procedural antes da execucao e registrar novos padroes apos o dispatch.

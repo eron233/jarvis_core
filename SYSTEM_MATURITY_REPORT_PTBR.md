@@ -3,7 +3,7 @@
 ## Estado atual
 
 - Nivel atual: `M2 - operacional inicial`
-- Subnivel: `M2.9 - operacao inicial com memoria procedural forte`
+- Subnivel: `M3.0 - sistema utilizavel inicial`
 - Idioma visivel: `pt-BR`
 - Entrypoint do loop local: `jarvis_core/main.py`
 - Entrypoint do servidor: `jarvis_core/runtime/server.py`
@@ -26,6 +26,7 @@
 - subida portavel em Python isolado e Windows local
 - constitutional core governando validator e runtime
 - memoria procedural persistente e reutilizavel
+- workers uteis por dominio
 - preparacao para Docker e `docker-compose`
 - nucleo de conhecimento defensivo para autodiagnostico
 - motor de modelagem de ameaca sobre ativos, superficies e dependencias
@@ -49,6 +50,7 @@
 - BLOCO A - subida limpa e portavel do sistema
 - BLOCO B - constitutional core como politica viva
 - BLOCO C - memoria procedural forte
+- BLOCO D - workers uteis por dominio
 
 ## Blocos parciais
 
@@ -68,10 +70,10 @@
 - ainda nao foi executado um smoke test real de Docker neste ambiente porque `docker` nao esta disponivel aqui
 - a politica viva ja governa validator e runtime, mas ainda nao orienta uma geracao controlada de tarefas
 - a memoria procedural ja registra e reaproveita heuristicas, mas os workers ainda nao exploram esse guidance de forma rica
-- os workers continuam seguros e minimos, mas ainda nao sao executores ricos
+- os workers ja entregam valor real, mas ainda nao possuem conectores externos autorizados nem profundidade multimodal
 - ainda nao existe monitoramento externo de infraestrutura alem do healthcheck e dos logs locais
 - a autodefesa ja cobre conhecimento defensivo, modelagem de ameaca, gemeo de seguranca, validacao controlada e remediacao hibrida, mas ainda nao executa relatorio semanal consolidado nem consolidacao por excecao
 
 ## Leitura objetiva
 
-O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel operacional inicial. O sistema agora consegue subir de forma limpa no ambiente Windows atual e em modos de servidor simples, manter API, painel, fila, memoria e autenticacao estaveis, usar o constitutional core como fonte viva de politica e reaproveitar memoria procedural persistente em execucoes semelhantes. O proximo gargalo real passa a ser tornar os workers uteis por dominio.
+O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel utilizavel inicial. O sistema agora sobe de forma limpa, preserva estado, aplica politica viva, reaproveita memoria procedural e entrega utilidade concreta por dominio via workers, sem abrir automacao perigosa. Os proximos gargalos reais passam a ser geracao controlada de tarefas e consolidacao de seguranca.
