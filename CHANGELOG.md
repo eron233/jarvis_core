@@ -4,6 +4,20 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Criado `security/access_control.py` com acesso administrativo por voz reconhecida (`eron`), senha (`alter ego`) e fallback guest.
+- Criado `device/device_registry.py` para inventario e persistencia de dispositivos autorizados.
+- Adicionado endpoint textual `/api/comando` para comando unificado com resposta do runtime.
+- Atualizado o painel para enviar comandos ao runtime pela API em vez de resolver tudo no cliente.
+- Criado `interface/native_client/jarvis_client.py` como cliente leve para `/api/comando`.
+- Criado `security/self_defense.py` como camada operacional de autodiagnostico sobre os motores defensivos existentes.
+- Integrado o runtime com autodefesa, registro de dispositivos, aprendizado futuro e logging de comandos.
+- Adicionado watchdog no loop principal para continuar operando apos excecoes controladas.
+- Criado `service/jarvis_windows_service.py` com supervisao do processo `runtime/server.py` via `win32serviceutil`.
+- Criado `learning/self_improvement.py` para preparar a trilha de aprendizado estrutural futuro.
+- Adicionada dependencia `pywin32` em `requirements.txt`.
+- Adicionados testes para acesso, registro de dispositivos, autodefesa, watchdog e servico Windows.
+- Validado smoke test real de `runtime/server.py`, `/health`, `/docs`, `/painel` e `/api/comando`.
+- Tentativa de instalacao real do servico Windows ficou bloqueada por permissao administrativa do sistema (`Acesso negado (5)`).
 - Evoluidos `worker_runtime.py`, `worker_study.py`, `worker_studio.py` e `worker_finance.py` para utilidade real por dominio.
 - Adicionado `workers/worker_utils.py` para respostas estruturadas deterministicas e validacao de dominio.
 - Integrado o runtime para aproveitar `summary`, `details` e `evidence` dos workers na memoria semantica.

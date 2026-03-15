@@ -1,21 +1,58 @@
-"""Bootstrap interno do runtime do Sistema Cognitivo JARVIS."""
+"""
+JARVIS - Runtime Interno
+
+Responsavel por:
+- inicializar planner, memoria, workers e objetivos
+- despachar tarefas com gate constitucional e de autonomia
+- persistir estado operacional, relatorios e eventos de acesso
+- servir como nucleo compartilhado entre loop, API e painel
+
+Integracoes principais:
+- executive_planner
+- memory_system
+- intent_layer.goal_manager
+- interface.api.app
+"""
 
 from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
 import json
+import logging
 from typing import Any, Dict
+
+#
+# JARVIS_CORE_COMPONENT
+# JARVIS_RUNTIME_ENTRYPOINT
+# ==================================================
+# BLOCO: Estado central e bootstrap do runtime
+# ==================================================
 
 from constitutional_core.policy import load_constitutional_policy
 from executive_planner.audit import traduzir_estado, traduzir_motivo, traduzir_status
 from runtime.autonomy import AutonomyController
+
+LOGGER = logging.getLogger("jarvis.server")
 
 
 class InternalAgentRuntime:
     """Inicializa o runtime funcional do sistema e coordena a execucao basica."""
 
     def __init__(self, autonomy_controller: AutonomyController | None = None) -> None:
+        """
+        Inicializa o estado base do runtime antes do bootstrap completo.
+
+        Parametros:
+        - autonomy_controller: controlador opcional de autonomia supervisionada.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - cria o esqueleto do runtime, ainda sem componentes pesados carregados.
+        """
+
         self.autonomy_controller = autonomy_controller or AutonomyController()
         self.status = "cold"
         self.started_at: str | None = None
@@ -31,6 +68,11 @@ class InternalAgentRuntime:
         self.memory: Dict[str, Any] = {}
         self.workers: Dict[str, Any] = {}
         self.constitutional_policy: Any = None
+        self.device_registry: Any = None
+        self.access_control: Any = None
+        self.self_defense_monitor: Any = None
+        self.learning_advisor: Any = None
+        self.last_self_defense_report: Dict[str, Any] | None = None
 
     def attach_planner(
         self,
@@ -63,6 +105,10 @@ class InternalAgentRuntime:
         from memory_system.episodic_memory import EpisodicMemory
         from memory_system.procedural_memory import ProceduralMemory
         from memory_system.semantic_memory import SemanticMemory
+        from device.device_registry import DeviceRegistry
+        from learning.self_improvement import SelfImprovementAdvisor
+        from security.access_control import AccessControl
+        from security.self_defense import SelfDefenseMonitor
         from workers.worker_finance import FinanceWorker
         from workers.worker_runtime import RuntimeWorker
         from workers.worker_studio import StudioWorker
@@ -81,6 +127,14 @@ class InternalAgentRuntime:
             self.autonomy_controller.set_policy(self.constitutional_policy)
         self.audit_logger = self.audit_logger if self.audit_logger is not None else AuditLogger()
         self.goal_manager = self.goal_manager if self.goal_manager is not None else GoalManager()
+        self.device_registry = self.device_registry if self.device_registry is not None else DeviceRegistry()
+        self.access_control = self.access_control if self.access_control is not None else AccessControl.from_env()
+        self.self_defense_monitor = (
+            self.self_defense_monitor if self.self_defense_monitor is not None else SelfDefenseMonitor()
+        )
+        self.learning_advisor = (
+            self.learning_advisor if self.learning_advisor is not None else SelfImprovementAdvisor()
+        )
 
         if not self.memory:
             self.memory = {}
@@ -150,6 +204,18 @@ class InternalAgentRuntime:
             source="runtime.bootstrap",
             importance=5,
             metadata={"modo_autonomia": "supervisionada_por_politica_constitucional"},
+        )
+        self.memory["semantic"].upsert(
+            "trusted_devices",
+            [device["device_id"] for device in self.device_registry.list_devices(trusted_only=True)],
+            domain="system",
+            tags=["dispositivos", "trusted"],
+            source="runtime.bootstrap",
+            importance=4,
+            metadata={
+                "device_count": self.device_registry.snapshot()["trusted_device_count"],
+                "registry_path": str(self.device_registry.storage_path),
+            },
         )
         self.memory["procedural"].register(
             "planner_cycle",
@@ -356,6 +422,244 @@ class InternalAgentRuntime:
         self.last_cycle_result = deepcopy(cycle_result)
         return cycle_result
 
+    def handle_command(
+        self,
+        text: str,
+        voice_id: str | None = None,
+        password: str | None = None,
+        source_device_id: str | None = None,
+        response_mode: str = "conversacional",
+        environment_report: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        """Processa um comando textual visivel ao usuario sem quebrar a arquitetura atual."""
+
+        self.bootstrap()
+        command_text = str(text or "").strip()
+        normalized_command = command_text.lower()
+        access_context = self.access_control.evaluate(
+            phrase=command_text,
+            voice_id=voice_id,
+            password=password,
+        )
+
+        if source_device_id:
+            self.device_registry.ensure_device(
+                device_id=source_device_id,
+                nome=source_device_id,
+                tipo="client",
+                trusted=True,
+                metadata={"source": "api_command"},
+            )
+
+        response_payload: Dict[str, Any] = {
+            "comando": command_text,
+            "nivel_acesso": access_context["access_level"],
+            "metodos_autenticados": access_context["authenticated_by"],
+            "respondido": True,
+            "acao": "informativo",
+            "dados_relacionados": {},
+        }
+
+        if access_context["should_ignore"]:
+            response_payload.update(
+                {
+                    "status": "ignored",
+                    "status_ptbr": traduzir_status("ignored"),
+                    "respondido": False,
+                    "acao": "special_phrase",
+                    "motivo": "special_phrase_ignored",
+                    "motivo_ptbr": traduzir_motivo("special_phrase_ignored"),
+                    "resposta": "Frase especial ignorada para este contexto.",
+                }
+            )
+        elif access_context["special_response"]:
+            response_payload.update(
+                {
+                    "status": "authorized",
+                    "status_ptbr": traduzir_status("authorized"),
+                    "acao": "special_phrase",
+                    "resposta": access_context["special_response"],
+                }
+            )
+        elif any(keyword in normalized_command for keyword in ("status", "saude", "relatorio")):
+            system_report = self.build_system_report(last_cycle_result=self.last_cycle_result)
+            response_payload.update(
+                {
+                    "status": "authorized",
+                    "status_ptbr": traduzir_status("authorized"),
+                    "acao": "system_report",
+                    "dados_relacionados": system_report,
+                    "resposta": self._build_system_report_message(system_report, response_mode),
+                }
+            )
+        elif "objetiv" in normalized_command or "meta" in normalized_command:
+            goals_report = self.get_goal_report()
+            response_payload.update(
+                {
+                    "status": "authorized",
+                    "status_ptbr": traduzir_status("authorized"),
+                    "acao": "goal_report",
+                    "dados_relacionados": goals_report,
+                    "resposta": self._build_goal_report_message(goals_report, response_mode),
+                }
+            )
+        elif "taref" in normalized_command or "fila" in normalized_command:
+            queue_report = self.build_queue_report()
+            response_payload.update(
+                {
+                    "status": "authorized",
+                    "status_ptbr": traduzir_status("authorized"),
+                    "acao": "queue_report",
+                    "dados_relacionados": queue_report,
+                    "resposta": self._build_queue_report_message(queue_report, response_mode),
+                }
+            )
+        elif "memoria" in normalized_command:
+            memory_report = self.build_memory_report()
+            response_payload.update(
+                {
+                    "status": "authorized",
+                    "status_ptbr": traduzir_status("authorized"),
+                    "acao": "memory_report",
+                    "dados_relacionados": memory_report,
+                    "resposta": self._build_memory_report_message(memory_report, response_mode),
+                }
+            )
+        elif "seguranca" in normalized_command or "autodefesa" in normalized_command:
+            if not self.access_control.can_execute_sensitive_action(access_context):
+                response_payload.update(self._build_guest_denial())
+            else:
+                security_report = self.run_self_defense_audit(environment_report=environment_report)
+                response_payload.update(
+                    {
+                        "status": "authorized",
+                        "status_ptbr": traduzir_status("authorized"),
+                        "acao": "security_audit",
+                        "dados_relacionados": security_report,
+                        "resposta": self._build_security_report_message(security_report, response_mode),
+                    }
+                )
+        elif "ciclo" in normalized_command or "rodar" in normalized_command or "executar" in normalized_command:
+            if not self.access_control.can_execute_sensitive_action(access_context):
+                response_payload.update(self._build_guest_denial())
+            else:
+                cycle_result = self.run_planner_cycle()
+                response_payload.update(
+                    {
+                        "status": "authorized",
+                        "status_ptbr": traduzir_status("authorized"),
+                        "acao": "planner_cycle",
+                        "dados_relacionados": cycle_result,
+                        "resposta": self._build_cycle_message(cycle_result, response_mode),
+                    }
+                )
+        else:
+            response_payload.update(
+                {
+                    "status": "authorized",
+                    "status_ptbr": traduzir_status("authorized"),
+                    "acao": "help",
+                    "resposta": (
+                        "Comando nao reconhecido. Use: status, objetivos, tarefas, memoria, seguranca ou ciclo."
+                    ),
+                }
+            )
+
+        self._record_command_event(
+            command_text=command_text,
+            source_device_id=source_device_id,
+            access_context=access_context,
+            response_payload=response_payload,
+        )
+        return response_payload
+
+    def run_self_defense_audit(
+        self,
+        environment_report: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        """Executa o autodiagnostico de seguranca usando os motores defensivos ja presentes no projeto."""
+
+        self.bootstrap()
+        effective_environment = deepcopy(environment_report or {})
+        health_report = self.build_health_report(
+            api_started_at=self.started_at,
+            token_configurado=bool(
+                effective_environment.get("autenticacao_configurada", {}).get("token_configurado")
+            ),
+            dispositivo_confiavel_configurado=bool(
+                effective_environment.get("autenticacao_configurada", {}).get(
+                    "dispositivo_confiavel_configurado"
+                )
+            ),
+        )
+        self.last_self_defense_report = self.self_defense_monitor.run_periodic_audit(
+            runtime=self,
+            environment_report=effective_environment,
+            health_report=health_report,
+            auto_apply_safe=True,
+        )
+        if self.audit_logger is not None:
+            self.audit_logger.record(
+                "self_defense",
+                {
+                    "status": "completed",
+                    "risk_level": self.last_self_defense_report["resumo"]["risco_geral"],
+                    "automatic_actions": self.last_self_defense_report["resumo"]["acoes_automaticas_realizadas"],
+                },
+            )
+        self.memory["episodic"].remember(
+            {
+                "event": "self_defense",
+                "event_ptbr": "autodefesa",
+                "status": "completed",
+                "status_ptbr": traduzir_status("completed"),
+                "risk_level": self.last_self_defense_report["resumo"]["risco_geral"],
+            }
+        )
+        LOGGER.info(
+            "[self_defense] risco_geral=%s fraquezas=%s acoes_automaticas=%s",
+            self.last_self_defense_report["resumo"]["risco_geral"],
+            self.last_self_defense_report["resumo"]["fraquezas_detectadas"],
+            self.last_self_defense_report["resumo"]["acoes_automaticas_realizadas"],
+        )
+        return deepcopy(self.last_self_defense_report)
+
+    def record_runtime_error(
+        self,
+        context: str,
+        error: Exception,
+        metadata: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        """Registra erros do runtime para watchdog, auditoria e memoria episodica."""
+
+        self.bootstrap()
+        payload = {
+            "context": context,
+            "status": "failed",
+            "reason": "runtime_exception",
+            "error_type": error.__class__.__name__,
+            "error_message": str(error),
+            "metadata": deepcopy(metadata or {}),
+        }
+        if self.audit_logger is not None:
+            self.audit_logger.record("runtime_watchdog", payload)
+        self.memory["episodic"].remember(
+            {
+                "event": "runtime_watchdog",
+                "event_ptbr": "watchdog_do_runtime",
+                "status": "failed",
+                "status_ptbr": traduzir_status("failed"),
+                "reason": "runtime_exception",
+                "reason_ptbr": traduzir_motivo("runtime_exception"),
+                "context": context,
+                "error_type": error.__class__.__name__,
+                "error_message": str(error),
+                "metadata": deepcopy(metadata or {}),
+            }
+        )
+        LOGGER.exception("[runtime_watchdog] context=%s error=%s", context, error)
+        return payload
+
     def query_semantic_memory(
         self, query: str, domain: str | None = None, limit: int = 5
     ) -> list[Dict[str, Any]]:
@@ -449,6 +753,20 @@ class InternalAgentRuntime:
             "ultimos_eventos": audit_report["ultimas_acoes_relevantes"],
             "ultimas_memorias": memory_report["memorias_recentes"],
             "politica_ativa": self.build_policy_report(),
+            "dispositivos_autorizados": self.device_registry.build_report(),
+            "seguranca_operacional": self.last_self_defense_report["resumo"]
+            if self.last_self_defense_report is not None
+            else {
+                "risco_geral": "nao_auditado",
+                "fraquezas_detectadas": 0,
+                "acoes_automaticas_realizadas": 0,
+                "acoes_pendentes_de_aprovacao": 0,
+                "portas_ativas_observadas": 0,
+            },
+            "aprendizado_futuro": self.learning_advisor.suggest_structural_improvements(
+                runtime_state=self.describe_state(),
+                analysis_report=self.last_self_defense_report or {},
+            ),
             "saude_runtime": {
                 "status": "ok" if self.status == "initialized" else "degradado",
                 "status_ptbr": "saudavel" if self.status == "initialized" else "degradado",
@@ -671,6 +989,8 @@ class InternalAgentRuntime:
             "fila_carregada": queue_loaded,
             "memoria_carregada": memory_loaded,
             "objetivos_carregados": goals_loaded,
+            "registro_de_dispositivos_carregado": self.device_registry is not None,
+            "autodefesa_operacional_carregada": self.self_defense_monitor is not None,
             "configuracao_minima_valida": config_valid,
             "dispositivo_confiavel_configurado": dispositivo_confiavel_configurado,
             "token_configurado": token_configurado,
@@ -762,11 +1082,16 @@ class InternalAgentRuntime:
         if self.goal_manager is not None:
             goals_snapshot = self.goal_manager.snapshot()
 
+        device_snapshot = None
+        if self.device_registry is not None:
+            device_snapshot = self.device_registry.snapshot()
+
         return {
             "queue": deepcopy(queue_snapshot),
             "semantic_memory": deepcopy(semantic_snapshot),
             "procedural_memory": deepcopy(procedural_snapshot),
             "goals": deepcopy(goals_snapshot),
+            "devices": deepcopy(device_snapshot),
         }
 
     def describe_state(self) -> Dict[str, Any]:
@@ -804,6 +1129,11 @@ class InternalAgentRuntime:
                 if self.memory.get("procedural") is not None and self.memory["procedural"].storage_path is not None
                 else None
             ),
+            "device_registry_store": str(self.device_registry.storage_path) if self.device_registry is not None else None,
+            "registered_device_count": len(self.device_registry.devices) if self.device_registry is not None else 0,
+            "trusted_device_count": len(self.device_registry.list_devices(trusted_only=True)) if self.device_registry is not None else 0,
+            "learning_module_loaded": self.learning_advisor is not None,
+            "security_module_loaded": self.self_defense_monitor is not None,
             "last_cycle_at": self.last_cycle_at,
             "total_cycles_executed": self.total_cycles_executed,
         }
@@ -885,13 +1215,189 @@ class InternalAgentRuntime:
             },
         )
 
+    def _record_command_event(
+        self,
+        command_text: str,
+        source_device_id: str | None,
+        access_context: Dict[str, Any],
+        response_payload: Dict[str, Any],
+    ) -> None:
+        """Registra comandos recebidos em auditoria, memoria episodica e log central."""
+
+        payload = {
+            "status": response_payload.get("status", "authorized"),
+            "access_level": access_context["access_level"],
+            "device_id": source_device_id or "nao_informado",
+            "action": response_payload.get("acao"),
+            "command_text": command_text,
+            "reason": response_payload.get("motivo"),
+        }
+        if self.audit_logger is not None:
+            self.audit_logger.record("command", payload)
+        self.memory["episodic"].remember(
+            {
+                "event": "command",
+                "event_ptbr": "comando",
+                "status": payload["status"],
+                "status_ptbr": traduzir_status(payload["status"]),
+                "device_id": payload["device_id"],
+                "access_level": payload["access_level"],
+                "command_text": command_text,
+                "action": payload["action"],
+                "reason": payload.get("reason"),
+                "reason_ptbr": traduzir_motivo(payload["reason"]) if payload.get("reason") else None,
+            }
+        )
+        LOGGER.info(
+            "[command] access=%s device=%s action=%s texto=%s",
+            access_context["access_level"],
+            payload["device_id"],
+            payload["action"],
+            command_text,
+        )
+
+    @staticmethod
+    def _build_guest_denial() -> Dict[str, Any]:
+        """Monta a resposta padrao para comandos restritos ao contexto administrativo."""
+
+        return {
+            "status": "denied",
+            "status_ptbr": traduzir_status("denied"),
+            "acao": "restricted_command",
+            "respondido": True,
+            "motivo": "guest_restricted_command",
+            "motivo_ptbr": traduzir_motivo("guest_restricted_command"),
+            "resposta": "Modo guest ativo. Esse comando requer autenticacao administrativa por voz ou senha.",
+        }
+
+    @staticmethod
+    def _build_cycle_message(cycle_result: Dict[str, Any], response_mode: str) -> str:
+        """Sintetiza o resultado do ciclo executado para a camada visivel."""
+
+        if response_mode == "tecnico":
+            return json.dumps(cycle_result, ensure_ascii=False, indent=2)
+        return "Ciclo executado com status {status}.".format(
+            status=cycle_result.get("status_ptbr", cycle_result.get("status", "desconhecido"))
+        )
+
+    @staticmethod
+    def _build_system_report_message(system_report: Dict[str, Any], response_mode: str) -> str:
+        """Resume o relatorio geral do sistema em formato conversacional ou tecnico."""
+
+        if response_mode == "tecnico":
+            return json.dumps(system_report, ensure_ascii=False, indent=2)
+        return (
+            "Runtime em {status} com fila {fila}, {objetivos} objetivo(s) ativo(s) e "
+            "{ciclos} ciclo(s) executado(s)."
+        ).format(
+            status=system_report["status_runtime"]["status_ptbr"],
+            fila=system_report["estado_da_fila"]["tarefas_pendentes"],
+            objetivos=system_report["quantidade_objetivos_ativos"],
+            ciclos=system_report["total_ciclos_executados"],
+        )
+
+    @staticmethod
+    def _build_goal_report_message(goals_report: Dict[str, Any], response_mode: str) -> str:
+        """Resume o estado dos objetivos para resposta por comando."""
+
+        if response_mode == "tecnico":
+            return json.dumps(goals_report, ensure_ascii=False, indent=2)
+        resumo = goals_report.get("resumo", {})
+        return (
+            "Ha {ativos} objetivo(s) ativo(s), {estrategicos} meta(s) estrategica(s) "
+            "e progresso medio de {progresso}%."
+        ).format(
+            ativos=resumo.get("total_objetivos_ativos", 0),
+            estrategicos=resumo.get("total_metas_estrategicas", 0),
+            progresso=resumo.get("progresso_medio", 0),
+        )
+
+    @staticmethod
+    def _build_queue_report_message(queue_report: Dict[str, Any], response_mode: str) -> str:
+        """Resume a fila atual para resposta por comando."""
+
+        if response_mode == "tecnico":
+            return json.dumps(queue_report, ensure_ascii=False, indent=2)
+        resumo = queue_report.get("resumo", {})
+        return (
+            "Fila com {total} tarefa(s), {pendentes} pendente(s), {bloqueadas} bloqueada(s) "
+            "e {concluidas} concluida(s)."
+        ).format(
+            total=resumo.get("total_tarefas", 0),
+            pendentes=resumo.get("tarefas_pendentes", 0),
+            bloqueadas=resumo.get("tarefas_bloqueadas", 0),
+            concluidas=resumo.get("tarefas_concluidas_total", 0),
+        )
+
+    @staticmethod
+    def _build_memory_report_message(memory_report: Dict[str, Any], response_mode: str) -> str:
+        """Resume o estado das memorias do sistema para resposta por comando."""
+
+        if response_mode == "tecnico":
+            return json.dumps(memory_report, ensure_ascii=False, indent=2)
+        resumo = memory_report.get("resumo", {})
+        return (
+            "Memoria com {entradas} entrada(s) semantica(s), {procedimentos} procedimento(s) "
+            "e ultima escrita em {ultima_escrita}."
+        ).format(
+            entradas=resumo.get("total_entradas_semanticas", 0),
+            procedimentos=resumo.get("total_procedimentos", 0),
+            ultima_escrita=resumo.get("ultima_escrita") or "nao registrada",
+        )
+
+    @staticmethod
+    def _build_security_report_message(security_report: Dict[str, Any], response_mode: str) -> str:
+        """Resume o relatorio de autodefesa para resposta por comando."""
+
+        if response_mode == "tecnico":
+            return json.dumps(security_report, ensure_ascii=False, indent=2)
+        resumo = security_report.get("resumo", {})
+        return (
+            "Autodiagnostico concluido com risco {risco}, {fraquezas} fraqueza(s) detectada(s) "
+            "e {acoes} correcao(oes) automatica(s) segura(s)."
+        ).format(
+            risco=resumo.get("risco_geral", "desconhecido"),
+            fraquezas=resumo.get("fraquezas_detectadas", 0),
+            acoes=resumo.get("acoes_automaticas_realizadas", 0),
+        )
+
+    # ==================================================
+    # BLOCO: Utilitarios internos de estado e persistencia
+    # ==================================================
+
     def _uptime_seconds(self) -> int:
+        """
+        Calcula o uptime do runtime em segundos.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - inteiro com o tempo de atividade desde o bootstrap.
+
+        Efeitos no sistema:
+        - nenhum; usado em relatorios operacionais e healthcheck.
+        """
+
         if self.started_at is None:
             return 0
         started_at = self._parse_isoformat(self.started_at)
         return int((datetime.now(timezone.utc) - started_at).total_seconds())
 
     def _count_completed_tasks(self) -> int:
+        """
+        Conta tarefas concluidas a partir da memoria semantica persistida.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - total de tarefas com dispatch executado.
+
+        Efeitos no sistema:
+        - nenhum; alimenta relatorios da fila e do sistema.
+        """
+
         completed_task_ids = {
             entry["metadata"]["task_id"]
             for entry in self.memory["semantic"].entries
@@ -901,23 +1407,78 @@ class InternalAgentRuntime:
         return len(completed_task_ids)
 
     def _planner_path(self) -> str:
+        """
+        Identifica o caminho fully-qualified da implementacao do planner.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - string com modulo e nome da classe do planner.
+
+        Efeitos no sistema:
+        - nenhum; usado para introspeccao e relatorios.
+        """
+
         if self.planner is None:
             return "executive_planner.planner.ExecutivePlanner"
         return f"{self.planner.__class__.__module__}.{self.planner.__class__.__name__}"
 
     @staticmethod
     def _normalize_worker_id(worker_id: str) -> str:
+        """
+        Remove o prefixo `worker_` quando presente.
+
+        Parametros:
+        - worker_id: identificador bruto do worker.
+
+        Retorno:
+        - nome normalizado do dominio de worker.
+
+        Efeitos no sistema:
+        - nenhum; padroniza lookup interno de workers.
+        """
+
         if worker_id.startswith("worker_"):
             return worker_id[len("worker_") :]
         return worker_id
 
     @staticmethod
     def _apply_state(task: Dict[str, Any], state: str) -> None:
+        """
+        Atualiza o estado interno e localizado de uma tarefa.
+
+        Parametros:
+        - task: tarefa a ser mutada.
+        - state: novo estado interno da tarefa.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - modifica a tarefa informada com `state` e `state_ptbr`.
+        """
+
         task["state"] = state
         task["state_ptbr"] = traduzir_estado(state)
 
     @staticmethod
     def _build_completed_task_content(task: Dict[str, Any], worker_id: str, result: Dict[str, Any]) -> str:
+        """
+        Monta o texto semantico padrao para uma tarefa concluida.
+
+        Parametros:
+        - task: tarefa executada.
+        - worker_id: worker responsavel pela execucao.
+        - result: resultado final do dispatch.
+
+        Retorno:
+        - texto resumido pronto para armazenamento semantico.
+
+        Efeitos no sistema:
+        - nenhum; apenas sintetiza conteudo para memoria.
+        """
+
         goal = task.get("goal", "Tarefa concluida")
         runtime_status = result["result"]["runtime_status_ptbr"]
         worker_summary = result.get("worker_response", {}).get("summary")
@@ -927,6 +1488,19 @@ class InternalAgentRuntime:
 
     @staticmethod
     def _last_persisted_at(storage_path: Any) -> str | None:
+        """
+        Consulta o horario da ultima persistencia de um arquivo.
+
+        Parametros:
+        - storage_path: caminho do artefato persistente.
+
+        Retorno:
+        - timestamp ISO UTC ou `None` quando o arquivo nao existe.
+
+        Efeitos no sistema:
+        - nenhum; utilitario de healthcheck e relatorios.
+        """
+
         if storage_path is None:
             return None
         if not storage_path.exists():
@@ -935,8 +1509,34 @@ class InternalAgentRuntime:
 
     @staticmethod
     def _parse_isoformat(value: str) -> datetime:
+        """
+        Converte uma string ISO em objeto `datetime`.
+
+        Parametros:
+        - value: string temporal em formato ISO.
+
+        Retorno:
+        - objeto `datetime` correspondente.
+
+        Efeitos no sistema:
+        - nenhum; utilitario interno para calculos temporais.
+        """
+
         return datetime.fromisoformat(value)
 
     @staticmethod
     def _utc_now() -> str:
+        """
+        Gera um timestamp UTC em formato ISO 8601.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - string temporal padronizada.
+
+        Efeitos no sistema:
+        - nenhum; utilitario do runtime para registros e persistencia.
+        """
+
         return datetime.now(timezone.utc).isoformat()

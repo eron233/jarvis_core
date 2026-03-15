@@ -15,21 +15,31 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 def make_queue_storage_path(name: str) -> Path:
+    """Retorna o path de fila usado nos cenarios do loop continuo."""
+
     return PROJECT_ROOT / "tests" / "_main_loop_artifacts" / f"{name}_queue.json"
 
 
 def make_semantic_storage_path(name: str) -> Path:
+    """Retorna o path de memoria semantica usado nos testes do loop."""
+
     return PROJECT_ROOT / "tests" / "_main_loop_artifacts" / f"{name}_semantic.json"
 
 
 def reset_storage_path(path: Path) -> None:
+    """Remove artefatos antigos antes da execucao do teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class MainLoopTests(unittest.TestCase):
+    """Valida bootstrap, idle seguro e recuperacao do loop principal."""
+
     def test_bootstrap_runtime_loads_queue_and_semantic_memory(self) -> None:
+        """Confirma recarga de fila e memoria semantica no bootstrap do loop."""
+
         queue_storage_path = make_queue_storage_path("bootstrap")
         semantic_storage_path = make_semantic_storage_path("bootstrap")
         reset_storage_path(queue_storage_path)
@@ -74,6 +84,8 @@ class MainLoopTests(unittest.TestCase):
         self.assertEqual(runtime.query_semantic_memory("memoria persistida", domain="system")[0]["domain"], "system")
 
     def test_loop_minimo_para_em_fila_vazia_sem_erro(self) -> None:
+        """Verifica parada limpa quando o loop encontra fila vazia."""
+
         logs: list[str] = []
         loop = JarvisSystemLoop(
             config=SystemLoopConfig(
@@ -100,6 +112,8 @@ class MainLoopTests(unittest.TestCase):
         self.assertTrue(any("[ciclo 1]" in line for line in logs))
 
     def test_restart_recovers_blocked_queue_state(self) -> None:
+        """Garante recuperacao do estado bloqueado da fila apos reinicio."""
+
         queue_storage_path = make_queue_storage_path("restart")
         semantic_storage_path = make_semantic_storage_path("restart")
         reset_storage_path(queue_storage_path)
@@ -150,6 +164,52 @@ class MainLoopTests(unittest.TestCase):
         self.assertEqual(restarted_runtime.task_queue.items[0]["task_id"], "blocked-1")
         self.assertEqual(restarted_runtime.task_queue.items[0]["state"], "blocked")
         self.assertEqual(restarted_runtime.task_queue.items[0]["state_ptbr"], "bloqueada")
+
+    def test_watchdog_mantem_loop_vivo_apos_excecao_controlada(self) -> None:
+        """Garante que o loop continue rodando mesmo apos uma excecao em um ciclo."""
+
+        class FlakyRuntime(InternalAgentRuntime):
+            def __init__(self) -> None:
+                super().__init__()
+                self.calls = 0
+
+            def run_planner_cycle(self) -> dict[str, str]:
+                self.calls += 1
+                if self.calls == 1:
+                    raise RuntimeError("falha_controlada")
+                return {
+                    "status": "idle",
+                    "status_ptbr": "ociosa",
+                    "reason": "no_tasks",
+                    "reason_ptbr": "sem_tarefas",
+                }
+
+        logs: list[str] = []
+        queue_path = make_queue_storage_path("watchdog")
+        semantic_path = make_semantic_storage_path("watchdog")
+        reset_storage_path(queue_path)
+        reset_storage_path(semantic_path)
+
+        loop = JarvisSystemLoop(
+            runtime=FlakyRuntime(),
+            config=SystemLoopConfig(
+                cycle_sleep_seconds=0,
+                idle_sleep_seconds=0,
+                max_cycles=2,
+                stop_when_idle=True,
+                install_signal_handlers=False,
+                queue_storage_path=queue_path,
+                semantic_storage_path=semantic_path,
+            ),
+            logger=logs.append,
+        )
+
+        summary = loop.run()
+
+        self.assertEqual(summary["completed_cycles"], 2)
+        self.assertEqual(summary["cycle_logs"][0]["status"], "failed")
+        self.assertEqual(summary["cycle_logs"][1]["status"], "idle")
+        self.assertTrue(any("[ciclo 1]" in line for line in logs))
 
 
 if __name__ == "__main__":

@@ -53,6 +53,12 @@ Variaveis principais:
   Diretorio dos relatorios operacionais do deploy.
 - `JARVIS_PROCEDURAL_STORAGE_PATH`
   Caminho do store persistente da memoria procedural.
+- `JARVIS_DEVICE_REGISTRY_PATH`
+  Caminho do registro de dispositivos autorizados.
+- `JARVIS_ADMIN_VOICE`
+  Voz reconhecida que concede nivel administrativo.
+- `JARVIS_ADMIN_PASSWORD`
+  Senha que concede nivel administrativo.
 
 Variaveis de caminho fino:
 
@@ -113,6 +119,20 @@ docker compose up --build -d
 ```
 
 Como os volumes continuam montados, fila, memoria e objetivos sao preservados.
+
+## Windows como Servico Local
+
+Para operar o Jarvis como servico leve do Windows no host local:
+
+```powershell
+python service\jarvis_windows_service.py install
+python service\jarvis_windows_service.py start
+```
+
+Observacao importante:
+
+- a instalacao do servico exige terminal com privilegio administrativo
+- neste host atual, a tentativa automatica de instalacao retornou `Acesso negado (5)`
 
 ## Comandos Uteis
 

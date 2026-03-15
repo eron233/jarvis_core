@@ -2,8 +2,8 @@
 
 ## Estado atual
 
-- Nivel atual: `M2 - operacional inicial`
-- Subnivel: `M3.0 - sistema utilizavel inicial`
+- Nivel atual: `M3 - utilizavel e persistente em consolidacao`
+- Subnivel: `M3.2 - sistema utilizavel com comando unificado`
 - Idioma visivel: `pt-BR`
 - Entrypoint do loop local: `jarvis_core/main.py`
 - Entrypoint do servidor: `jarvis_core/runtime/server.py`
@@ -27,6 +27,12 @@
 - constitutional core governando validator e runtime
 - memoria procedural persistente e reutilizavel
 - workers uteis por dominio
+- comando textual unificado com niveis admin e guest
+- controle de acesso por voz reconhecida e senha
+- registro de dispositivos autorizados
+- autodefesa operacional integrada ao runtime
+- cliente nativo leve para a API local
+- servico leve do Windows implementado
 - preparacao para Docker e `docker-compose`
 - nucleo de conhecimento defensivo para autodiagnostico
 - motor de modelagem de ameaca sobre ativos, superficies e dependencias
@@ -51,6 +57,7 @@
 - BLOCO B - constitutional core como politica viva
 - BLOCO C - memoria procedural forte
 - BLOCO D - workers uteis por dominio
+- BLOCO E - acesso unificado, device manager e autodefesa operacional
 
 ## Blocos parciais
 
@@ -68,6 +75,7 @@
 ## Riscos atuais
 
 - ainda nao foi executado um smoke test real de Docker neste ambiente porque `docker` nao esta disponivel aqui
+- a instalacao real do servico Windows ficou bloqueada por permissao administrativa do sistema neste host
 - a politica viva ja governa validator e runtime, mas ainda nao orienta uma geracao controlada de tarefas
 - a memoria procedural ja registra e reaproveita heuristicas, mas os workers ainda nao exploram esse guidance de forma rica
 - os workers ja entregam valor real, mas ainda nao possuem conectores externos autorizados nem profundidade multimodal
@@ -76,4 +84,4 @@
 
 ## Leitura objetiva
 
-O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel utilizavel inicial. O sistema agora sobe de forma limpa, preserva estado, aplica politica viva, reaproveita memoria procedural e entrega utilidade concreta por dominio via workers, sem abrir automacao perigosa. Os proximos gargalos reais passam a ser geracao controlada de tarefas e consolidacao de seguranca.
+O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel utilizavel com comando unificado, autodefesa operacional e preparacao real para servico persistente. O sistema agora sobe de forma limpa, preserva estado, aplica politica viva, reaproveita memoria procedural, responde a comandos pela API e pelo cliente leve e entrega utilidade concreta por dominio via workers, sem abrir automacao perigosa. Os proximos gargalos reais passam a ser ativacao administrativa do servico Windows neste host, geracao controlada de tarefas e consolidacao de seguranca.

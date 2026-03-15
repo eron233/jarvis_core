@@ -21,6 +21,7 @@ from startup_bootstrap import ensure_project_root_on_path
 ensure_project_root_on_path(__file__)
 
 from executive_planner.queue import TaskQueue
+from executive_planner.audit import traduzir_motivo, traduzir_status
 from memory_system.episodic_memory import EpisodicMemory
 from memory_system.procedural_memory import ProceduralMemory
 from memory_system.semantic_memory import SemanticMemory
@@ -142,9 +143,32 @@ class JarvisSystemLoop:
                 break
 
             cycle_id = len(self.cycle_logs) + 1
-            cycle_result = self.runtime.run_planner_cycle()
-            runtime_state = self.runtime.describe_state()
-            cycle_log = self._record_cycle(cycle_id=cycle_id, cycle_result=cycle_result, runtime_state=runtime_state)
+            try:
+                cycle_result = self.runtime.run_planner_cycle()
+                runtime_state = self.runtime.describe_state()
+                cycle_log = self._record_cycle(
+                    cycle_id=cycle_id,
+                    cycle_result=cycle_result,
+                    runtime_state=runtime_state,
+                )
+            except Exception as exc:  # pragma: no cover - exercitado por teste unitario dedicado
+                runtime_state = self.runtime.describe_state()
+                self.runtime.record_runtime_error(
+                    context="system_loop_cycle",
+                    error=exc,
+                    metadata={"cycle_id": cycle_id},
+                )
+                cycle_result = {
+                    "status": "failed",
+                    "status_ptbr": traduzir_status("failed"),
+                    "reason": "runtime_exception",
+                    "reason_ptbr": traduzir_motivo("runtime_exception"),
+                }
+                cycle_log = self._record_cycle(
+                    cycle_id=cycle_id,
+                    cycle_result=cycle_result,
+                    runtime_state=runtime_state,
+                )
 
             if self.config.stop_when_idle and cycle_result["status"] == "idle":
                 self.request_shutdown("idle_queue")

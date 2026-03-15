@@ -10,6 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from device.device_registry import DeviceRegistry
 from executive_planner.queue import TaskQueue
 from interface.api.app import create_app
 from intent_layer.goal_manager import GoalManager
@@ -21,27 +22,36 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 def make_api_artifact_path(name: str, suffix: str) -> Path:
+    """Retorna o path isolado usado pelos testes da API."""
+
     return PROJECT_ROOT / "tests" / "_api_artifacts" / f"{name}_{suffix}.json"
 
 
 def reset_storage_path(path: Path) -> None:
+    """Garante que o arquivo de artefato de teste comece vazio."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class JarvisApiTests(unittest.TestCase):
+    """Valida a inicializacao, autenticacao e operacao basica da API."""
+
     def build_client(self, name: str = "api") -> tuple[TestClient, dict[str, str]]:
+        """Monta um cliente FastAPI com runtime isolado para teste."""
+
         queue_path = make_api_artifact_path(name, "queue")
         semantic_path = make_api_artifact_path(name, "semantic")
         goal_path = make_api_artifact_path(name, "goals")
-        reset_storage_path(queue_path)
-        reset_storage_path(semantic_path)
-        reset_storage_path(goal_path)
+        device_path = make_api_artifact_path(name, "devices")
+        for path in (queue_path, semantic_path, goal_path, device_path):
+            reset_storage_path(path)
 
         runtime = InternalAgentRuntime()
         runtime.task_queue = TaskQueue(storage_path=queue_path)
         runtime.goal_manager = GoalManager(storage_path=goal_path)
+        runtime.device_registry = DeviceRegistry(storage_path=device_path)
         runtime.memory = {
             "episodic": EpisodicMemory(),
             "semantic": SemanticMemory(storage_path=semantic_path),
@@ -64,6 +74,8 @@ class JarvisApiTests(unittest.TestCase):
         }
 
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
+        """Confirma que o healthcheck simples responde com a API ativa."""
+
         client, _headers = self.build_client("health")
 
         response = client.get("/api/saude")
@@ -74,6 +86,8 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(payload["status_ptbr"], "saudavel")
 
     def test_api_exige_token_nos_endpoints_protegidos(self) -> None:
+        """Garante que endpoints protegidos rejeitem chamadas sem token."""
+
         client, _headers = self.build_client("auth_missing_headers")
 
         response = client.get("/api/status")
@@ -84,6 +98,8 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(last_denied["payload"]["reason"], "missing_token")
 
     def test_api_permite_acesso_com_token_e_device_corretos(self) -> None:
+        """Confirma acesso autorizado quando token e device estao corretos."""
+
         client, headers = self.build_client("authorized")
 
         response = client.get("/api/status", headers=headers)
@@ -94,6 +110,8 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(last_access["payload"]["status"], "authorized")
 
     def test_api_nega_acesso_com_token_invalido(self) -> None:
+        """Verifica negacao e auditoria para token invalido."""
+
         client, headers = self.build_client("invalid_token")
         headers["X-Jarvis-Token"] = "token-errado"
 
@@ -105,6 +123,8 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(last_denied["payload"]["reason"], "invalid_token")
 
     def test_api_nega_acesso_com_device_invalido(self) -> None:
+        """Verifica negacao e auditoria para dispositivo nao confiavel."""
+
         client, headers = self.build_client("invalid_device")
         headers["X-Jarvis-Device-Id"] = "celular-nao-autorizado"
 
@@ -116,6 +136,8 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(last_denied["payload"]["reason"], "untrusted_device")
 
     def test_endpoints_principais_operam_sobre_runtime_real(self) -> None:
+        """Executa o fluxo principal da API sobre um runtime real de teste."""
+
         client, headers = self.build_client("core")
 
         goal_response = client.app.state.runtime.goal_manager.add_active_goal(
@@ -161,6 +183,54 @@ class JarvisApiTests(unittest.TestCase):
         report_payload = report_response.json()
         self.assertEqual(report_payload["saude_runtime"]["status"], "ok")
         self.assertEqual(report_payload["objetivos"]["objetivos_concluidos"], 1)
+
+    def test_api_comando_responde_frase_especial_para_voz_admin(self) -> None:
+        """Confirma a resposta reservada quando a voz reconhecida e do admin."""
+
+        client, headers = self.build_client("command_special")
+
+        response = client.post(
+            "/api/comando",
+            headers=headers,
+            json={"texto": "Jarvis ta ai", "voz_identificada": "eron"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["resposta"], "Sim, Sr. Maciel.")
+        self.assertEqual(payload["acao"], "special_phrase")
+
+    def test_api_comando_ignora_frase_especial_sem_voz_admin(self) -> None:
+        """Garante que a frase reservada seja ignorada quando a voz nao e reconhecida."""
+
+        client, headers = self.build_client("command_ignore")
+
+        response = client.post(
+            "/api/comando",
+            headers=headers,
+            json={"texto": "Jarvis ta ai", "voz_identificada": "visitante"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "ignored")
+        self.assertFalse(payload["respondido"])
+
+    def test_api_comando_restringe_execucao_sensivel_em_modo_guest(self) -> None:
+        """Verifica que guest pode consultar, mas nao rodar ciclo sensivel sem admin."""
+
+        client, headers = self.build_client("command_guest")
+
+        response = client.post(
+            "/api/comando",
+            headers=headers,
+            json={"texto": "executar ciclo"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "denied")
+        self.assertEqual(payload["motivo"], "guest_restricted_command")
 
 
 if __name__ == "__main__":

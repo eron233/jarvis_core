@@ -12,8 +12,13 @@ Idioma padrao da camada visivel: `pt-BR`
 - `memory_system/`: memoria episodica, semantica e procedural
 - `workers/`: workers por dominio
 - `runtime/`: bootstrap do runtime, autonomia, configuracao e servidor
+- `security/`: politica de acesso, autodefesa e motores defensivos
+- `device/`: registro de dispositivos autorizados
 - `interface/api/`: API FastAPI integrada ao nucleo
 - `interface/dashboard/`: painel web mobile-first servido pela API
+- `interface/native_client/`: cliente leve para comandos textuais
+- `service/`: servico leve do Windows para manter o Jarvis vivo
+- `learning/`: base inicial de autoaperfeicoamento estrutural
 - `data/`, `logs/`, `reports/`: paths padrao de persistencia e observabilidade
 - `tests/`: suite automatizada de regressao
 
@@ -23,6 +28,8 @@ Idioma padrao da camada visivel: `pt-BR`
 - Loop continuo local: `main.py`
 - Servidor para VPS/API/painel: `runtime/server.py`
 - Launcher oficial no Windows atual: `jarvis.cmd`
+- Cliente leve: `interface/native_client/jarvis_client.py`
+- Servico leve do Windows: `service/jarvis_windows_service.py`
 
 ## O que o sistema ja faz
 
@@ -36,6 +43,10 @@ Idioma padrao da camada visivel: `pt-BR`
 - API protegida por token e dispositivo confiavel
 - painel web para uso em celular
 - workers uteis por dominio com resposta estruturada e evidencia
+- endpoint textual `/api/comando` com resposta do runtime
+- controle de acesso inicial por voz reconhecida, senha ou guest
+- registro persistente de dispositivos confiaveis
+- autodiagnostico de seguranca com gemeo, validacao e remediacao segura
 - relatorios operacionais completos
 - healthcheck publico de deploy em `/health`
 - configuracao central por variaveis de ambiente
@@ -101,7 +112,7 @@ Servidor HTTP completo:
 set JARVIS_ENV=development
 set JARVIS_TOKEN=seu_token_seguro
 set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
-python -m runtime.server
+python runtime\server.py
 ```
 
 Opcao equivalente, mais robusta no ambiente local atual:
@@ -109,6 +120,27 @@ Opcao equivalente, mais robusta no ambiente local atual:
 ```powershell
 .\jarvis.cmd server
 ```
+
+Cliente leve nativo:
+
+```powershell
+python interface\native_client\jarvis_client.py --texto "status do sistema" --token seu_token_seguro --device-id eron-celular-principal
+```
+
+Servico Windows leve:
+
+```powershell
+python service\jarvis_windows_service.py install
+python service\jarvis_windows_service.py start
+```
+
+Observacao:
+
+- a instalacao do servico Windows exige terminal com privilegio administrativo
+- o acesso administrativo por comando aceita `voz_identificada=eron` ou senha `alter ego`
+- a frase especial `Jarvis ta ai` responde `Sim, Sr. Maciel.` apenas quando a voz reconhecida e `eron`
+
+Para iniciar o Jarvis como aplicativo no Windows, aperte a tecla Windows e digite `J`.
 
 Validacao rapida da configuracao sem subir a API:
 

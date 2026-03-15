@@ -1,4 +1,16 @@
-"""Configuracao central de ambiente e deploy do JARVIS."""
+"""
+JARVIS - Configuracao de Ambiente
+
+Responsavel por:
+- carregar variaveis de ambiente do sistema
+- validar host, porta, seguranca e paths persistentes
+- fornecer um resumo seguro do ambiente para runtime e API
+
+Integracoes principais:
+- runtime.server
+- interface.api.app
+- main
+"""
 
 from __future__ import annotations
 
@@ -6,6 +18,12 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 from typing import Any, Dict, Mapping
+
+#
+# JARVIS_CORE_COMPONENT
+# ==================================================
+# BLOCO: Parsing e validacao da configuracao de ambiente
+# ==================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,6 +37,20 @@ DEFAULT_LOG_LEVEL = "INFO"
 
 
 def _parse_bool(value: str | None, default: bool) -> bool:
+    """
+    Converte uma string de ambiente para booleano.
+
+    Parametros:
+    - value: valor textual recebido do ambiente.
+    - default: valor padrao quando nada foi informado.
+
+    Retorno:
+    - booleano convertido.
+
+    Efeitos no sistema:
+    - nenhum; utilitario de normalizacao de configuracao.
+    """
+
     if value is None:
         return default
     normalized = value.strip().lower()
@@ -30,6 +62,21 @@ def _parse_bool(value: str | None, default: bool) -> bool:
 
 
 def _parse_int(value: str | None, default: int, field_name: str) -> int:
+    """
+    Converte um valor textual para inteiro validado.
+
+    Parametros:
+    - value: valor bruto recebido do ambiente.
+    - default: padrao aplicado quando o campo nao existe.
+    - field_name: nome do campo para mensagens de erro.
+
+    Retorno:
+    - inteiro validado.
+
+    Efeitos no sistema:
+    - nenhum; protege a configuracao contra tipos invalidos.
+    """
+
     if value is None or value == "":
         return default
     try:
@@ -39,6 +86,21 @@ def _parse_int(value: str | None, default: int, field_name: str) -> int:
 
 
 def _parse_float(value: str | None, default: float, field_name: str) -> float:
+    """
+    Converte um valor textual para decimal validado.
+
+    Parametros:
+    - value: valor bruto recebido do ambiente.
+    - default: padrao aplicado quando o campo nao existe.
+    - field_name: nome do campo para mensagens de erro.
+
+    Retorno:
+    - decimal validado.
+
+    Efeitos no sistema:
+    - nenhum; protege intervalos do loop e temporizadores.
+    """
+
     if value is None or value == "":
         return default
     try:
@@ -68,8 +130,22 @@ class JarvisEnvironmentConfig:
     semantic_storage_path: Path | None = None
     procedural_storage_path: Path | None = None
     goals_storage_path: Path | None = None
+    device_registry_path: Path | None = None
 
     def __post_init__(self) -> None:
+        """
+        Normaliza os paths configurados logo apos a construcao do dataclass.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - garante que diretorios e arquivos persistentes estejam padronizados como `Path`.
+        """
+
         self.data_dir = Path(self.data_dir)
         self.logs_dir = Path(self.logs_dir)
         self.reports_dir = Path(self.reports_dir)
@@ -93,6 +169,11 @@ class JarvisEnvironmentConfig:
             self.goals_storage_path = self.data_dir / "goals.json"
         else:
             self.goals_storage_path = Path(self.goals_storage_path)
+
+        if self.device_registry_path is None:
+            self.device_registry_path = self.data_dir / "device_registry.json"
+        else:
+            self.device_registry_path = Path(self.device_registry_path)
 
         self.env = self.env.strip().lower() or "development"
         self.log_level = self.log_level.strip().upper() or DEFAULT_LOG_LEVEL
@@ -145,6 +226,7 @@ class JarvisEnvironmentConfig:
             semantic_storage_path=env_map.get("JARVIS_SEMANTIC_STORAGE_PATH"),
             procedural_storage_path=env_map.get("JARVIS_PROCEDURAL_STORAGE_PATH"),
             goals_storage_path=env_map.get("JARVIS_GOALS_STORAGE_PATH"),
+            device_registry_path=env_map.get("JARVIS_DEVICE_REGISTRY_PATH"),
         )
         config.validate()
         return config
@@ -184,6 +266,7 @@ class JarvisEnvironmentConfig:
             self.semantic_storage_path.parent,
             self.procedural_storage_path.parent,
             self.goals_storage_path.parent,
+            self.device_registry_path.parent,
         }
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
@@ -206,6 +289,7 @@ class JarvisEnvironmentConfig:
                 "semantic_storage_path": str(self.semantic_storage_path),
                 "procedural_storage_path": str(self.procedural_storage_path),
                 "goals_storage_path": str(self.goals_storage_path),
+                "device_registry_path": str(self.device_registry_path),
             },
             "autenticacao_configurada": {
                 "token_configurado": self.token != DEFAULT_API_TOKEN,
@@ -215,12 +299,51 @@ class JarvisEnvironmentConfig:
 
     @property
     def log_file_path(self) -> Path:
+        """
+        Retorna o caminho padrao do arquivo de log principal.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - `Path` do log do servidor.
+
+        Efeitos no sistema:
+        - nenhum; facilita a configuracao de logging.
+        """
+
         return self.logs_dir / "jarvis.log"
 
     @property
     def startup_report_path(self) -> Path:
+        """
+        Retorna o caminho do relatorio de startup.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - `Path` do resumo de ambiente gerado na inicializacao.
+
+        Efeitos no sistema:
+        - nenhum; padroniza observabilidade de deploy.
+        """
+
         return self.reports_dir / "environment_report.json"
 
     @property
     def shutdown_report_path(self) -> Path:
+        """
+        Retorna o caminho do relatorio de encerramento.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - `Path` do resumo final de desligamento.
+
+        Efeitos no sistema:
+        - nenhum; padroniza persistencia do estado final.
+        """
+
         return self.reports_dir / "shutdown_report.json"

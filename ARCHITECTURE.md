@@ -134,6 +134,8 @@ Capacidades atuais:
 - registro de padroes de execucao bem-sucedidos apos o dispatch
 - enriquecimento de memoria semantica com resumo e evidencias do worker
 - introspeccao segura da politica ativa em relatorios e estado do runtime
+- canal textual unificado de comandos com niveis `admin` e `guest`
+- autodefesa operacional integrada ao runtime
 
 ## Processo Continuo
 
@@ -147,6 +149,38 @@ Capacidades atuais:
 - recuperacao de arquivos ausentes
 - recuperacao segura de JSON corrompido com backup
 - logs legiveis em pt-BR durante bootstrap e shutdown
+- watchdog para manter o loop ativo apos excecoes controladas
+
+## Security Core
+
+Locais principais:
+
+- `security/access_control.py`
+- `security/self_defense.py`
+- `security/security_knowledge_core.py`
+- `security/threat_model_engine.py`
+- `security/security_twin.py`
+- `security/security_validation_engine.py`
+- `security/remediation_engine.py`
+
+Capacidades atuais:
+
+- acesso administrativo por voz reconhecida ou senha
+- modo guest para consultas seguras
+- frase especial reservada para o admin
+- modelo de ameaca, gemeo isolado e validacao controlada
+- remediacao segura automatica limitada e auditavel
+
+## Device Manager
+
+Local principal: `device/device_registry.py`
+
+Capacidades atuais:
+
+- lista inicial de dispositivos confiaveis
+- persistencia em JSON quando ha alteracao real
+- integracao com o gate da API
+- resumo de dispositivos autorizado nos relatorios do runtime
 
 ## API de Controle
 
@@ -158,6 +192,7 @@ Capacidades atuais:
 
 - `/health` publico para deploy
 - `/api/health` protegido com diagnostico rico
+- `/api/comando` para comando textual unificado
 - status do sistema
 - execucao manual de ciclos
 - listagem e inclusao de tarefas
@@ -175,8 +210,27 @@ Capacidades atuais:
 
 - acesso por `/painel`
 - sessao de dispositivo confiavel
+- envio de comando textual para o runtime
 - consulta de relatorios operacionais
 - atualizacao de estado e memoria recente
+
+## Cliente Leve
+
+Local principal: `interface/native_client/jarvis_client.py`
+
+Cliente leve de terminal que envia comandos para `/api/comando` e imprime a resposta do runtime sem executar processamento pesado local.
+
+## Servico do Windows
+
+Local principal: `service/jarvis_windows_service.py`
+
+Servico leve baseado em `win32serviceutil` que supervisiona `runtime/server.py`, reinicia o processo em caso de queda e prepara o Jarvis para operar como processo persistente no Windows. A instalacao real depende de privilegio administrativo no host.
+
+## Aprendizado Futuro
+
+Local principal: `learning/self_improvement.py`
+
+Mantem uma base leve de observacoes internas e sugestoes estruturais, preparando a evolucao futura sem alterar automaticamente o proprio codigo nesta fase.
 
 ## Autenticacao por Dispositivo Confiavel
 

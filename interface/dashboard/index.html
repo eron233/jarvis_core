@@ -205,6 +205,10 @@
       <article class="card">
         <label for="commandInput">Comando textual</label>
         <textarea id="commandInput" placeholder="Exemplo: mostrar objetivos ativos"></textarea>
+        <label for="voiceInput">Voz identificada (opcional)</label>
+        <input id="voiceInput" type="text" placeholder="Exemplo: eron" />
+        <label for="passwordInput">Senha administrativa (opcional)</label>
+        <input id="passwordInput" type="password" placeholder="Exemplo: alter ego" />
         <div class="actions">
           <button type="button" onclick="enviarComando()">Enviar comando</button>
           <button type="button" class="secondary" onclick="executarCiclo()">Executar ciclo</button>
@@ -339,50 +343,26 @@
     }
 
     async function enviarComando() {
-      const command = document.getElementById("commandInput").value.trim().toLowerCase();
+      const command = document.getElementById("commandInput").value.trim();
+      const voice = document.getElementById("voiceInput").value.trim();
+      const password = document.getElementById("passwordInput").value.trim();
       if (!command) {
         escreverResposta("Digite um comando textual antes de enviar.");
         return;
       }
 
       try {
-        if (command.includes("status")) {
-          const payload = await apiFetch("/api/relatorio/sistema");
-          escreverResposta(JSON.stringify(payload, null, 2));
-          return;
-        }
-
-        if (command.includes("objetiv")) {
-          const payload = await apiFetch("/api/relatorio/objetivos");
-          escreverResposta(JSON.stringify(payload, null, 2));
-          return;
-        }
-
-        if (command.includes("taref")) {
-          const payload = await apiFetch("/api/relatorio/fila");
-          escreverResposta(JSON.stringify(payload, null, 2));
-          return;
-        }
-
-        if (command.includes("memoria")) {
-          const payload = await apiFetch("/api/relatorio/memoria");
-          escreverResposta(JSON.stringify(payload, null, 2));
-          return;
-        }
-
-        if (command.includes("saude")) {
-          const payload = await apiFetch("/api/health");
-          escreverResposta(JSON.stringify(payload, null, 2));
-          return;
-        }
-
-        if (command.includes("ciclo") || command.includes("rodar")) {
-          await executarCiclo();
-          return;
-        }
-
-        const payload = await apiFetch("/api/relatorio");
-        escreverResposta("Comando nao reconhecido. Exibindo relatorio geral.\n\n" + JSON.stringify(payload, null, 2));
+        const payload = await apiFetch("/api/comando", {
+          method: "POST",
+          body: JSON.stringify({
+            texto: command,
+            voz_identificada: voice || null,
+            senha: password || null,
+            modo_resposta: "conversacional",
+          }),
+        });
+        escreverResposta(payload.resposta || payload.mensagem || "Sem resposta do runtime.");
+        await atualizarResumo();
       } catch (error) {
         escreverResposta(error.message);
       }

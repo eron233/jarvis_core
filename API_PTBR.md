@@ -12,7 +12,7 @@ Modo servidor completo:
 set JARVIS_ENV=development
 set JARVIS_TOKEN=seu_token_seguro
 set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
-python -m runtime.server
+python runtime\server.py
 ```
 
 Modo portavel no Windows atual:
@@ -50,6 +50,13 @@ Contrato atual:
 
 Endpoints protegidos exigem token valido e `device id` do dispositivo confiavel. O healthcheck publico de deploy em `/health` nao exige autenticacao.
 
+Camada adicional de comando:
+
+- voz reconhecida `eron` concede nivel administrativo
+- senha `alter ego` concede nivel administrativo
+- sem essas credenciais, o comando opera em modo guest
+- a frase `Jarvis ta ai` responde `Sim, Sr. Maciel.` apenas com a voz `eron`
+
 ## Endpoints Principais
 
 - `GET /health`
@@ -66,6 +73,8 @@ Endpoints protegidos exigem token valido e `device id` do dispositivo confiavel.
   Estado atual do sistema
 - `POST /api/ciclos/executar`
   Executa um ciclo do planner
+- `POST /api/comando`
+  Processa comando textual, wake phrase, guest/admin e autodiagnostico seguro
 - `GET /api/tarefas`
   Lista a fila atual
 - `POST /api/tarefas`
@@ -104,6 +113,9 @@ Principais variaveis:
 - `JARVIS_LOGS_DIR`
 - `JARVIS_REPORTS_DIR`
 - `JARVIS_PROCEDURAL_STORAGE_PATH`
+- `JARVIS_DEVICE_REGISTRY_PATH`
+- `JARVIS_ADMIN_VOICE`
+- `JARVIS_ADMIN_PASSWORD`
 
 Arquivo base: `.env.example`
 
@@ -112,6 +124,6 @@ Arquivo base: `.env.example`
 - respostas visiveis continuam em pt-BR
 - endpoints protegidos continuam protegidos no modo de servidor
 - o painel e servido pela mesma API
-- o deploy recomendado usa `python -m runtime.server`, `python runtime/server.py` ou `docker compose up -d`
+- o deploy recomendado usa `python runtime/server.py`, `.\jarvis.cmd server` ou `docker compose up -d`
 - `runtime/server.py --check-config` pode ser usado para validar o ambiente antes do start efetivo
 - os relatorios operacionais agora incluem um resumo seguro da politica constitucional ativa
