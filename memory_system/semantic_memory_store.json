@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "entry_count": 49,
+  "entry_count": 69,
   "entries": [
     {
       "id": "memory-0001",
@@ -1074,6 +1074,446 @@
         "runtime_status": "completed",
         "runtime_status_ptbr": "concluida"
       }
+    },
+    {
+      "id": "memory-0050",
+      "content": "runtime_status: inicializado",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "estado",
+        "runtime_status"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:56:15.116605+00:00",
+      "importance": 5,
+      "metadata": {
+        "status": "initialized",
+        "status_ptbr": "inicializado",
+        "concept": "runtime_status",
+        "value": "inicializado"
+      }
+    },
+    {
+      "id": "memory-0051",
+      "content": "registered_workers: [\"runtime\", \"finance\", \"studio\", \"study\"]",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "workers",
+        "registered_workers"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:56:15.118710+00:00",
+      "importance": 4,
+      "metadata": {
+        "worker_ids": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "concept": "registered_workers",
+        "value": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ]
+      }
+    },
+    {
+      "id": "memory-0052",
+      "content": "active_goals: []",
+      "domain": "intent",
+      "tags": [
+        "objetivos",
+        "ativos",
+        "active_goals"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:56:15.120923+00:00",
+      "importance": 3,
+      "metadata": {
+        "goal_count": 0,
+        "concept": "active_goals",
+        "value": []
+      }
+    },
+    {
+      "id": "memory-0053",
+      "content": "constitutional_operating_mode: autonomia_supervisionada_por_humanos",
+      "domain": "system",
+      "tags": [
+        "constitucional",
+        "politica",
+        "autonomia",
+        "constitutional_operating_mode"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:56:15.123097+00:00",
+      "importance": 5,
+      "metadata": {
+        "modo_autonomia": "supervisionada_por_politica_constitucional",
+        "concept": "constitutional_operating_mode",
+        "value": "autonomia_supervisionada_por_humanos"
+      }
+    },
+    {
+      "id": "memory-0054",
+      "content": "trusted_devices: [\"celular\", \"notebook_atual\", \"future_workstations\", \"eron-celular-principal\", \"device-smoke\", \"jarvis-dispositivo-local\"]",
+      "domain": "system",
+      "tags": [
+        "dispositivos",
+        "trusted",
+        "trusted_devices"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:56:15.125762+00:00",
+      "importance": 4,
+      "metadata": {
+        "device_count": 6,
+        "registry_path": "C:\\Users\\User\\Documents\\jarvis_core\\data\\device_registry.json",
+        "concept": "trusted_devices",
+        "value": [
+          "celular",
+          "notebook_atual",
+          "future_workstations",
+          "eron-celular-principal",
+          "device-smoke",
+          "jarvis-dispositivo-local"
+        ]
+      }
+    },
+    {
+      "id": "memory-0055",
+      "content": "runtime_status: inicializado",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "estado",
+        "runtime_status"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:57:13.150633+00:00",
+      "importance": 5,
+      "metadata": {
+        "status": "initialized",
+        "status_ptbr": "inicializado",
+        "concept": "runtime_status",
+        "value": "inicializado"
+      }
+    },
+    {
+      "id": "memory-0056",
+      "content": "registered_workers: [\"runtime\", \"finance\", \"studio\", \"study\"]",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "workers",
+        "registered_workers"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:57:13.152907+00:00",
+      "importance": 4,
+      "metadata": {
+        "worker_ids": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "concept": "registered_workers",
+        "value": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ]
+      }
+    },
+    {
+      "id": "memory-0057",
+      "content": "active_goals: []",
+      "domain": "intent",
+      "tags": [
+        "objetivos",
+        "ativos",
+        "active_goals"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:57:13.155215+00:00",
+      "importance": 3,
+      "metadata": {
+        "goal_count": 0,
+        "concept": "active_goals",
+        "value": []
+      }
+    },
+    {
+      "id": "memory-0058",
+      "content": "constitutional_operating_mode: autonomia_supervisionada_por_humanos",
+      "domain": "system",
+      "tags": [
+        "constitucional",
+        "politica",
+        "autonomia",
+        "constitutional_operating_mode"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:57:13.157378+00:00",
+      "importance": 5,
+      "metadata": {
+        "modo_autonomia": "supervisionada_por_politica_constitucional",
+        "concept": "constitutional_operating_mode",
+        "value": "autonomia_supervisionada_por_humanos"
+      }
+    },
+    {
+      "id": "memory-0059",
+      "content": "trusted_devices: [\"celular\", \"notebook_atual\", \"future_workstations\", \"eron-celular-principal\", \"device-smoke\", \"jarvis-dispositivo-local\"]",
+      "domain": "system",
+      "tags": [
+        "dispositivos",
+        "trusted",
+        "trusted_devices"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T01:57:13.159999+00:00",
+      "importance": 4,
+      "metadata": {
+        "device_count": 6,
+        "registry_path": "C:\\Users\\User\\Documents\\jarvis_core\\data\\device_registry.json",
+        "concept": "trusted_devices",
+        "value": [
+          "celular",
+          "notebook_atual",
+          "future_workstations",
+          "eron-celular-principal",
+          "device-smoke",
+          "jarvis-dispositivo-local"
+        ]
+      }
+    },
+    {
+      "id": "memory-0060",
+      "content": "runtime_status: inicializado",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "estado",
+        "runtime_status"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T12:39:52.427844+00:00",
+      "importance": 5,
+      "metadata": {
+        "status": "initialized",
+        "status_ptbr": "inicializado",
+        "concept": "runtime_status",
+        "value": "inicializado"
+      }
+    },
+    {
+      "id": "memory-0061",
+      "content": "registered_workers: [\"runtime\", \"finance\", \"studio\", \"study\"]",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "workers",
+        "registered_workers"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T12:39:52.430469+00:00",
+      "importance": 4,
+      "metadata": {
+        "worker_ids": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "concept": "registered_workers",
+        "value": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ]
+      }
+    },
+    {
+      "id": "memory-0062",
+      "content": "active_goals: []",
+      "domain": "intent",
+      "tags": [
+        "objetivos",
+        "ativos",
+        "active_goals"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T12:39:52.433522+00:00",
+      "importance": 3,
+      "metadata": {
+        "goal_count": 0,
+        "concept": "active_goals",
+        "value": []
+      }
+    },
+    {
+      "id": "memory-0063",
+      "content": "constitutional_operating_mode: autonomia_supervisionada_por_humanos",
+      "domain": "system",
+      "tags": [
+        "constitucional",
+        "politica",
+        "autonomia",
+        "constitutional_operating_mode"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T12:39:52.436456+00:00",
+      "importance": 5,
+      "metadata": {
+        "modo_autonomia": "supervisionada_por_politica_constitucional",
+        "concept": "constitutional_operating_mode",
+        "value": "autonomia_supervisionada_por_humanos"
+      }
+    },
+    {
+      "id": "memory-0064",
+      "content": "trusted_devices: [\"celular\", \"notebook_atual\", \"future_workstations\", \"eron-celular-principal\", \"device-smoke\", \"jarvis-dispositivo-local\"]",
+      "domain": "system",
+      "tags": [
+        "dispositivos",
+        "trusted",
+        "trusted_devices"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T12:39:52.440027+00:00",
+      "importance": 4,
+      "metadata": {
+        "device_count": 6,
+        "registry_path": "C:\\Users\\User\\Documents\\jarvis_core\\data\\device_registry.json",
+        "concept": "trusted_devices",
+        "value": [
+          "celular",
+          "notebook_atual",
+          "future_workstations",
+          "eron-celular-principal",
+          "device-smoke",
+          "jarvis-dispositivo-local"
+        ]
+      }
+    },
+    {
+      "id": "memory-0065",
+      "content": "runtime_status: inicializado",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "estado",
+        "runtime_status"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T13:04:40.539818+00:00",
+      "importance": 5,
+      "metadata": {
+        "status": "initialized",
+        "status_ptbr": "inicializado",
+        "concept": "runtime_status",
+        "value": "inicializado"
+      }
+    },
+    {
+      "id": "memory-0066",
+      "content": "registered_workers: [\"runtime\", \"finance\", \"studio\", \"study\"]",
+      "domain": "system",
+      "tags": [
+        "runtime",
+        "workers",
+        "registered_workers"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T13:04:40.543522+00:00",
+      "importance": 4,
+      "metadata": {
+        "worker_ids": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "concept": "registered_workers",
+        "value": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ]
+      }
+    },
+    {
+      "id": "memory-0067",
+      "content": "active_goals: []",
+      "domain": "intent",
+      "tags": [
+        "objetivos",
+        "ativos",
+        "active_goals"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T13:04:40.547068+00:00",
+      "importance": 3,
+      "metadata": {
+        "goal_count": 0,
+        "concept": "active_goals",
+        "value": []
+      }
+    },
+    {
+      "id": "memory-0068",
+      "content": "constitutional_operating_mode: autonomia_supervisionada_por_humanos",
+      "domain": "system",
+      "tags": [
+        "constitucional",
+        "politica",
+        "autonomia",
+        "constitutional_operating_mode"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T13:04:40.549532+00:00",
+      "importance": 5,
+      "metadata": {
+        "modo_autonomia": "supervisionada_por_politica_constitucional",
+        "concept": "constitutional_operating_mode",
+        "value": "autonomia_supervisionada_por_humanos"
+      }
+    },
+    {
+      "id": "memory-0069",
+      "content": "trusted_devices: [\"celular\", \"notebook_atual\", \"future_workstations\", \"eron-celular-principal\", \"device-smoke\", \"jarvis-dispositivo-local\"]",
+      "domain": "system",
+      "tags": [
+        "dispositivos",
+        "trusted",
+        "trusted_devices"
+      ],
+      "source": "runtime.bootstrap",
+      "created_at": "2026-03-15T13:04:40.552380+00:00",
+      "importance": 4,
+      "metadata": {
+        "device_count": 6,
+        "registry_path": "C:\\Users\\User\\Documents\\jarvis_core\\data\\device_registry.json",
+        "concept": "trusted_devices",
+        "value": [
+          "celular",
+          "notebook_atual",
+          "future_workstations",
+          "eron-celular-principal",
+          "device-smoke",
+          "jarvis-dispositivo-local"
+        ]
+      }
     }
   ],
   "facts": {
@@ -1084,6 +1524,15 @@
       "studio",
       "study"
     ],
-    "active_goals": []
+    "active_goals": [],
+    "constitutional_operating_mode": "autonomia_supervisionada_por_humanos",
+    "trusted_devices": [
+      "celular",
+      "notebook_atual",
+      "future_workstations",
+      "eron-celular-principal",
+      "device-smoke",
+      "jarvis-dispositivo-local"
+    ]
   }
 }

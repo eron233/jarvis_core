@@ -15,17 +15,25 @@ from security.threat_model_engine import ThreatModelEngine
 
 
 def make_threat_artifact_path(name: str, suffix: str) -> Path:
+    """Retorna o path de artefato usado nos cenarios de ameaca."""
+
     return PROJECT_ROOT / "tests" / "_cloud_artifacts" / "threat_model" / f"{name}_{suffix}.json"
 
 
 def reset_path(path: Path) -> None:
+    """Limpa um artefato persistente antes da execucao do teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class ThreatModelEngineTests(unittest.TestCase):
+    """Valida cobertura, risco e resumo do motor de ameaca interno."""
+
     def build_state(self, name: str = "threat") -> tuple[dict, dict, dict]:
+        """Monta estado, healthcheck e ambiente para os cenarios de ameaca."""
+
         queue_path = make_threat_artifact_path(name, "queue")
         semantic_path = make_threat_artifact_path(name, "semantic")
         goal_path = make_threat_artifact_path(name, "goals")
@@ -64,6 +72,8 @@ class ThreatModelEngineTests(unittest.TestCase):
         return runtime_state, health_report, environment_report
 
     def test_build_threat_model_covers_core_assets_and_surfaces(self) -> None:
+        """Confirma inventario de ativos e superficies esperados no modelo."""
+
         runtime_state, health_report, environment_report = self.build_state("coverage")
         engine = ThreatModelEngine()
 
@@ -104,6 +114,8 @@ class ThreatModelEngineTests(unittest.TestCase):
         )
 
     def test_risk_classification_escalates_when_authentication_is_not_configured(self) -> None:
+        """Verifica escalonamento de risco quando autenticacao esta incompleta."""
+
         runtime_state, health_report, environment_report = self.build_state("auth_risk")
         engine = ThreatModelEngine()
 
@@ -131,6 +143,8 @@ class ThreatModelEngineTests(unittest.TestCase):
         self.assertIn(risks_by_asset["api_service"]["nivel_risco"], {"alto", "critico"})
 
     def test_dependency_map_and_summary_are_generated_in_ptbr(self) -> None:
+        """Confirma mapa de dependencias e resumo localizados em pt-BR."""
+
         runtime_state, health_report, environment_report = self.build_state("summary")
         engine = ThreatModelEngine()
 

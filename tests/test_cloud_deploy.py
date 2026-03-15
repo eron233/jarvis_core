@@ -108,8 +108,10 @@ class CloudPreparationTests(unittest.TestCase):
         queue_path = data_dir / "task_queue_store.json"
         semantic_path = data_dir / "semantic_memory_store.json"
         goals_path = data_dir / "goals.json"
+        device_registry_path = data_dir / "device_registry.json"
+        self_defense_report_path = reports_dir / "self_defense_latest.json"
 
-        for path in (queue_path, semantic_path, goals_path):
+        for path in (queue_path, semantic_path, goals_path, device_registry_path, self_defense_report_path):
             reset_path(path)
 
         queue = TaskQueue(storage_path=queue_path)
@@ -158,6 +160,8 @@ class CloudPreparationTests(unittest.TestCase):
             queue_storage_path=queue_path,
             semantic_storage_path=semantic_path,
             goals_storage_path=goals_path,
+            device_registry_path=device_registry_path,
+            self_defense_report_path=self_defense_report_path,
         )
         with patch.dict("os.environ", {"JARVIS_ADMIN_PASSWORD": "senha-deploy-segura"}, clear=False):
             config.validate()
@@ -188,6 +192,9 @@ class CloudPreparationTests(unittest.TestCase):
             self.assertTrue(protected_health.json()["configuracao_minima_valida"])
             self.assertTrue(config.startup_report_path.exists())
             self.assertTrue(config.log_file_path.exists())
+            self.assertEqual(context.runtime.describe_state()["device_registry_store"], str(device_registry_path))
+            self.assertEqual(context.runtime.describe_state()["self_defense_report_path"], str(self_defense_report_path))
+            self.assertTrue(device_registry_path.exists())
 
 
 if __name__ == "__main__":

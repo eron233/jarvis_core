@@ -1,9 +1,27 @@
-"""Worker de runtime."""
+"""
+JARVIS - Worker de Runtime
+
+Responsavel por:
+- gerar diagnosticos tecnicos do estado interno do sistema
+- resumir fila, ciclos e politica constitucional carregada
+- apoiar relatorios operacionais e health report
+
+Integracoes principais:
+- runtime.internal_agent_runtime
+- workers.worker_utils
+- memory_system.semantic_memory
+"""
 
 from typing import Any, Dict
 
 from workers.worker_utils import build_domain_rejection, build_success_response, domain_is_valid
 
+
+#
+# JARVIS_WORKER_DOMAIN
+# ==================================================
+# BLOCO: Worker focado no dominio operacional interno
+# ==================================================
 
 class RuntimeWorker:
     """Executa tarefas orientadas ao dominio de runtime."""
@@ -12,6 +30,19 @@ class RuntimeWorker:
     allowed_domains = ["runtime", "system", "general"]
 
     def handle(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Processa uma tarefa de diagnostico de runtime.
+
+        Parametros:
+        - task: tarefa enviada pelo runtime com contexto operacional embutido.
+
+        Retorno:
+        - resposta estruturada com resumo, detalhes e evidencias.
+
+        Efeitos no sistema:
+        - nenhum direto; o runtime persiste o resultado em memoria e auditoria.
+        """
+
         if not domain_is_valid(task, self.allowed_domains):
             return build_domain_rejection(self.worker_id, task, self.allowed_domains)
 

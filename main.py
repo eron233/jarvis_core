@@ -25,8 +25,10 @@ from executive_planner.audit import AuditLogger, traduzir_motivo, traduzir_statu
 from memory_system.episodic_memory import EpisodicMemory
 from memory_system.procedural_memory import ProceduralMemory
 from memory_system.semantic_memory import SemanticMemory
+from device.device_registry import DeviceRegistry
 from runtime.cognitive_evolution import CognitiveEvolutionTracker
 from runtime.internal_agent_runtime import InternalAgentRuntime
+from security.self_defense import SelfDefenseMonitor
 
 MOTIVOS_ENCERRAMENTO_PTBR = {
     "requested": "encerramento_solicitado",
@@ -52,6 +54,8 @@ class SystemLoopConfig:
     goal_storage_path: Optional[Path] = None
     cognitive_evolution_storage_path: Optional[Path] = None
     audit_storage_path: Optional[Path] = None
+    device_registry_path: Optional[Path] = None
+    self_defense_report_path: Optional[Path] = None
 
 
 def bootstrap_runtime(
@@ -71,6 +75,9 @@ def bootstrap_runtime(
     if config.goal_storage_path is not None:
         runtime.goal_manager = _load_goal_manager(config.goal_storage_path, logger)
 
+    if config.device_registry_path is not None:
+        runtime.device_registry = _load_device_registry(config.device_registry_path, logger)
+
     if config.cognitive_evolution_storage_path is not None:
         runtime.cognitive_evolution_tracker = CognitiveEvolutionTracker(
             storage_path=config.cognitive_evolution_storage_path
@@ -80,6 +87,9 @@ def bootstrap_runtime(
     if config.audit_storage_path is not None:
         runtime.audit_logger = AuditLogger(storage_path=config.audit_storage_path)
         _load_audit_storage(runtime.audit_logger, logger)
+
+    if config.self_defense_report_path is not None:
+        runtime.self_defense_monitor = SelfDefenseMonitor(report_path=config.self_defense_report_path)
 
     episodic_memory = runtime.memory.get("episodic") if runtime.memory else None
     procedural_memory = runtime.memory.get("procedural") if runtime.memory else None
@@ -336,6 +346,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=None,
         help="Caminho alternativo do arquivo de persistencia da auditoria.",
     )
+    parser.add_argument(
+        "--device-registry-path",
+        type=Path,
+        default=None,
+        help="Caminho alternativo do arquivo de persistencia do registro de dispositivos.",
+    )
+    parser.add_argument(
+        "--self-defense-report-path",
+        type=Path,
+        default=None,
+        help="Caminho alternativo do relatorio persistente de autodefesa.",
+    )
     return parser
 
 
@@ -352,13 +374,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         stop_when_idle=args.stop_when_idle,
         queue_storage_path=args.queue_storage_path,
         semantic_storage_path=args.semantic_storage_path,
-            procedural_storage_path=args.procedural_storage_path,
+        procedural_storage_path=args.procedural_storage_path,
         goal_storage_path=args.goal_storage_path,
         cognitive_evolution_storage_path=(
             args.cognitive_evolution_storage_path
             or PROJECT_ROOT / "data" / "cognitive_evolution_history.json"
         ),
         audit_storage_path=args.audit_storage_path or PROJECT_ROOT / "data" / "runtime_audit_store.json",
+        device_registry_path=args.device_registry_path or PROJECT_ROOT / "data" / "device_registry.json",
+        self_defense_report_path=args.self_defense_report_path or PROJECT_ROOT / "reports" / "self_defense_latest.json",
     )
     loop = JarvisSystemLoop(config=config)
     loop.run()
@@ -545,6 +569,35 @@ def _load_goal_manager(
         ),
     )
     return goal_manager
+
+
+def _load_device_registry(
+    storage_path: Path,
+    logger: Callable[[str], None] | None,
+):
+    from device.device_registry import DeviceRegistry
+
+    storage_path.parent.mkdir(parents=True, exist_ok=True)
+    registry = DeviceRegistry(storage_path=storage_path)
+    if not storage_path.exists():
+        snapshot = registry.save()
+        _log_message(
+            logger,
+            "[bootstrap] registro de dispositivos criado em {path} com {count} dispositivo(s).".format(
+                path=storage_path,
+                count=snapshot["device_count"],
+            ),
+        )
+        return registry
+
+    _log_message(
+        logger,
+        "[bootstrap] registro de dispositivos carregado de {path} com {count} dispositivo(s).".format(
+            path=storage_path,
+            count=registry.snapshot()["device_count"],
+        ),
+    )
+    return registry
 
 
 def _load_audit_storage(

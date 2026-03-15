@@ -18,17 +18,25 @@ from security.security_validation_engine import SecurityValidationEngine
 
 
 def make_security_artifact_path(name: str, suffix: str) -> Path:
+    """Retorna o path de artefato usado nos cenarios de remediacao."""
+
     return PROJECT_ROOT / "tests" / "_security_artifacts" / name / suffix
 
 
 def reset_path(path: Path) -> None:
+    """Limpa um artefato persistente antes da execucao do teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class RemediationEngineTests(unittest.TestCase):
+    """Valida planejamento e autoaplicacao segura de remediacoes."""
+
     def build_context(self, name: str) -> tuple[InternalAgentRuntime, JarvisEnvironmentConfig, SecurityTwin, dict, dict, dict]:
+        """Monta o contexto completo usado pelos cenarios de remediacao."""
+
         scenario_dir = make_security_artifact_path(name, "workspace")
         queue_path = scenario_dir / "data" / "task_queue_store.json"
         semantic_path = scenario_dir / "data" / "semantic_memory_store.json"
@@ -106,6 +114,8 @@ class RemediationEngineTests(unittest.TestCase):
         return runtime, config, twin, snapshot, environment_report, health_report
 
     def test_remediation_plan_builds_three_solutions_per_weakness(self) -> None:
+        """Confirma que cada fraqueza gera tres solucoes estruturadas."""
+
         runtime, config, twin, snapshot, environment_report, health_report = self.build_context("solutions")
         validation_engine = SecurityValidationEngine()
         tampered_snapshot = deepcopy(snapshot)
@@ -140,6 +150,8 @@ class RemediationEngineTests(unittest.TestCase):
         self.assertEqual(auth_plan["classificacao_correcao"], "correcao_assistida")
 
     def test_safe_persistence_remediation_is_auto_applied_and_audited(self) -> None:
+        """Verifica autoaplicacao segura de remediacao e respectiva auditoria."""
+
         runtime, config, twin, snapshot, environment_report, health_report = self.build_context("auto_apply")
         validation_engine = SecurityValidationEngine()
         tampered_snapshot = deepcopy(snapshot)
@@ -169,6 +181,8 @@ class RemediationEngineTests(unittest.TestCase):
         self.assertIn("security_remediation", audit_events)
 
     def test_authentication_gap_remains_pending_for_human_approval(self) -> None:
+        """Garante que lacunas sensiveis de autenticacao fiquem pendentes de aprovacao."""
+
         runtime, config, twin, snapshot, environment_report, health_report = self.build_context("auth_pending")
         validation_engine = SecurityValidationEngine()
         tampered_snapshot = deepcopy(snapshot)

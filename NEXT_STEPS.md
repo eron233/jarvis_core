@@ -4,14 +4,14 @@
 
 - consolidar a persistencia critica para alem de JSON puro nas trilhas de fila, auditoria e eventos mais sensiveis
 - BLOCO 12.6 - relatorio semanal de seguranca
-- validar instalacao real do servico Windows em terminal administrativo neste host
+- validar servico Windows e Docker apenas como trilhas auxiliares fora do nucleo local ja validado
 
 ## Delta recomendado
 
 - consolidar fraquezas, remedios e acoes automaticas em relatorio semanal em pt-BR
 - avaliar migracao de fila e auditoria para armazenamento transacional simples
-- registrar o servico `JarvisRuntimeService` com privilegio administrativo real
-- validar inicio automatico do servico apos reboot controlado
+- registrar o servico `JarvisRuntimeService` com privilegio administrativo real no host alvo
+- validar inicio automatico do servico apos reboot controlado no host alvo
 - destacar imediatamente apenas riscos criticos e excecoes reais
 - separar novidades da semana de achados recorrentes
 - transformar a saida em base reutilizavel para painel e API

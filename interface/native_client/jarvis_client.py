@@ -15,8 +15,10 @@ Integracoes principais:
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import os
+import uuid
 from typing import Any, Dict, Optional
 from urllib import error, request
 
@@ -84,19 +86,32 @@ def send_command(
             "modo_resposta": modo_resposta,
         }
     ).encode("utf-8")
+    auth_headers = build_authenticated_headers(token=token, device_id=device_id)
     req = request.Request(
         url,
         data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "X-Jarvis-Token": token,
-            "X-Jarvis-Device-Id": device_id,
-        },
+        headers={"Content-Type": "application/json", **auth_headers},
         method="POST",
     )
 
     with request.urlopen(req, timeout=10) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def build_authenticated_headers(
+    token: str,
+    device_id: str,
+    nonce: str | None = None,
+    timestamp: str | None = None,
+) -> Dict[str, str]:
+    """Monta os headers completos de autenticacao exigidos pela API atual."""
+
+    return {
+        "X-Jarvis-Token": token,
+        "X-Jarvis-Device-Id": device_id,
+        "X-Jarvis-Nonce": nonce or str(uuid.uuid4()),
+        "X-Jarvis-Timestamp": timestamp or datetime.now(timezone.utc).isoformat(),
+    }
 
 
 def main(argv: Optional[list[str]] = None) -> int:

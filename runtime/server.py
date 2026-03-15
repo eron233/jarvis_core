@@ -290,8 +290,10 @@ class JarvisServerContext:
             semantic_storage_path=self.config.semantic_storage_path,
             procedural_storage_path=self.config.procedural_storage_path,
             goal_storage_path=self.config.goals_storage_path,
+            device_registry_path=self.config.device_registry_path,
             cognitive_evolution_storage_path=self.config.cognitive_evolution_storage_path,
             audit_storage_path=self.config.audit_storage_path,
+            self_defense_report_path=self.config.self_defense_report_path,
         )
 
     def _write_report(self, path: Path, payload: Dict[str, Any]) -> None:
@@ -373,6 +375,8 @@ def run_server(config: JarvisEnvironmentConfig | None = None) -> int:
             "loop_runtime_ativo": config.enable_runtime_loop,
             "painel_ativo": config.enable_dashboard,
             "audit_storage_path": str(config.audit_storage_path),
+            "device_registry_path": str(config.device_registry_path),
+            "self_defense_report_path": str(config.self_defense_report_path),
         },
         build_metadata=load_build_metadata(),
     )

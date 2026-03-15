@@ -99,8 +99,10 @@ def create_app(
             semantic_storage_path=effective_deployment_config.semantic_storage_path,
             procedural_storage_path=effective_deployment_config.procedural_storage_path,
             goal_storage_path=effective_deployment_config.goals_storage_path,
+            device_registry_path=effective_deployment_config.device_registry_path,
             cognitive_evolution_storage_path=effective_deployment_config.cognitive_evolution_storage_path,
             audit_storage_path=effective_deployment_config.audit_storage_path,
+            self_defense_report_path=effective_deployment_config.self_defense_report_path,
         )
 
     app = FastAPI(
@@ -1096,6 +1098,7 @@ def _build_environment_report(app: FastAPI) -> Dict[str, Any]:
             "goals_storage_path": str(getattr(app.state.system_config, "goal_storage_path", "")),
             "audit_storage_path": str(getattr(app.state.system_config, "audit_storage_path", "")),
             "device_registry_path": str(getattr(app.state.system_config, "device_registry_path", "")),
+            "self_defense_report_path": str(getattr(app.state.system_config, "self_defense_report_path", "")),
         },
         "autenticacao_configurada": {
             "token_configurado": _is_runtime_secret_configured(app.state.api_token, DEFAULT_API_TOKEN),

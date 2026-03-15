@@ -28,7 +28,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | API HTTP | Implementada | `interface/api/app.py` | Reaproveita o nucleo | `tests/test_api.py`, `tests/test_dashboard.py` |
 | Comando textual unificado | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py`, `security/access_control.py` | Auditoria + memoria episodica | `tests/test_api.py`, `tests/test_access_control.py` |
 | Painel mobile-first | Implementada | `interface/dashboard/index.html`, `interface/dashboard/access_gate.html` | Sessao de dispositivo confiavel | `tests/test_dashboard.py` |
-| Cliente nativo leve | Implementada | `interface/native_client/jarvis_client.py` | Usa a API local | Smoke test real + cobertura indireta de `/api/comando` |
+| Cliente nativo leve | Implementada e validada | `interface/native_client/jarvis_client.py` | Usa a API local com `nonce` e `timestamp` | `tests/test_native_client.py` + smoke test real contra `/api/comando` |
 | Workers uteis por dominio | Implementada | `workers/worker_runtime.py`, `workers/worker_study.py`, `workers/worker_studio.py`, `workers/worker_finance.py`, `workers/worker_utils.py` | Reaproveita memoria e auditoria do runtime | `tests/test_workers.py` |
 | Autenticacao por dispositivo confiavel | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py` | Variaveis de ambiente + auditoria persistente | `tests/test_api.py`, `tests/test_dashboard.py` |
 | Controle de acesso por voz ou senha | Implementada com limites | `security/access_control.py`, `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Em memoria + headers da API | `tests/test_access_control.py`, `tests/test_api.py` |
@@ -36,10 +36,10 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Relatorios operacionais completos | Implementada | `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Reaproveita estado do runtime | `tests/test_operational_reports.py` |
 | Configuracao central de ambiente | Implementada | `runtime/system_config.py`, `.env.example` | Variaveis de ambiente | `tests/test_cloud_deploy.py` |
 | Servidor para VPS simples | Implementada | `runtime/server.py`, `startup_bootstrap.py`, `jarvis.cmd` | `logs/` e `reports/` configuraveis | `tests/test_cloud_deploy.py`, `tests/test_startup_portability.py` |
-| Servico leve do Windows | Parcial | `service/jarvis_windows_service.py` | Usa `logs/jarvis.log` e reinicia o servidor | `tests/test_windows_service.py` |
+| Servico leve do Windows | Auxiliar, fora do nucleo local validado | `service/jarvis_windows_service.py` | Usa `logs/jarvis.log` e reinicia o servidor | `tests/test_windows_service.py` + validacao administrativa pendente no host alvo |
 | Autodefesa operacional | Implementada | `security/self_defense.py`, `runtime/internal_agent_runtime.py` | Relatorio JSON em `reports/` | `tests/test_self_defense.py` |
-| Aprendizado estrutural futuro | Implementada | `learning/self_improvement.py` | JSON configuravel | Cobertura indireta de runtime |
-| Preparacao para container | Implementada | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Volumes `data/`, `logs/`, `reports/` | Validacao documental + `tests/test_cloud_deploy.py` |
+| Aprendizado estrutural futuro | Auxiliar observacional | `learning/self_improvement.py` | JSON configuravel | Cobertura indireta de runtime; nao participa do nucleo decisorio |
+| Preparacao para container | Auxiliar, fora do nucleo local validado | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Volumes `data/`, `logs/`, `reports/` | `tests/test_cloud_deploy.py` + validacao operacional pendente em host com Docker |
 | Nucleo de conhecimento defensivo | Implementada | `security/security_knowledge_core.py`, `security/__init__.py` | Exportavel para memorias do sistema | `tests/test_security_knowledge_core.py` |
 | Modelagem de ameaca interna | Implementada | `security/threat_model_engine.py`, `security/__init__.py` | Reaproveita estado do runtime e relatorios de ambiente | `tests/test_threat_model_engine.py` |
 | Gemeo de seguranca isolado | Implementada | `security/security_twin.py`, `security/twin_state/.gitkeep` | JSON isolado em `security/twin_state/` ou path configurado | `tests/test_security_twin.py` |
@@ -79,7 +79,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - start unico por `python runtime/server.py`
 - start local oficial por `.\jarvis.cmd server`
 - validacao local de ambiente por `.\jarvis.cmd check-config`
-- start em container por `docker compose up --build -d`
+- start em container por `docker compose up --build -d` quando houver host com Docker validado
 - configuracao por variaveis de ambiente
 - logs em `logs/jarvis.log`
 - relatorio de ambiente em `reports/environment_report.json`

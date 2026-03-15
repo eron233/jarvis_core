@@ -18,16 +18,22 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 def make_queue_storage_path(name: str) -> Path:
+    """Retorna o path de fila usado nos testes do planner."""
+
     return PROJECT_ROOT / "tests" / "_queue_artifacts" / f"{name}.json"
 
 
 def reset_storage_path(path: Path) -> None:
+    """Limpa um arquivo persistente antes da execucao do cenario."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 def build_runtime(name: str, task_queue: TaskQueue) -> InternalAgentRuntime:
+    """Monta um runtime isolado para os testes do planner."""
+
     semantic_storage_path = PROJECT_ROOT / "tests" / "_semantic_memory_artifacts" / f"{name}.json"
     reset_storage_path(semantic_storage_path)
 
@@ -42,11 +48,17 @@ def build_runtime(name: str, task_queue: TaskQueue) -> InternalAgentRuntime:
 
 
 def queue_snapshot(task_queue: TaskQueue) -> list[str]:
+    """Retorna uma copia leve da fila para comparacoes nas assercoes."""
+
     return [str(task.get("task_id")) for task in task_queue.items]
 
 
 class ExecutivePlannerCycleTests(unittest.TestCase):
+    """Valida selecao, rejeicao e ociosidade do ciclo do planner."""
+
     def test_run_planner_cycle_executes_highest_priority_task(self) -> None:
+        """Confirma execucao da tarefa de maior prioridade no ciclo."""
+
         storage_path = make_queue_storage_path("planner_priority")
         reset_storage_path(storage_path)
         task_queue = TaskQueue(storage_path=storage_path)
@@ -70,6 +82,8 @@ class ExecutivePlannerCycleTests(unittest.TestCase):
         self.assertEqual(fases_ptbr, ["planejar", "priorizar", "priorizar", "validar", "validar", "agendar", "agendar", "executar", "revisar"])
 
     def test_run_planner_cycle_skips_invalid_and_blocked_tasks(self) -> None:
+        """Verifica rejeicao de invalidas e reenvio das bloqueadas."""
+
         storage_path = make_queue_storage_path("planner_blocked")
         reset_storage_path(storage_path)
         task_queue = TaskQueue(storage_path=storage_path)
@@ -105,6 +119,8 @@ class ExecutivePlannerCycleTests(unittest.TestCase):
         self.assertEqual(schedule_entries[0]["payload"]["task_id"], "task-blocked")
 
     def test_run_planner_cycle_is_idle_when_queue_is_empty(self) -> None:
+        """Confirma ociosidade correta quando a fila nao contem tarefas."""
+
         storage_path = make_queue_storage_path("planner_idle")
         reset_storage_path(storage_path)
         task_queue = TaskQueue(storage_path=storage_path)

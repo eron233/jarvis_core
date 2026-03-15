@@ -17,17 +17,25 @@ from security.security_validation_engine import SecurityValidationEngine
 
 
 def make_security_artifact_path(name: str, suffix: str) -> Path:
+    """Retorna o path de artefato usado nos cenarios de validacao."""
+
     return PROJECT_ROOT / "tests" / "_security_artifacts" / name / suffix
 
 
 def reset_path(path: Path) -> None:
+    """Limpa um artefato persistente antes do cenario de teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class SecurityValidationEngineTests(unittest.TestCase):
+    """Valida cenarios da suite de seguranca interna controlada."""
+
     def build_snapshot(self, name: str) -> dict:
+        """Monta o snapshot de gemeo usado nos cenarios de validacao."""
+
         scenario_dir = make_security_artifact_path(name, "workspace")
         queue_path = scenario_dir / "data" / "task_queue_store.json"
         semantic_path = scenario_dir / "data" / "semantic_memory_store.json"
@@ -104,6 +112,8 @@ class SecurityValidationEngineTests(unittest.TestCase):
         )
 
     def test_validation_suite_passes_on_healthy_twin(self) -> None:
+        """Confirma que um gemeo saudavel passa pela suite sem fraquezas."""
+
         snapshot = self.build_snapshot("healthy")
         engine = SecurityValidationEngine()
 
@@ -121,6 +131,8 @@ class SecurityValidationEngineTests(unittest.TestCase):
         )
 
     def test_validation_suite_detects_auth_and_operational_integrity_gaps(self) -> None:
+        """Verifica deteccao de lacunas de autenticacao e integridade operacional."""
+
         snapshot = self.build_snapshot("auth_gap")
         engine = SecurityValidationEngine()
         tampered_snapshot = deepcopy(snapshot)
@@ -146,6 +158,8 @@ class SecurityValidationEngineTests(unittest.TestCase):
         self.assertGreaterEqual(report["resumo"]["total_fraquezas"], 3)
 
     def test_validation_suite_detects_persistence_and_continuity_gaps(self) -> None:
+        """Confirma deteccao de problemas de persistencia e continuidade."""
+
         snapshot = self.build_snapshot("persistence_gap")
         engine = SecurityValidationEngine()
         tampered_snapshot = deepcopy(snapshot)

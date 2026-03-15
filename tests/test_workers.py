@@ -22,17 +22,25 @@ from workers.worker_study import StudyWorker
 
 
 def make_storage_path(name: str, suffix: str) -> Path:
+    """Retorna o path persistente usado nos cenarios de workers."""
+
     return PROJECT_ROOT / "tests" / "_worker_artifacts" / f"{name}_{suffix}.json"
 
 
 def reset_storage_path(path: Path) -> None:
+    """Limpa o artefato persistente antes da execucao do teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class WorkerUtilityTests(unittest.TestCase):
+    """Valida utilidade minima real dos workers por dominio."""
+
     def test_runtime_worker_generates_diagnostic_report(self) -> None:
+        """Confirma resposta diagnostica estruturada do worker de runtime."""
+
         worker = RuntimeWorker()
 
         response = worker.handle(
@@ -56,6 +64,8 @@ class WorkerUtilityTests(unittest.TestCase):
         self.assertGreaterEqual(len(response["evidence"]), 1)
 
     def test_study_worker_generates_topics_and_next_steps(self) -> None:
+        """Verifica resumo, topicos e proximos passos no worker de estudo."""
+
         worker = StudyWorker()
 
         response = worker.handle(
@@ -73,6 +83,8 @@ class WorkerUtilityTests(unittest.TestCase):
         self.assertGreaterEqual(len(response["next_steps"]), 1)
 
     def test_studio_worker_generates_briefing_and_checklist(self) -> None:
+        """Confirma briefing e checklist produzidos pelo worker de studio."""
+
         worker = StudioWorker()
 
         response = worker.handle(
@@ -91,6 +103,8 @@ class WorkerUtilityTests(unittest.TestCase):
         self.assertGreaterEqual(len(response["details"]["checklist_producao"]), 1)
 
     def test_finance_worker_generates_analytic_summary(self) -> None:
+        """Valida sintese analitica e indicadores no worker financeiro."""
+
         worker = FinanceWorker()
 
         response = worker.handle(
@@ -112,6 +126,8 @@ class WorkerUtilityTests(unittest.TestCase):
         self.assertGreaterEqual(len(response["details"]["indicadores"]), 1)
 
     def test_runtime_dispatch_routes_worker_and_records_semantic_summary(self) -> None:
+        """Verifica roteamento de worker e registro semantico do resultado."""
+
         queue_path = make_storage_path("dispatch", "queue")
         semantic_path = make_storage_path("dispatch", "semantic")
         procedural_path = make_storage_path("dispatch", "procedural")
@@ -150,6 +166,8 @@ class WorkerUtilityTests(unittest.TestCase):
         self.assertTrue(semantic_result["metadata"]["worker_summary"])
 
     def test_worker_rejects_invalid_domain(self) -> None:
+        """Confirma rejeicao deterministica quando o dominio e invalido."""
+
         worker = FinanceWorker()
 
         response = worker.handle(

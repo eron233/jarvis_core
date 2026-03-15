@@ -1,4 +1,16 @@
-"""Worker de financas."""
+"""
+JARVIS - Worker de Financas
+
+Responsavel por:
+- organizar observacoes financeiras autorizadas
+- produzir resumo analitico estruturado
+- apoiar leitura de dados internos sem automacao financeira real
+
+Integracoes principais:
+- runtime.internal_agent_runtime
+- workers.worker_utils
+- memory_system.semantic_memory
+"""
 
 from typing import Any, Dict
 
@@ -12,6 +24,12 @@ from workers.worker_utils import (
 )
 
 
+#
+# JARVIS_WORKER_DOMAIN
+# ==================================================
+# BLOCO: Worker focado no dominio financeiro analitico
+# ==================================================
+
 class FinanceWorker:
     """Executa tarefas orientadas ao dominio de financas."""
 
@@ -19,6 +37,19 @@ class FinanceWorker:
     allowed_domains = ["finance", "general"]
 
     def handle(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Processa uma tarefa de analise financeira segura.
+
+        Parametros:
+        - task: tarefa com observacoes e indicadores autorizados.
+
+        Retorno:
+        - resposta estruturada com resumo, observacoes e evidencias.
+
+        Efeitos no sistema:
+        - nenhum direto; nao executa operacoes financeiras reais.
+        """
+
         if not domain_is_valid(task, self.allowed_domains):
             return build_domain_rejection(self.worker_id, task, self.allowed_domains)
 

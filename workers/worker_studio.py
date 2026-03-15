@@ -1,4 +1,16 @@
-"""Worker de estudio."""
+"""
+JARVIS - Worker de Studio
+
+Responsavel por:
+- organizar ideias criativas em briefing estruturado
+- gerar checklist de producao e topicos de conteudo
+- apoiar o dominio criativo sem executar edicao complexa
+
+Integracoes principais:
+- runtime.internal_agent_runtime
+- workers.worker_utils
+- memory_system.semantic_memory
+"""
 
 from typing import Any, Dict
 
@@ -12,6 +24,12 @@ from workers.worker_utils import (
 )
 
 
+#
+# JARVIS_WORKER_DOMAIN
+# ==================================================
+# BLOCO: Worker focado no dominio criativo
+# ==================================================
+
 class StudioWorker:
     """Executa tarefas orientadas ao dominio de estudio e criacao."""
 
@@ -19,6 +37,19 @@ class StudioWorker:
     allowed_domains = ["studio", "creative", "general"]
 
     def handle(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Processa uma tarefa criativa e devolve briefing e checklist.
+
+        Parametros:
+        - task: tarefa com objetivo, descricao e metadados de publico ou formato.
+
+        Retorno:
+        - resposta estruturada com briefing, topicos e checklist.
+
+        Efeitos no sistema:
+        - nenhum direto; o runtime registra o resultado nas memorias.
+        """
+
         if not domain_is_valid(task, self.allowed_domains):
             return build_domain_rejection(self.worker_id, task, self.allowed_domains)
 

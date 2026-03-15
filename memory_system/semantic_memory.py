@@ -1,4 +1,16 @@
-"""Armazenamento deterministico de memoria semantica para fatos e entradas pesquisaveis."""
+"""
+JARVIS - Memoria Semantica
+
+Responsavel por:
+- armazenar fatos e entradas textuais persistentes
+- recuperar informacao por pontuacao deterministica de tokens
+- expor snapshots auditaveis para runtime e API
+
+Integracoes principais:
+- runtime.internal_agent_runtime
+- interface.api.app
+- memory_system.procedural_memory
+"""
 
 from __future__ import annotations
 
@@ -9,6 +21,12 @@ import json
 from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional
+
+#
+# JARVIS_MEMORY_SYSTEM
+# ==================================================
+# BLOCO: Entradas semanticas e persistencia local
+# ==================================================
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 DEFAULT_STORAGE_PATH = Path(__file__).with_name("semantic_memory_store.json")
@@ -28,6 +46,19 @@ class MemoryEntry:
     metadata: Dict[str, Any]
 
     def to_dict(self) -> Dict[str, Any]:
+        """
+        Converte a entrada dataclass para dicionario serializavel.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - dicionario completo da entrada.
+
+        Efeitos no sistema:
+        - nenhum; apenas facilita persistencia e resposta da API.
+        """
+
         return asdict(self)
 
 
@@ -41,6 +72,19 @@ class SemanticMemory:
     facts: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """
+        Normaliza o caminho de armazenamento da memoria semantica.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - garante que `storage_path` seja sempre um `Path`.
+        """
+
         self.storage_path = Path(self.storage_path)
 
     def add_entry(
@@ -186,6 +230,21 @@ class SemanticMemory:
         query_tokens: set[str],
         domain: Optional[str],
     ) -> int:
+        """
+        Calcula a relevancia de uma entrada para uma consulta.
+
+        Parametros:
+        - entry: entrada candidata da memoria.
+        - query_tokens: tokens derivados da consulta.
+        - domain: dominio opcional usado como bonus de correspondencia.
+
+        Retorno:
+        - score inteiro usado no ranking final.
+
+        Efeitos no sistema:
+        - nenhum; apenas ordena resultados de busca.
+        """
+
         searchable_tokens = (
             self._tokenize(entry["content"])
             | self._tokenize(entry["source"])
@@ -203,6 +262,19 @@ class SemanticMemory:
         return (content_overlap * 10) + (tag_overlap * 5) + domain_bonus
 
     def _build_snapshot(self) -> Dict[str, Any]:
+        """
+        Monta o snapshot completo da memoria semantica.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - payload serializavel contendo entradas e fatos.
+
+        Efeitos no sistema:
+        - nenhum; base para persistencia e recuperacao.
+        """
+
         return {
             "version": "0.1.0",
             "entry_count": len(self.entries),
@@ -211,15 +283,54 @@ class SemanticMemory:
         }
 
     def _write_storage(self, snapshot: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Grava em disco o snapshot atual ou fornecido.
+
+        Parametros:
+        - snapshot: estado opcional ja montado para persistencia.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - escreve o arquivo JSON da memoria semantica.
+        """
+
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         payload = snapshot or self._build_snapshot()
         self.storage_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     def _next_entry_id(self) -> str:
+        """
+        Gera o proximo identificador sequencial de entrada.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - identificador textual da nova entrada.
+
+        Efeitos no sistema:
+        - nenhum; apenas padroniza ids locais.
+        """
+
         return f"memory-{len(self.entries) + 1:04d}"
 
     @staticmethod
     def _normalize_tags(tags: List[str]) -> List[str]:
+        """
+        Normaliza tags para formato textual unico e em minusculas.
+
+        Parametros:
+        - tags: lista original de tags.
+
+        Retorno:
+        - lista sem vazios nem duplicacoes.
+
+        Efeitos no sistema:
+        - nenhum; melhora consistencia da recuperacao semantica.
+        """
+
         normalized: List[str] = []
         seen: set[str] = set()
 
@@ -234,6 +345,19 @@ class SemanticMemory:
 
     @staticmethod
     def _normalize_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Padroniza uma entrada carregada do disco.
+
+        Parametros:
+        - entry: payload bruto do snapshot persistido.
+
+        Retorno:
+        - entrada pronta para uso interno.
+
+        Efeitos no sistema:
+        - nenhum; saneia dados antigos ou incompletos.
+        """
+
         return {
             "id": str(entry["id"]),
             "content": str(entry["content"]),
@@ -247,10 +371,36 @@ class SemanticMemory:
 
     @staticmethod
     def _tokenize(value: str) -> set[str]:
+        """
+        Tokeniza texto simples para busca deterministica.
+
+        Parametros:
+        - value: texto de origem.
+
+        Retorno:
+        - conjunto de tokens normalizados.
+
+        Efeitos no sistema:
+        - nenhum; utilitario da estrategia de busca.
+        """
+
         return set(TOKEN_PATTERN.findall(value.lower()))
 
     @staticmethod
     def _value_as_text(value: Any) -> str:
+        """
+        Converte um valor arbitrario em texto para armazenamento semantico.
+
+        Parametros:
+        - value: valor estruturado ou simples.
+
+        Retorno:
+        - representacao textual deterministica.
+
+        Efeitos no sistema:
+        - nenhum; usado por `upsert` e snapshots.
+        """
+
         if isinstance(value, (dict, list)):
             return json.dumps(value, sort_keys=True)
         return str(value)

@@ -1,0 +1,158 @@
+JARVIS - GUIA DE RETOMADA REMOTA
+
+Objetivo:
+continuar o desenvolvimento do projeto em outra maquina usando a mesma conta do Codex, com o menor atrito possivel e sem baguncar o historico Git.
+
+1. COMO OBTER O PROJETO EM OUTRA MAQUINA
+
+Se voce ainda NAO tiver um repositorio remoto:
+- primeiro finalize isso na maquina atual
+- crie um repositorio remoto central no provedor Git da sua preferencia
+- adicione o remote origin na maquina atual
+- faca commit e push do estado que deseja levar
+
+Se o remoto ja existir:
+- na outra maquina rode:
+  git clone <URL_DO_REPOSITORIO>
+
+Depois entre na pasta clonada:
+- cd jarvis_core
+
+2. COMO ABRIR O PROJETO NO CODEX EM OUTRA MAQUINA
+
+No Codex App ou IDE:
+- entre com a mesma conta
+- abra a pasta clonada do projeto como workspace
+- confirme que o diretório aberto e a raiz do projeto jarvis_core
+- deixe o Codex enxergar o estado Git desse diretório
+
+No fluxo em nuvem do Codex:
+- conecte o mesmo repositorio remoto central
+- trabalhe a partir desse repositorio, nao a partir de copias manuais soltas
+
+3. COMO VALIDAR SE A MAQUINA ESTA PRONTA
+
+Na pasta do projeto, rode:
+- git status
+- python --version
+- pip --version
+
+Depois valide a configuracao local:
+- .\jarvis.cmd check-config
+
+Se o comando acima falhar porque python nao esta no PATH:
+- use o Python completo
+- ou defina a variavel PYTHON_BIN antes de usar o launcher
+
+Exemplo:
+- set PYTHON_BIN=C:\caminho\para\python.exe
+
+4. COMO INSTALAR AS DEPENDENCIAS MINIMAS
+
+Rode:
+- pip install -r requirements.txt
+
+Dependencias principais:
+- fastapi
+- uvicorn
+- pywin32 apenas se voce realmente for usar o servico Windows nessa maquina
+
+5. COMO VALIDAR OS TESTES
+
+Rode:
+- python -m unittest discover -s tests -v
+
+Se os testes nao passarem:
+- nao siga adiante com novas mudancas
+- primeiro alinhe o ambiente e confira se voce esta na branch correta
+
+6. COMO SUBIR API, PAINEL E RUNTIME
+
+Forma recomendada:
+- .\jarvis.cmd server
+
+Forma direta:
+- python runtime\server.py
+
+Validacoes basicas:
+- http://127.0.0.1:8000/health
+- http://127.0.0.1:8000/painel
+
+Loop local controlado:
+- .\jarvis.cmd loop --max-cycles 1 --stop-when-idle
+
+7. COMO CONTINUAR O DESENVOLVIMENTO SEM BAGUNCAR O HISTORICO
+
+Fluxo recomendado:
+- sempre comece com git status
+- depois rode git pull --ff-only
+- faca suas mudancas
+- valide testes
+- faca commit pequeno e descritivo
+- de push antes de trocar de maquina
+
+Se for abrir uma branch nova:
+- use prefixo codex/
+- exemplo:
+  git switch -c codex/ajuste-fila-remota
+
+Evite:
+- editar a mesma branch em duas maquinas ao mesmo tempo sem dar push
+- acumular mudancas grandes por muito tempo sem checkpoint
+- copiar a pasta manualmente por fora do Git
+
+8. COMO FAZER CHECKPOINT E SALVAR PROGRESSO
+
+Fluxo minimo antes de sair da maquina:
+1. git status
+2. git add <arquivos_revisados>
+3. git commit -m "Checkpoint: <descricao_clara>"
+4. git push
+
+Se ainda nao quiser commitar tudo:
+- pelo menos registre o que esta pendente em um arquivo de checkpoint
+- mas o ideal para continuidade remota real e commit + push
+
+9. COMO VOLTAR PARA A MAQUINA ANTERIOR SEM CONFLITO
+
+Na maquina antiga:
+1. abra a pasta do projeto
+2. rode git status
+3. se houver mudancas locais nao commitadas, resolva isso antes
+4. rode git fetch
+5. rode git pull --ff-only
+6. valide com testes se necessario
+
+Se houver trabalho aberto nas duas maquinas:
+- pare
+- escolha qual maquina sera a fonte de verdade
+- commit e push primeiro de uma delas
+- depois sincronize a outra
+
+10. ESTADO ATUAL MAIS HONESTO DO PROJETO
+
+Hoje o projeto esta estruturalmente preparado para continuidade remota, mas ainda depende de uma acao manual importante:
+- configurar o remote origin e enviar os checkpoints Git reais
+
+Sem isso, o Codex em outra maquina nao tera como recuperar automaticamente o trabalho acumulado daqui.
+
+11. COMANDOS MINIMOS QUE MAIS IMPORTAM
+
+- git status
+- git pull --ff-only
+- pip install -r requirements.txt
+- .\jarvis.cmd check-config
+- python -m unittest discover -s tests -v
+- .\jarvis.cmd server
+- git add
+- git commit
+- git push
+
+12. RECOMENDACAO PRATICA
+
+Antes de trocar de maquina:
+- escolha o remoto central
+- suba um checkpoint Git limpo e descritivo
+- depois faca o clone na outra maquina
+
+Esse e o caminho com menor risco, menor atrito e maior compatibilidade com o uso do Codex em multiplos computadores.

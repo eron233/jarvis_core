@@ -1,4 +1,16 @@
-"""Gerenciamento persistente de metas estrategicas e objetivos ativos."""
+"""
+JARVIS - Gerenciador de Objetivos
+
+Responsavel por:
+- armazenar metas estrategicas e objetivos ativos
+- vincular tarefas a objetivos e calcular progresso
+- persistir a camada de intencao em JSON
+
+Integracoes principais:
+- runtime.internal_agent_runtime
+- executive_planner.queue
+- executive_planner.planner
+"""
 
 from __future__ import annotations
 
@@ -8,6 +20,12 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+#
+# JARVIS_CORE_COMPONENT
+# ==================================================
+# BLOCO: Persistencia e normalizacao da camada de objetivos
+# ==================================================
 
 DEFAULT_GOALS_PATH = Path(__file__).with_name("goals.json")
 
@@ -34,6 +52,19 @@ class GoalManager:
     data: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """
+        Normaliza o path de armazenamento e carrega o snapshot inicial.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - garante que o gerenciador inicie sincronizado com o disco.
+        """
+
         self.storage_path = Path(self.storage_path)
         self.load()
 
@@ -210,6 +241,19 @@ class GoalManager:
         }
 
     def _persist_if_needed(self) -> None:
+        """
+        Persiste o estado atual apenas quando o auto-save esta habilitado.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - pode gravar o snapshot atual em disco.
+        """
+
         if self.auto_persist:
             self.save()
 
@@ -223,6 +267,25 @@ class GoalManager:
         state: str,
         metadata: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
+        """
+        Cria a estrutura base de uma meta ou objetivo.
+
+        Parametros:
+        - kind: tipo do item, estrategico ou ativo.
+        - title: titulo principal.
+        - description: descricao complementar.
+        - priority: prioridade numerica do objetivo.
+        - deadline: prazo opcional.
+        - state: estado inicial do objetivo.
+        - metadata: metadados livres associados.
+
+        Retorno:
+        - dicionario normalizado pronto para armazenamento.
+
+        Efeitos no sistema:
+        - nenhum; fabrica a estrutura padrao da camada de intencao.
+        """
+
         now = self._utc_now()
         return {
             "goal_id": self._next_goal_id(),
@@ -242,6 +305,19 @@ class GoalManager:
         }
 
     def _build_goal_report(self, goal: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Traduz um objetivo bruto para a forma de relatorio em pt-BR.
+
+        Parametros:
+        - goal: objetivo interno armazenado no gerenciador.
+
+        Retorno:
+        - payload resumido pronto para API, runtime e painel.
+
+        Efeitos no sistema:
+        - nenhum; apenas leitura e transformacao.
+        """
+
         state = goal["state"]
         kind = goal["kind"]
         task_count = len(goal["task_ids"])
@@ -264,6 +340,19 @@ class GoalManager:
         }
 
     def _find_goal_ref(self, goal_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Localiza a referencia mutavel de um objetivo pelo identificador.
+
+        Parametros:
+        - goal_id: identificador textual do objetivo.
+
+        Retorno:
+        - metadados da referencia interna ou `None` se nao existir.
+
+        Efeitos no sistema:
+        - nenhum; usado para operacoes internas de atualizacao.
+        """
+
         for collection_name in ("strategic_goals", "active_goals"):
             for index, goal in enumerate(self.data[collection_name]):
                 if goal["goal_id"] == goal_id:
@@ -275,6 +364,19 @@ class GoalManager:
         return None
 
     def _normalize_snapshot(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normaliza um snapshot bruto da camada de objetivos.
+
+        Parametros:
+        - snapshot: estrutura lida do disco ou recebida externamente.
+
+        Retorno:
+        - snapshot completo e consistente para uso interno.
+
+        Efeitos no sistema:
+        - nenhum; protege a camada contra formatos parciais.
+        """
+
         normalized = self._default_snapshot()
         normalized["constraints"] = list(snapshot.get("constraints", []))
         normalized["preferences"] = deepcopy(snapshot.get("preferences", {}))
@@ -289,6 +391,20 @@ class GoalManager:
         return normalized
 
     def _normalize_goal(self, goal: Dict[str, Any], kind: str) -> Dict[str, Any]:
+        """
+        Padroniza a estrutura de um objetivo individual.
+
+        Parametros:
+        - goal: payload bruto do objetivo.
+        - kind: classificacao estrategica ou ativa a ser aplicada.
+
+        Retorno:
+        - objetivo interno consistente e pronto para persistencia.
+
+        Efeitos no sistema:
+        - nenhum; apenas saneia dados da camada de intencao.
+        """
+
         task_ids = self._normalize_string_list(goal.get("task_ids", []))
         completed_task_ids = self._normalize_string_list(goal.get("completed_task_ids", []))
         created_at = str(goal.get("created_at") or self._utc_now())
@@ -313,11 +429,37 @@ class GoalManager:
         }
 
     def _next_goal_id(self) -> str:
+        """
+        Gera o proximo identificador sequencial de objetivo.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - `goal-XXXX` com base na contagem atual.
+
+        Efeitos no sistema:
+        - nenhum; utilitario de identificacao local.
+        """
+
         current_total = len(self.data.get("strategic_goals", [])) + len(self.data.get("active_goals", []))
         return f"goal-{current_total + 1:04d}"
 
     @staticmethod
     def _normalize_string_list(values: List[Any]) -> List[str]:
+        """
+        Normaliza listas heterogeneas para strings unicas.
+
+        Parametros:
+        - values: lista de valores variados recebidos do snapshot.
+
+        Retorno:
+        - lista de strings sem duplicacao.
+
+        Efeitos no sistema:
+        - nenhum; garante consistencia de identificadores.
+        """
+
         normalized: List[str] = []
         seen: set[str] = set()
 
@@ -332,6 +474,19 @@ class GoalManager:
 
     @staticmethod
     def _calculate_progress(goal: Dict[str, Any]) -> int:
+        """
+        Calcula o progresso percentual de um objetivo.
+
+        Parametros:
+        - goal: objetivo com tarefas totais e concluidas.
+
+        Retorno:
+        - percentual inteiro de progresso.
+
+        Efeitos no sistema:
+        - nenhum; usado na camada de objetivos e relatorios.
+        """
+
         task_ids = goal.get("task_ids", [])
         completed_task_ids = goal.get("completed_task_ids", [])
         if not task_ids:
@@ -340,6 +495,19 @@ class GoalManager:
 
     @staticmethod
     def _default_snapshot() -> Dict[str, Any]:
+        """
+        Retorna a estrutura vazia padrao da camada de objetivos.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - snapshot base com preferencias e colecoes vazias.
+
+        Efeitos no sistema:
+        - nenhum; usado em bootstrap e recuperacao segura.
+        """
+
         return {
             "strategic_goals": [],
             "active_goals": [],
@@ -355,4 +523,17 @@ class GoalManager:
 
     @staticmethod
     def _utc_now() -> str:
+        """
+        Gera um timestamp UTC em formato ISO 8601.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - string temporal padronizada.
+
+        Efeitos no sistema:
+        - nenhum; utilitario de carimbo temporal.
+        """
+
         return datetime.now(timezone.utc).isoformat()

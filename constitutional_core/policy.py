@@ -1,4 +1,17 @@
-"""Carregamento e avaliacao da politica viva do constitutional core."""
+"""
+JARVIS - Politica Constitucional Viva
+
+Responsavel por:
+- carregar identidade e principios do constitutional_core
+- transformar regras constitucionais em politica executavel
+- classificar tarefas como permitidas, sensiveis ou negadas
+- fornecer um resumo seguro da politica ativa para runtime e relatorios
+
+Integracoes principais:
+- executive_planner.validator
+- runtime.autonomy
+- runtime.internal_agent_runtime
+"""
 
 from __future__ import annotations
 
@@ -6,6 +19,12 @@ from dataclasses import dataclass, field
 import json
 from pathlib import Path
 from typing import Any, Dict, List
+
+#
+# JARVIS_CORE_COMPONENT
+# ==================================================
+# BLOCO: Constantes e defaults da politica viva
+# ==================================================
 
 PRINCIPLES_PATH = Path(__file__).with_name("principles.json")
 IDENTITY_PATH = Path(__file__).with_name("identity.json")
@@ -171,6 +190,19 @@ class ConstitutionalPolicy:
 
     @staticmethod
     def _normalize_task_text(task: Dict[str, Any]) -> str:
+        """
+        Consolida os campos textuais mais relevantes de uma tarefa.
+
+        Parametros:
+        - task: dicionario bruto da tarefa em avaliacao.
+
+        Retorno:
+        - string normalizada usada para buscar palavras proibidas.
+
+        Efeitos no sistema:
+        - nenhum; apenas gera texto auxiliar para avaliacao da politica.
+        """
+
         goal = str(task.get("goal", ""))
         description = str(task.get("description", ""))
         evidence = " ".join(str(item) for item in task.get("evidence", []))

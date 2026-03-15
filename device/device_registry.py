@@ -18,6 +18,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -78,7 +79,7 @@ class DeviceRegistry:
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.storage_path.exists():
             self.devices = [self._normalize_device(device) for device in deepcopy(DEFAULT_DEVICES)]
-            return self.snapshot()
+            return self.save()
 
         data = json.loads(self.storage_path.read_text(encoding="utf-8"))
         persisted_devices = data.get("devices", [])
@@ -93,10 +94,9 @@ class DeviceRegistry:
 
         snapshot = self.snapshot()
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        self.storage_path.write_text(
-            json.dumps(snapshot, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
+        temp_path.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temp_path, self.storage_path)
         return snapshot
 
     def snapshot(self) -> Dict[str, Any]:

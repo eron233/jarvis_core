@@ -18,25 +18,37 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 def make_goal_storage_path(name: str) -> Path:
+    """Retorna o path de goals usado nos testes da camada de objetivos."""
+
     return PROJECT_ROOT / "tests" / "_goal_artifacts" / f"{name}_goals.json"
 
 
 def make_queue_storage_path(name: str) -> Path:
+    """Retorna o path de fila usado nos cenarios de objetivo."""
+
     return PROJECT_ROOT / "tests" / "_goal_artifacts" / f"{name}_queue.json"
 
 
 def make_semantic_storage_path(name: str) -> Path:
+    """Retorna o path de memoria semantica usado nos testes de objetivos."""
+
     return PROJECT_ROOT / "tests" / "_goal_artifacts" / f"{name}_semantic.json"
 
 
 def reset_storage_path(path: Path) -> None:
+    """Limpa um arquivo de artefato antes da execucao do teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class GoalManagerTests(unittest.TestCase):
+    """Valida persistencia, vinculacao e progresso da camada de objetivos."""
+
     def test_goal_manager_separates_metas_estrategicas_e_objetivos_ativos(self) -> None:
+        """Confirma a separacao entre metas estrategicas e objetivos ativos."""
+
         storage_path = make_goal_storage_path("structure")
         reset_storage_path(storage_path)
         goal_manager = GoalManager(storage_path=storage_path)
@@ -64,6 +76,8 @@ class GoalManagerTests(unittest.TestCase):
         self.assertEqual(goal_manager.get_goal(active_goal["goal_id"])["deadline"], "2026-03-20")
 
     def test_link_task_to_goal_propagates_metadata_for_queue_and_priority(self) -> None:
+        """Verifica propagacao de contexto do objetivo para fila e priorizacao."""
+
         goal_storage_path = make_goal_storage_path("link")
         queue_storage_path = make_queue_storage_path("link")
         reset_storage_path(goal_storage_path)
@@ -95,6 +109,8 @@ class GoalManagerTests(unittest.TestCase):
         self.assertEqual(goal_manager.goal_report(active_goal["goal_id"])["tarefas_vinculadas"], 1)
 
     def test_runtime_updates_goal_progress_after_task_execution(self) -> None:
+        """Confirma atualizacao de progresso apos execucao real no runtime."""
+
         goal_storage_path = make_goal_storage_path("runtime")
         queue_storage_path = make_queue_storage_path("runtime")
         semantic_storage_path = make_semantic_storage_path("runtime")

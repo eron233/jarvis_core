@@ -523,7 +523,12 @@ class InternalAgentRuntime:
             parent_goal_id = task_to_enqueue.get("parent_goal_id")
             if parent_goal_id is not None:
                 task_to_enqueue = self.goal_manager.link_task_to_goal(task_to_enqueue, str(parent_goal_id))
-            return self.task_queue.enqueue(task_to_enqueue)
+            enqueued_task = self.task_queue.enqueue(task_to_enqueue)
+            if hasattr(self.task_queue, "save_to_disk"):
+                self.task_queue.save_to_disk()
+            if parent_goal_id is not None and hasattr(self.goal_manager, "save"):
+                self.goal_manager.save()
+            return enqueued_task
 
     def run_planner_cycle(self) -> Dict[str, Any]:
         """Executa um ciclo do planner a partir de um runtime inicializado."""
@@ -1344,6 +1349,11 @@ class InternalAgentRuntime:
                 ),
                 "audit_store": str(self.audit_logger.storage_path) if self.audit_logger is not None else None,
                 "device_registry_store": str(self.device_registry.storage_path) if self.device_registry is not None else None,
+                "self_defense_report_path": (
+                    str(self.self_defense_monitor.report_path)
+                    if self.self_defense_monitor is not None and hasattr(self.self_defense_monitor, "report_path")
+                    else None
+                ),
                 "cognitive_evolution_store": (
                     str(self.cognitive_evolution_tracker.storage_path)
                     if self.cognitive_evolution_tracker is not None

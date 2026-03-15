@@ -134,6 +134,7 @@ class JarvisEnvironmentConfig:
     device_registry_path: Path | None = None
     cognitive_evolution_storage_path: Path | None = None
     audit_storage_path: Path | None = None
+    self_defense_report_path: Path | None = None
 
     def __post_init__(self) -> None:
         """
@@ -187,6 +188,11 @@ class JarvisEnvironmentConfig:
             self.audit_storage_path = self.data_dir / "runtime_audit_store.json"
         else:
             self.audit_storage_path = Path(self.audit_storage_path)
+
+        if self.self_defense_report_path is None:
+            self.self_defense_report_path = self.reports_dir / "self_defense_latest.json"
+        else:
+            self.self_defense_report_path = Path(self.self_defense_report_path)
 
         self.env = self.env.strip().lower() or "development"
         self.log_level = self.log_level.strip().upper() or DEFAULT_LOG_LEVEL
@@ -242,6 +248,7 @@ class JarvisEnvironmentConfig:
             device_registry_path=env_map.get("JARVIS_DEVICE_REGISTRY_PATH"),
             cognitive_evolution_storage_path=env_map.get("JARVIS_COGNITIVE_EVOLUTION_STORAGE_PATH"),
             audit_storage_path=env_map.get("JARVIS_AUDIT_STORAGE_PATH"),
+            self_defense_report_path=env_map.get("JARVIS_SELF_DEFENSE_REPORT_PATH"),
         )
         config.validate()
         return config
@@ -286,6 +293,7 @@ class JarvisEnvironmentConfig:
             self.device_registry_path.parent,
             self.cognitive_evolution_storage_path.parent,
             self.audit_storage_path.parent,
+            self.self_defense_report_path.parent,
         }
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
@@ -311,6 +319,7 @@ class JarvisEnvironmentConfig:
                 "device_registry_path": str(self.device_registry_path),
                 "cognitive_evolution_storage_path": str(self.cognitive_evolution_storage_path),
                 "audit_storage_path": str(self.audit_storage_path),
+                "self_defense_report_path": str(self.self_defense_report_path),
             },
             "autenticacao_configurada": {
                 "token_configurado": self.token != DEFAULT_API_TOKEN,

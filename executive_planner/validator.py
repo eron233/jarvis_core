@@ -1,4 +1,17 @@
-"""Validadores para planos gerados e tarefas executaveis."""
+"""
+JARVIS - Validador do Planejador
+
+Responsavel por:
+- validar planos e tarefas antes da execucao
+- aplicar a politica viva do constitutional_core
+- marcar tarefas que exigem supervisao humana
+- sinalizar negacoes e problemas estruturais do planner
+
+Integracoes principais:
+- constitutional_core.policy
+- executive_planner.planner
+- runtime.autonomy
+"""
 
 from __future__ import annotations
 
@@ -8,19 +21,77 @@ from typing import Any, Dict, List, Tuple
 from constitutional_core.policy import ConstitutionalPolicy, load_constitutional_policy
 
 
+#
+# JARVIS_PLANNER_LOGIC
+# ==================================================
+# BLOCO: Validacao estrutural e constitucional
+# ==================================================
+
 class PlanValidator:
     """Aplica verificacoes estruturais basicas em planos e tarefas."""
 
     def __init__(self, policy: ConstitutionalPolicy | None = None) -> None:
+        """
+        Inicializa o validador com a politica constitucional ativa.
+
+        Parametros:
+        - policy: politica opcional para reaproveitamento em testes ou bootstrap.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - define a referencia de politica usada em todas as validacoes.
+        """
+
         self.policy = policy or load_constitutional_policy()
 
     def set_policy(self, policy: ConstitutionalPolicy) -> None:
+        """
+        Substitui a politica ativa usada pelo validador.
+
+        Parametros:
+        - policy: nova politica constitucional carregada.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - passa a reger validacoes futuras com a nova politica.
+        """
+
         self.policy = policy
 
     def describe_policy(self) -> Dict[str, Any]:
+        """
+        Expoe um resumo seguro da politica atual.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - dicionario com identidade, principios e restricoes ativas.
+
+        Efeitos no sistema:
+        - nenhum; oferece introspeccao para runtime e API.
+        """
+
         return self.policy.describe()
 
     def validate(self, plan: Dict[str, Any]) -> Tuple[bool, List[str]]:
+        """
+        Valida a estrutura minima de um plano ainda nao executado.
+
+        Parametros:
+        - plan: dicionario do plano montado pelo planner.
+
+        Retorno:
+        - tupla com status de validade e lista de problemas detectados.
+
+        Efeitos no sistema:
+        - nenhum; apenas avalia consistencia estrutural.
+        """
+
         issues: List[str] = []
 
         if not plan.get("goal"):
@@ -54,6 +125,20 @@ class PlanValidator:
 
     @staticmethod
     def _apply_policy_evaluation(task: Dict[str, Any], policy_evaluation: Dict[str, Any]) -> None:
+        """
+        Mescla o resultado da politica na estrutura da tarefa.
+
+        Parametros:
+        - task: tarefa que sera enriquecida com decisoes constitucionais.
+        - policy_evaluation: resultado retornado pela politica viva.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - atualiza campos de aprovacao, supervisao e negacao diretamente na tarefa.
+        """
+
         approval = task.get("approval", {})
         if not isinstance(approval, dict):
             approval = {}

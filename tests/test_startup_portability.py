@@ -18,17 +18,25 @@ from startup_bootstrap import ensure_project_root_on_path
 
 
 def make_startup_artifact_dir(name: str) -> Path:
+    """Retorna o diretorio de artefatos usado nos testes de startup."""
+
     return PROJECT_ROOT / "tests" / "_startup_artifacts" / name
 
 
 def reset_directory(path: Path) -> None:
+    """Recria o diretorio de artefato em estado limpo."""
+
     if path.exists():
         shutil.rmtree(path)
     path.mkdir(parents=True, exist_ok=True)
 
 
 class StartupPortabilityTests(unittest.TestCase):
+    """Valida portabilidade dos entrypoints oficiais do sistema."""
+
     def test_bootstrap_helper_discovers_project_root(self) -> None:
+        """Confirma que o helper encontra a raiz correta do projeto."""
+
         nested_path = PROJECT_ROOT / "runtime" / "server.py"
         project_root = ensure_project_root_on_path(nested_path)
 
@@ -36,6 +44,8 @@ class StartupPortabilityTests(unittest.TestCase):
         self.assertEqual(str(PROJECT_ROOT), sys.path[0])
 
     def test_main_entrypoint_runs_with_current_interpreter(self) -> None:
+        """Verifica execucao do entrypoint principal com o interpretador atual."""
+
         artifact_dir = make_startup_artifact_dir("main_entrypoint")
         reset_directory(artifact_dir)
 
@@ -67,6 +77,8 @@ class StartupPortabilityTests(unittest.TestCase):
         self.assertTrue((artifact_dir / "goals.json").exists())
 
     def test_server_check_config_runs_with_current_interpreter(self) -> None:
+        """Confirma validacao de configuracao do servidor pelo entrypoint oficial."""
+
         completed = subprocess.run(
             [
                 sys.executable,
@@ -86,6 +98,8 @@ class StartupPortabilityTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform.startswith("win"), "Launcher .cmd valido apenas em Windows.")
     def test_windows_launcher_runs_loop_with_explicit_interpreter(self) -> None:
+        """Valida o launcher Windows com interpretador explicitamente configurado."""
+
         artifact_dir = make_startup_artifact_dir("windows_launcher")
         reset_directory(artifact_dir)
 

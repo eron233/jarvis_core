@@ -14,7 +14,11 @@ from security.security_knowledge_core import SecurityKnowledgeCore
 
 
 class SecurityKnowledgeCoreTests(unittest.TestCase):
+    """Valida o nucleo de conhecimento defensivo do sistema."""
+
     def test_list_domains_exposes_expected_defensive_areas(self) -> None:
+        """Confirma exposicao dos dominios defensivos esperados."""
+
         core = SecurityKnowledgeCore()
 
         domains = core.list_domains()
@@ -33,6 +37,8 @@ class SecurityKnowledgeCoreTests(unittest.TestCase):
         )
 
     def test_get_control_returns_diagnostic_structure(self) -> None:
+        """Verifica a estrutura diagnostica retornada por um controle."""
+
         core = SecurityKnowledgeCore()
 
         control = core.get_control("trusted_device_validation")
@@ -44,6 +50,8 @@ class SecurityKnowledgeCoreTests(unittest.TestCase):
         self.assertGreaterEqual(len(control["perguntas_de_diagnostico"]), 2)
 
     def test_semantic_and_procedural_seeding_are_deterministic(self) -> None:
+        """Garante seed deterministico das memorias defensivas."""
+
         core = SecurityKnowledgeCore()
         semantic_memory = SemanticMemory(storage_path=PROJECT_ROOT / "tests" / "_semantic_memory_artifacts" / "security_core.json")
         semantic_memory.entries = []
@@ -68,6 +76,8 @@ class SecurityKnowledgeCoreTests(unittest.TestCase):
         )
 
     def test_defensive_summary_reports_core_counts(self) -> None:
+        """Confirma o resumo geral do nucleo defensivo em pt-BR."""
+
         core = SecurityKnowledgeCore()
 
         summary = core.build_defensive_summary()

@@ -322,6 +322,30 @@ class JarvisApiTests(unittest.TestCase):
         self.assertIn("boot_timestamp", payload)
         self.assertIn("entrypoint", payload)
 
+    def test_api_persiste_tarefa_no_store_configurado_apos_enfileiramento(self) -> None:
+        """Garante que a rota real de tarefas grave no store persistente configurado."""
+
+        client, headers = self.build_client("task_persistence")
+
+        response = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="task-persist"),
+            json={
+                "task_id": "persist-api-1",
+                "goal": "Persistir tarefa real",
+                "description": "Conferir escrita duravel da fila",
+                "domain": "runtime",
+                "impact": 3,
+                "urgency": 2,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        queue_path = client.app.state.runtime.task_queue.storage_path
+        self.assertTrue(queue_path.exists())
+        snapshot = queue_path.read_text(encoding="utf-8")
+        self.assertIn("persist-api-1", snapshot)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,14 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Corrigido `interface/native_client/jarvis_client.py` para enviar `X-Jarvis-Nonce` e `X-Jarvis-Timestamp`, ficando compativel com a API endurecida.
+- Estendido `SystemLoopConfig` com `device_registry_path` e `self_defense_report_path`, eliminando deriva para paths padrao no bootstrap do runtime.
+- Ajustado `runtime/server.py`, `main.py` e `interface/api/app.py` para propagar corretamente os paths configurados do registro de dispositivos e do relatorio de autodefesa.
+- Tornado `runtime.enqueue_task()` explicitamente duravel no caminho real da API com flush do store apos enfileiramento.
+- Endurecido `device/device_registry.py` e `security/self_defense.py` com escrita atomica via arquivo temporario + `os.replace`.
+- Adicionados `tests/test_native_client.py` e nova prova da persistencia real da rota `/api/tarefas` em `tests/test_api.py`.
+- Revalidado em smoke real o fluxo vivo com fila persistente, cliente nativo, `device_registry` configurado e `self_defense` gravando no diretório de relatórios configurado.
+
 - Endurecida a integridade operacional do runtime com identidade explicita de build e boot em `runtime/runtime_identity.py`.
 - Adicionado endpoint `/api/runtime/identidade` para expor commit, timestamps, entrypoint, PID e configuracao relevante da versao em execucao.
 - Corrigida a janela de perda silenciosa da fila persistente: o planner deixou de consumir `drain()` antes do commit e passou a usar snapshot + replace atomico.

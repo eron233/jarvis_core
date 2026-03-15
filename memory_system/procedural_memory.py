@@ -1,4 +1,16 @@
-"""Armazenamento estruturado de memoria procedural para heuristicas reutilizaveis."""
+"""
+JARVIS - Memoria Procedural
+
+Responsavel por:
+- armazenar heuristicas e padroes de execucao reutilizaveis
+- recuperar procedimentos por dominio, tipo de tarefa e sucesso
+- persistir aprendizado operacional em JSON
+
+Integracoes principais:
+- runtime.internal_agent_runtime
+- executive_planner.planner
+- memory_system.semantic_memory
+"""
 
 from __future__ import annotations
 
@@ -9,6 +21,12 @@ import json
 from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional
+
+#
+# JARVIS_MEMORY_SYSTEM
+# ==================================================
+# BLOCO: Procedimentos reutilizaveis e persistencia local
+# ==================================================
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9_]+")
 DEFAULT_STORAGE_FILENAME = "procedural_memory_store.json"
@@ -34,6 +52,19 @@ class ProcedureEntry:
     metadata: Dict[str, Any]
 
     def to_dict(self) -> Dict[str, Any]:
+        """
+        Converte a entrada procedural para dicionario serializavel.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - dicionario completo da entrada.
+
+        Efeitos no sistema:
+        - nenhum; facilita armazenamento e transporte do procedimento.
+        """
+
         return asdict(self)
 
 
@@ -46,6 +77,19 @@ class ProceduralMemory:
     procedures: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """
+        Normaliza o caminho opcional de persistencia procedural.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - garante consistencia do path antes do uso.
+        """
+
         if self.storage_path is not None:
             self.storage_path = Path(self.storage_path)
 
@@ -217,6 +261,22 @@ class ProceduralMemory:
         domain: Optional[str],
         task_type: Optional[str],
     ) -> int:
+        """
+        Calcula a relevancia de um procedimento para uma busca.
+
+        Parametros:
+        - entry: procedimento candidato.
+        - query_tokens: tokens derivados da consulta.
+        - domain: dominio opcional usado como bonus.
+        - task_type: tipo de tarefa opcional usado como bonus.
+
+        Retorno:
+        - score inteiro para ordenacao dos resultados.
+
+        Efeitos no sistema:
+        - nenhum; apenas organiza a recuperacao de heuristicas.
+        """
+
         searchable_tokens = (
             self._tokenize(entry["name"])
             | self._tokenize(entry["heuristic"])
@@ -233,6 +293,19 @@ class ProceduralMemory:
         return (query_overlap * 10) + domain_bonus + task_type_bonus + success_bonus
 
     def _build_snapshot(self) -> Dict[str, Any]:
+        """
+        Monta o snapshot completo da memoria procedural.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - payload serializavel com todos os procedimentos conhecidos.
+
+        Efeitos no sistema:
+        - nenhum; base para persistencia e recuperacao.
+        """
+
         procedures = sorted(
             (deepcopy(entry) for entry in self.procedures.values()),
             key=lambda entry: entry["name"],
@@ -244,6 +317,19 @@ class ProceduralMemory:
         }
 
     def _write_storage(self, snapshot: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Persiste em disco o snapshot procedural atual.
+
+        Parametros:
+        - snapshot: estado opcional precomputado para gravacao.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - escreve o arquivo JSON de memoria procedural.
+        """
+
         if self.storage_path is None:
             return
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
@@ -251,10 +337,36 @@ class ProceduralMemory:
         self.storage_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     def _next_entry_id(self) -> str:
+        """
+        Gera o proximo identificador sequencial de procedimento.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - identificador textual da nova entrada procedural.
+
+        Efeitos no sistema:
+        - nenhum; apenas padroniza ids locais.
+        """
+
         return f"procedure-{len(self.procedures) + 1:04d}"
 
     @staticmethod
     def _normalize_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Padroniza um procedimento carregado de snapshot externo.
+
+        Parametros:
+        - entry: dicionario bruto do procedimento persistido.
+
+        Retorno:
+        - estrutura interna consistente do procedimento.
+
+        Efeitos no sistema:
+        - nenhum; saneia dados antes do uso operacional.
+        """
+
         return {
             "id": str(entry["id"]),
             "name": str(entry["name"]),
@@ -274,8 +386,34 @@ class ProceduralMemory:
 
     @staticmethod
     def _tokenize(value: str) -> set[str]:
+        """
+        Tokeniza texto livre para busca procedural deterministica.
+
+        Parametros:
+        - value: texto de entrada.
+
+        Retorno:
+        - conjunto de tokens normalizados.
+
+        Efeitos no sistema:
+        - nenhum; utilitario interno de busca.
+        """
+
         return set(TOKEN_PATTERN.findall(value.lower()))
 
     @staticmethod
     def _utc_now() -> str:
+        """
+        Gera um timestamp UTC em formato ISO 8601.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - string temporal padronizada.
+
+        Efeitos no sistema:
+        - nenhum; utilitario de persistencia procedural.
+        """
+
         return datetime.now(timezone.utc).isoformat()

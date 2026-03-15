@@ -18,17 +18,25 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 def make_storage_path(name: str, suffix: str) -> Path:
+    """Retorna o path persistente usado nos testes de memoria procedural."""
+
     return PROJECT_ROOT / "tests" / "_procedural_artifacts" / f"{name}_{suffix}.json"
 
 
 def reset_storage_path(path: Path) -> None:
+    """Limpa o artefato usado pelo teste antes da execucao."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class ProceduralMemoryTests(unittest.TestCase):
+    """Valida registro, busca, persistencia e reuso procedural."""
+
     def test_register_stores_structured_procedure(self) -> None:
+        """Confirma armazenamento estruturado de um procedimento novo."""
+
         storage_path = make_storage_path("register", "procedural")
         reset_storage_path(storage_path)
         memory = ProceduralMemory(storage_path=storage_path)
@@ -53,6 +61,8 @@ class ProceduralMemoryTests(unittest.TestCase):
         self.assertEqual(memory.get_entry("finance_execution_pattern")["metadata"]["task_id"], "finance-1")
 
     def test_search_filters_by_domain_and_task_type(self) -> None:
+        """Verifica filtragem por dominio e tipo de tarefa na busca procedural."""
+
         storage_path = make_storage_path("search", "procedural")
         reset_storage_path(storage_path)
         memory = ProceduralMemory(storage_path=storage_path)
@@ -87,6 +97,8 @@ class ProceduralMemoryTests(unittest.TestCase):
         self.assertEqual(memory.get_by_domain("study")[0]["task_type"], "study")
 
     def test_persistence_roundtrip_restores_procedures(self) -> None:
+        """Confirma roundtrip de persistencia da memoria procedural."""
+
         storage_path = make_storage_path("roundtrip", "procedural")
         reset_storage_path(storage_path)
         memory = ProceduralMemory(storage_path=storage_path)
@@ -110,6 +122,8 @@ class ProceduralMemoryTests(unittest.TestCase):
         self.assertEqual(restored.get("runtime_execution_pattern")[-1], "persistir")
 
     def test_runtime_records_and_reuses_procedural_guidance(self) -> None:
+        """Garante que o runtime registre e reaproveite guidance procedural."""
+
         queue_path = make_storage_path("runtime", "queue")
         semantic_path = make_storage_path("runtime", "semantic")
         procedural_path = make_storage_path("runtime", "procedural")

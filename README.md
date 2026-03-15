@@ -131,6 +131,10 @@ Cliente leve nativo:
 python interface\native_client\jarvis_client.py --texto "status do sistema" --token seu_token_seguro --device-id eron-celular-principal
 ```
 
+Observacao:
+
+- o cliente nativo agora envia automaticamente `nonce` e `timestamp`, ficando compativel com a protecao anti-replay atual da API
+
 Servico Windows leve:
 
 ```powershell
@@ -141,6 +145,7 @@ python service\jarvis_windows_service.py start
 Observacao:
 
 - a instalacao do servico Windows exige terminal com privilegio administrativo
+- o servico Windows e a operacao com Docker ficam fora do nucleo local validado automaticamente nesta sessao; eles permanecem auxiliares ate validacao operacional no host alvo
 - o acesso administrativo por comando aceita `voz_identificada=eron` ou senha `alter ego`
 - a frase especial `Jarvis ta ai` responde `Sim, Sr. Maciel.` apenas quando a voz reconhecida e `eron`
 
@@ -192,6 +197,9 @@ http://localhost:8000/painel
 - `JARVIS_ENABLE_RUNTIME_LOOP`
 - `JARVIS_ENABLE_DASHBOARD`
 - `JARVIS_PROCEDURAL_STORAGE_PATH`
+- `JARVIS_DEVICE_REGISTRY_PATH`
+- `JARVIS_AUDIT_STORAGE_PATH`
+- `JARVIS_SELF_DEFENSE_REPORT_PATH`
 
 O arquivo base fica em `.env.example`.
 
@@ -203,9 +211,12 @@ Por padrao, o modo de servidor usa:
 - `data/semantic_memory_store.json`
 - `data/procedural_memory_store.json`
 - `data/goals.json`
+- `data/device_registry.json`
+- `data/runtime_audit_store.json`
 - `logs/jarvis.log`
 - `reports/environment_report.json`
 - `reports/shutdown_report.json`
+- `reports/self_defense_latest.json`
 
 Esses caminhos podem ser trocados por variaveis de ambiente.
 

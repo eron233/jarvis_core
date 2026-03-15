@@ -12,17 +12,25 @@ from memory_system.semantic_memory import SemanticMemory
 
 
 def make_storage_path(name: str) -> Path:
+    """Retorna o path persistente usado nos testes de memoria semantica."""
+
     return PROJECT_ROOT / "tests" / "_semantic_memory_artifacts" / f"{name}.json"
 
 
 def reset_storage_path(path: Path) -> None:
+    """Limpa o arquivo persistente antes da execucao do teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class SemanticMemoryTests(unittest.TestCase):
+    """Valida armazenamento, busca e persistencia da memoria semantica."""
+
     def test_add_entry_stores_required_fields(self) -> None:
+        """Confirma que uma entrada nova guarda todos os campos obrigatorios."""
+
         storage_path = make_storage_path("add_entry")
         reset_storage_path(storage_path)
         memory = SemanticMemory(storage_path=storage_path)
@@ -45,6 +53,8 @@ class SemanticMemoryTests(unittest.TestCase):
         self.assertEqual(len(memory.entries), 1)
 
     def test_search_returns_most_relevant_entries(self) -> None:
+        """Verifica ranking deterministico das entradas semanticas buscadas."""
+
         storage_path = make_storage_path("search")
         reset_storage_path(storage_path)
         memory = SemanticMemory(storage_path=storage_path)
@@ -74,6 +84,8 @@ class SemanticMemoryTests(unittest.TestCase):
         self.assertGreater(results[0]["score"], results[1]["score"])
 
     def test_domain_filtering_returns_only_requested_domain(self) -> None:
+        """Confirma filtragem por dominio na consulta de memoria semantica."""
+
         storage_path = make_storage_path("domain")
         reset_storage_path(storage_path)
         memory = SemanticMemory(storage_path=storage_path)
@@ -102,6 +114,8 @@ class SemanticMemoryTests(unittest.TestCase):
         self.assertEqual(memory.get_by_domain("study")[0]["metadata"]["task_id"], "study-1")
 
     def test_persistence_roundtrip_restores_entries_and_facts(self) -> None:
+        """Garante roundtrip completo de entradas e fatos semanticos."""
+
         storage_path = make_storage_path("persistence")
         reset_storage_path(storage_path)
         memory = SemanticMemory(storage_path=storage_path)

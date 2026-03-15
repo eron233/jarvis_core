@@ -1,4 +1,16 @@
-"""Worker de estudo."""
+"""
+JARVIS - Worker de Estudo
+
+Responsavel por:
+- resumir conteudo textual autorizado
+- extrair topicos de estudo e proximos passos
+- estruturar material para aprendizagem supervisionada
+
+Integracoes principais:
+- runtime.internal_agent_runtime
+- workers.worker_utils
+- memory_system.semantic_memory
+"""
 
 from typing import Any, Dict
 
@@ -12,6 +24,12 @@ from workers.worker_utils import (
 )
 
 
+#
+# JARVIS_WORKER_DOMAIN
+# ==================================================
+# BLOCO: Worker focado no dominio de estudo
+# ==================================================
+
 class StudyWorker:
     """Executa tarefas orientadas ao dominio de estudo e aprendizado."""
 
@@ -19,6 +37,19 @@ class StudyWorker:
     allowed_domains = ["study", "education", "general"]
 
     def handle(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Processa uma tarefa de estudo e gera um digest estruturado.
+
+        Parametros:
+        - task: tarefa com meta, descricao e conteudo opcional.
+
+        Retorno:
+        - resposta estruturada com resumo, topicos e proximos passos.
+
+        Efeitos no sistema:
+        - nenhum direto; o runtime decide como persistir o resultado.
+        """
+
         if not domain_is_valid(task, self.allowed_domains):
             return build_domain_rejection(self.worker_id, task, self.allowed_domains)
 

@@ -20,6 +20,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import socket
 from typing import Any, Dict, List
@@ -205,10 +206,9 @@ class SelfDefenseMonitor:
 
     def _persist_report(self, report: Dict[str, Any]) -> None:
         self.report_path.parent.mkdir(parents=True, exist_ok=True)
-        self.report_path.write_text(
-            json.dumps(report, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        temp_path = self.report_path.with_name(f"{self.report_path.name}.tmp")
+        temp_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temp_path, self.report_path)
 
     @staticmethod
     def _probe_local_port(port: int) -> bool:

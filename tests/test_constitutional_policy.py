@@ -20,17 +20,25 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 def make_policy_artifact_path(name: str, suffix: str) -> Path:
+    """Retorna o path isolado usado nos testes de politica constitucional."""
+
     return PROJECT_ROOT / "tests" / "_policy_artifacts" / f"{name}_{suffix}.json"
 
 
 def reset_storage_path(path: Path) -> None:
+    """Remove artefatos antigos para iniciar o teste do zero."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class ConstitutionalPolicyTests(unittest.TestCase):
+    """Valida o carregamento e o efeito da politica viva no sistema."""
+
     def test_policy_loader_reads_identity_and_principles(self) -> None:
+        """Confirma leitura da identidade e dos principios constitucionais."""
+
         policy = load_constitutional_policy()
         report = policy.describe()
 
@@ -40,6 +48,8 @@ class ConstitutionalPolicyTests(unittest.TestCase):
         self.assertIn("finance", report["dominios_autonomos"])
 
     def test_validator_denies_absolutely_prohibited_task(self) -> None:
+        """Garante negacao de tarefas que violam proibicoes absolutas."""
+
         validator = PlanValidator()
         task = {
             "task_id": "policy-denied-1",
@@ -55,6 +65,8 @@ class ConstitutionalPolicyTests(unittest.TestCase):
         self.assertTrue(any("proib" in issue.lower() or "negada" in issue.lower() for issue in issues))
 
     def test_validator_marks_sensitive_task_for_human_approval(self) -> None:
+        """Verifica que tarefas sensiveis exigem aprovacao humana."""
+
         validator = PlanValidator()
         task = {
             "task_id": "policy-sensitive-1",
@@ -73,6 +85,8 @@ class ConstitutionalPolicyTests(unittest.TestCase):
         self.assertTrue(task["requires_supervision"])
 
     def test_runtime_blocks_sensitive_task_until_human_approval(self) -> None:
+        """Confirma que o runtime bloqueia execucao sem aprovacao quando necessario."""
+
         queue_path = make_policy_artifact_path("runtime_block", "queue")
         semantic_path = make_policy_artifact_path("runtime_block", "semantic")
         reset_storage_path(queue_path)

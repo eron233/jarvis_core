@@ -17,17 +17,25 @@ from security.security_twin import SecurityTwin
 
 
 def make_security_artifact_path(name: str, suffix: str) -> Path:
+    """Retorna o path de artefato usado nos cenarios do gemeo de seguranca."""
+
     return PROJECT_ROOT / "tests" / "_security_artifacts" / name / suffix
 
 
 def reset_path(path: Path) -> None:
+    """Limpa um artefato persistente antes da execucao do teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class SecurityTwinTests(unittest.TestCase):
+    """Valida criacao, descricao e integridade do gemeo de seguranca."""
+
     def build_runtime_and_reports(self, name: str) -> tuple[InternalAgentRuntime, dict, dict, SecurityTwin]:
+        """Monta runtime e relatorios base para os cenarios do gemeo."""
+
         scenario_dir = make_security_artifact_path(name, "workspace")
         queue_path = scenario_dir / "data" / "task_queue_store.json"
         semantic_path = scenario_dir / "data" / "semantic_memory_store.json"
@@ -101,6 +109,8 @@ class SecurityTwinTests(unittest.TestCase):
         return runtime, environment_report, health_report, twin
 
     def test_create_and_load_twin_snapshot_with_sanitization(self) -> None:
+        """Confirma criacao e recarga do snapshot sanitizado do gemeo."""
+
         runtime, environment_report, health_report, twin = self.build_runtime_and_reports("create")
 
         snapshot = twin.create_twin_snapshot(
@@ -127,6 +137,8 @@ class SecurityTwinTests(unittest.TestCase):
         )
 
     def test_describe_twin_state_reports_summary_in_ptbr(self) -> None:
+        """Verifica descricao resumida do gemeo em pt-BR."""
+
         runtime, environment_report, health_report, twin = self.build_runtime_and_reports("describe")
 
         snapshot = twin.create_twin_snapshot(
@@ -147,6 +159,8 @@ class SecurityTwinTests(unittest.TestCase):
         self.assertIn(description["risco_geral"], {"baixo", "medio", "alto", "critico"})
 
     def test_validate_twin_integrity_detects_tampering(self) -> None:
+        """Confirma deteccao de adulteracao no snapshot do gemeo."""
+
         runtime, environment_report, health_report, twin = self.build_runtime_and_reports("validate")
 
         snapshot = twin.create_twin_snapshot(

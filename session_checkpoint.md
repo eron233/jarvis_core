@@ -3,8 +3,8 @@
 ## Ciclo atual
 
 - Ciclo: 26.5
-- Capacidade implementada: integridade operacional, alinhamento entre repositorio e processo vivo e hardening da base
-- Estado: concluido com testes verdes, deriva antiga identificada e execucao controlada aderente ao codigo atual comprovada por endpoint de identidade
+- Capacidade implementada: fechamento das pendencias reais do nucleo utilizavel apos o hardening da base
+- Estado: concluido com testes verdes, fila viva validada, cliente nativo alinhado ao anti-replay e paths configurados de `device_registry` e `self_defense` funcionando em smoke real
 
 ## Entregas do ciclo
 
@@ -17,16 +17,20 @@
 - serializacao local das rotinas centrais do runtime com `RLock`
 - voz tratada apenas como sinal informativo; acesso administrativo depende de senha
 - novo relatorio tecnico do ciclo em `CYCLE_26_5_INTEGRIDADE_OPERACIONAL_REPORT_PTBR.md`
+- cliente nativo corrigido para enviar `nonce` e `timestamp` automaticamente
+- bootstrap do runtime ajustado para respeitar `device_registry_path` e `self_defense_report_path`
+- validacao viva da rota `/api/tarefas` com persistencia real em disco no store configurado
+- reclassificacao honesta do servico Windows e do Docker como trilhas auxiliares fora do nucleo local validado
 
 ## Validacao
 
 - suite executada: `python -m unittest discover -s tests -v`
-- resultado: `86 testes aprovados`
-- smoke real aderente ao codigo atual: `/health`, `/docs`, `/painel`, `/api/runtime/identidade`, `/api/comando` e `/api/cognicao/evolucao`
-- limitacao declarada: a aderencia foi comprovada em execucao controlada; a permanencia de um processo destacado neste shell continua dependente do ambiente hospedeiro
+- resultado: `89 testes aprovados`
+- smoke real aderente ao codigo atual: `/health`, `/painel`, `/api/status`, `/api/runtime/identidade`, `/api/tarefas`, `/api/comando` e cliente nativo contra `/api/comando`
+- limitacao declarada: servico Windows real e Docker real continuam dependentes do host alvo; nao fazem parte do nucleo local validado automaticamente nesta sessao
 
 ## Proximo bloco
 
 - BLOCO 12.6 - relatorio semanal de seguranca
 - migracao gradual da persistencia mais sensivel para armazenamento transacional simples
-- validacao administrativa do servico Windows neste host
+- validacao administrativa do servico Windows neste host alvo

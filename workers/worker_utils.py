@@ -1,4 +1,17 @@
-"""Helpers deterministas compartilhados entre workers do JARVIS."""
+"""
+JARVIS - Utilitarios Compartilhados de Workers
+
+Responsavel por:
+- padronizar respostas aceitas e rejeitadas dos workers
+- extrair texto util de tarefas para resumo e analise
+- dividir conteudo em frases e topicos de forma deterministica
+
+Integracoes principais:
+- workers.worker_runtime
+- workers.worker_study
+- workers.worker_studio
+- workers.worker_finance
+"""
 
 from __future__ import annotations
 
@@ -37,6 +50,12 @@ STOPWORDS = {
     "uma",
 }
 
+
+#
+# JARVIS_WORKER_DOMAIN
+# ==================================================
+# BLOCO: Construtores padrao de resposta
+# ==================================================
 
 def build_success_response(
     worker_id: str,
@@ -83,11 +102,38 @@ def build_domain_rejection(
 
 
 def domain_is_valid(task: Dict[str, Any], allowed_domains: List[str]) -> bool:
+    """
+    Verifica se o dominio da tarefa e aceito pelo worker atual.
+
+    Parametros:
+    - task: tarefa recebida pelo runtime.
+    - allowed_domains: dominios explicitamente aceitos pelo worker.
+
+    Retorno:
+    - `True` quando o dominio da tarefa pode ser processado.
+
+    Efeitos no sistema:
+    - nenhum; evita dispatch incorreto entre workers.
+    """
+
     domain = str(task.get("domain", "general"))
     return domain in allowed_domains
 
 
 def extract_text(task: Dict[str, Any]) -> str:
+    """
+    Consolida os campos textuais relevantes de uma tarefa.
+
+    Parametros:
+    - task: payload bruto recebido pelo worker.
+
+    Retorno:
+    - texto unico usado para analise, topicos e resumos.
+
+    Efeitos no sistema:
+    - nenhum; apenas normaliza entrada para processamento deterministico.
+    """
+
     metadata = task.get("metadata", {})
     if not isinstance(metadata, dict):
         metadata = {}
@@ -107,6 +153,20 @@ def extract_text(task: Dict[str, Any]) -> str:
 
 
 def split_sentences(text: str, limit: int = 5) -> List[str]:
+    """
+    Divide um texto em frases curtas para reutilizacao em resumos.
+
+    Parametros:
+    - text: texto livre a ser segmentado.
+    - limit: quantidade maxima de frases retornadas.
+
+    Retorno:
+    - lista de frases ja limpas.
+
+    Efeitos no sistema:
+    - nenhum; fornece material estruturado para os workers.
+    """
+
     sentences = [
         sentence.strip()
         for sentence in SENTENCE_SPLIT_PATTERN.split(text)
@@ -116,6 +176,20 @@ def split_sentences(text: str, limit: int = 5) -> List[str]:
 
 
 def extract_topics(text: str, limit: int = 5) -> List[str]:
+    """
+    Extrai topicos simples a partir de tokens relevantes do texto.
+
+    Parametros:
+    - text: conteudo textual da tarefa.
+    - limit: quantidade maxima de topicos retornados.
+
+    Retorno:
+    - lista deterministica de palavras-chave mais uteis.
+
+    Efeitos no sistema:
+    - nenhum; auxilia resumos e evidencia dos workers.
+    """
+
     tokens = TOKEN_PATTERN.findall(text.lower())
     topics: List[str] = []
     seen: set[str] = set()
