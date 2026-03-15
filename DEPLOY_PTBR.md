@@ -55,6 +55,8 @@ Variaveis principais:
   Caminho do store persistente da memoria procedural.
 - `JARVIS_DEVICE_REGISTRY_PATH`
   Caminho do registro de dispositivos autorizados.
+- `JARVIS_COGNITIVE_EVOLUTION_STORAGE_PATH`
+  Caminho do historico persistente de evolucao cognitiva.
 - `JARVIS_ADMIN_VOICE`
   Voz reconhecida que concede nivel administrativo.
 - `JARVIS_ADMIN_PASSWORD`
@@ -103,6 +105,7 @@ Arquivos principais:
 - fila: `data/task_queue_store.json`
 - memoria semantica: `data/semantic_memory_store.json`
 - memoria procedural: `data/procedural_memory_store.json`
+- evolucao cognitiva: `data/cognitive_evolution_history.json`
 - objetivos: `data/goals.json`
 - logs: `logs/jarvis.log`
 - relatorio de ambiente: `reports/environment_report.json`

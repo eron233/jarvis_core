@@ -25,6 +25,7 @@ from executive_planner.audit import traduzir_motivo, traduzir_status
 from memory_system.episodic_memory import EpisodicMemory
 from memory_system.procedural_memory import ProceduralMemory
 from memory_system.semantic_memory import SemanticMemory
+from runtime.cognitive_evolution import CognitiveEvolutionTracker
 from runtime.internal_agent_runtime import InternalAgentRuntime
 
 MOTIVOS_ENCERRAMENTO_PTBR = {
@@ -49,6 +50,7 @@ class SystemLoopConfig:
     semantic_storage_path: Optional[Path] = None
     procedural_storage_path: Optional[Path] = None
     goal_storage_path: Optional[Path] = None
+    cognitive_evolution_storage_path: Optional[Path] = None
 
 
 def bootstrap_runtime(
@@ -67,6 +69,12 @@ def bootstrap_runtime(
 
     if config.goal_storage_path is not None:
         runtime.goal_manager = _load_goal_manager(config.goal_storage_path, logger)
+
+    if config.cognitive_evolution_storage_path is not None:
+        runtime.cognitive_evolution_tracker = CognitiveEvolutionTracker(
+            storage_path=config.cognitive_evolution_storage_path
+        )
+        _load_cognitive_evolution_storage(runtime.cognitive_evolution_tracker, logger)
 
     episodic_memory = runtime.memory.get("episodic") if runtime.memory else None
     procedural_memory = runtime.memory.get("procedural") if runtime.memory else None
@@ -311,6 +319,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=None,
         help="Caminho alternativo do arquivo de persistencia dos objetivos.",
     )
+    parser.add_argument(
+        "--cognitive-evolution-storage-path",
+        type=Path,
+        default=None,
+        help="Caminho alternativo do arquivo de persistencia da evolucao cognitiva.",
+    )
     return parser
 
 
@@ -329,6 +343,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         semantic_storage_path=args.semantic_storage_path,
         procedural_storage_path=args.procedural_storage_path,
         goal_storage_path=args.goal_storage_path,
+        cognitive_evolution_storage_path=(
+            args.cognitive_evolution_storage_path
+            or PROJECT_ROOT / "data" / "cognitive_evolution_history.json"
+        ),
     )
     loop = JarvisSystemLoop(config=config)
     loop.run()
@@ -437,6 +455,48 @@ def _load_procedural_storage(
         "[bootstrap] memoria procedural carregada de {path} com {count} procedimento(s).".format(
             path=procedural_memory.storage_path,
             count=snapshot["procedure_count"],
+        ),
+    )
+
+
+def _load_cognitive_evolution_storage(
+    cognitive_tracker: CognitiveEvolutionTracker,
+    logger: Callable[[str], None] | None,
+) -> None:
+    if cognitive_tracker.storage_path is None:
+        return
+
+    cognitive_tracker.storage_path.parent.mkdir(parents=True, exist_ok=True)
+    if not cognitive_tracker.storage_path.exists():
+        snapshot = cognitive_tracker.snapshot()
+        _log_message(
+            logger,
+            "[bootstrap] evolucao cognitiva criada em {path} com {count} evento(s).".format(
+                path=cognitive_tracker.storage_path,
+                count=snapshot["event_count"],
+            ),
+        )
+        return
+
+    try:
+        snapshot = cognitive_tracker.load_snapshot()
+    except json.JSONDecodeError:
+        backup_path = _backup_corrupted_storage(cognitive_tracker.storage_path)
+        _log_message(
+            logger,
+            "[bootstrap] evolucao cognitiva corrompida. Backup salvo em {path}. Reinicializando armazenamento.".format(
+                path=backup_path,
+            ),
+        )
+        cognitive_tracker.events = []
+        cognitive_tracker.last_updated_at = None
+        snapshot = cognitive_tracker.snapshot()
+
+    _log_message(
+        logger,
+        "[bootstrap] evolucao cognitiva carregada de {path} com {count} evento(s).".format(
+            path=cognitive_tracker.storage_path,
+            count=snapshot["event_count"],
         ),
     )
 

@@ -18,6 +18,7 @@ from main import SystemLoopConfig
 from memory_system.episodic_memory import EpisodicMemory
 from memory_system.procedural_memory import ProceduralMemory
 from memory_system.semantic_memory import SemanticMemory
+from runtime.cognitive_evolution import CognitiveEvolutionTracker
 from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
@@ -45,13 +46,15 @@ class JarvisApiTests(unittest.TestCase):
         semantic_path = make_api_artifact_path(name, "semantic")
         goal_path = make_api_artifact_path(name, "goals")
         device_path = make_api_artifact_path(name, "devices")
-        for path in (queue_path, semantic_path, goal_path, device_path):
+        cognitive_path = make_api_artifact_path(name, "cognitive")
+        for path in (queue_path, semantic_path, goal_path, device_path, cognitive_path):
             reset_storage_path(path)
 
         runtime = InternalAgentRuntime()
         runtime.task_queue = TaskQueue(storage_path=queue_path)
         runtime.goal_manager = GoalManager(storage_path=goal_path)
         runtime.device_registry = DeviceRegistry(storage_path=device_path)
+        runtime.cognitive_evolution_tracker = CognitiveEvolutionTracker(storage_path=cognitive_path)
         runtime.memory = {
             "episodic": EpisodicMemory(),
             "semantic": SemanticMemory(storage_path=semantic_path),
@@ -65,6 +68,7 @@ class JarvisApiTests(unittest.TestCase):
             config=SystemLoopConfig(
                 queue_storage_path=queue_path,
                 semantic_storage_path=semantic_path,
+                cognitive_evolution_storage_path=cognitive_path,
                 install_signal_handlers=False,
             ),
         )
@@ -231,6 +235,34 @@ class JarvisApiTests(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["status"], "denied")
         self.assertEqual(payload["motivo"], "guest_restricted_command")
+
+    def test_api_expoe_mapa_e_analise_de_evolucao_cognitiva(self) -> None:
+        """Garante acesso ao historico cognitivo e ao comando textual de evolucao."""
+
+        client, headers = self.build_client("cognitive_evolution")
+
+        report_response = client.get("/api/cognicao/evolucao?nivel=historica", headers=headers)
+        self.assertEqual(report_response.status_code, 200)
+        report_payload = report_response.json()
+        self.assertIn("regioes", report_payload)
+        self.assertIn("trilhas_aprendizado", report_payload)
+        self.assertIn("resumo", report_payload)
+
+        analysis_response = client.get("/api/cognicao/evolucao/analise?nivel=historica", headers=headers)
+        self.assertEqual(analysis_response.status_code, 200)
+        analysis_payload = analysis_response.json()
+        self.assertIn("regioes_mais_utilizadas", analysis_payload)
+        self.assertIn("conexoes_mais_fortes", analysis_payload)
+
+        command_response = client.post(
+            "/api/comando",
+            headers=headers,
+            json={"texto": "Jarvis, mostre sua evolucao"},
+        )
+        self.assertEqual(command_response.status_code, 200)
+        command_payload = command_response.json()
+        self.assertEqual(command_payload["acao"], "cognitive_evolution_visualization")
+        self.assertIn("regioes", command_payload["dados_relacionados"])
 
 
 if __name__ == "__main__":

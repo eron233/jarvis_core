@@ -1,4 +1,17 @@
-"""Runner de servidor para deploy simples do JARVIS em VPS."""
+"""
+JARVIS - Servidor de Runtime
+
+Responsavel por:
+- inicializar o contexto de deploy do Jarvis
+- subir a API HTTP e o loop continuo opcional
+- registrar startup, shutdown e relatorios de ambiente
+
+Integracoes principais:
+- runtime.system_config
+- runtime.internal_agent_runtime
+- interface.api.app
+- main
+"""
 
 from __future__ import annotations
 
@@ -11,6 +24,12 @@ from pathlib import Path
 import sys
 from threading import Thread
 from typing import Any, Dict, Optional
+
+#
+# JARVIS_RUNTIME_ENTRYPOINT
+# ==================================================
+# BLOCO: Bootstrap do servidor e do loop continuo
+# ==================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -35,6 +54,21 @@ class RuntimeLoopWorker:
         config: SystemLoopConfig,
         logger: logging.Logger,
     ) -> None:
+        """
+        Prepara um executor em thread para o loop continuo do Jarvis.
+
+        Parametros:
+        - runtime: runtime compartilhado com a API.
+        - config: configuracao do loop continuo.
+        - logger: logger usado para mensagens de operacao.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - instancia o loop que podera ser iniciado em background.
+        """
+
         self.logger = logger
         self.loop = JarvisSystemLoop(
             runtime=runtime,
@@ -45,6 +79,19 @@ class RuntimeLoopWorker:
         self.last_summary: Dict[str, Any] | None = None
 
     def start(self) -> None:
+        """
+        Inicia a thread do loop continuo se ainda nao estiver ativa.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - dispara a execucao em background do loop do runtime.
+        """
+
         if self.thread is not None and self.thread.is_alive():
             return
 
@@ -56,6 +103,20 @@ class RuntimeLoopWorker:
         self.thread.start()
 
     def stop(self, reason: str = "requested", join_timeout: float = 30.0) -> Dict[str, Any] | None:
+        """
+        Solicita o encerramento do loop continuo e aguarda a thread.
+
+        Parametros:
+        - reason: motivo textual do encerramento.
+        - join_timeout: tempo maximo de espera pela parada da thread.
+
+        Retorno:
+        - ultimo resumo do loop, quando disponivel.
+
+        Efeitos no sistema:
+        - encerra de forma controlada o loop em background.
+        """
+
         if self.thread is None:
             return self.last_summary
 
@@ -68,9 +129,35 @@ class RuntimeLoopWorker:
         return deepcopy(self.last_summary)
 
     def _run_loop(self) -> None:
+        """
+        Executa o loop continuo e armazena seu ultimo resumo.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - atualiza `last_summary` com o resultado do loop.
+        """
+
         self.last_summary = self.loop.run()
 
     def _log(self, message: str) -> None:
+        """
+        Encaminha mensagens do loop para o logger do servidor.
+
+        Parametros:
+        - message: texto emitido pelo loop continuo.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - grava logs operacionais do loop em saida e arquivo.
+        """
+
         self.logger.info(message)
 
 
@@ -83,6 +170,21 @@ class JarvisServerContext:
         runtime: InternalAgentRuntime | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
+        """
+        Cria o contexto compartilhado entre servidor HTTP e runtime.
+
+        Parametros:
+        - config: configuracao central do ambiente.
+        - runtime: runtime opcional para injecao em testes.
+        - logger: logger opcional previamente configurado.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - prepara o estado usado no bootstrap, loop e shutdown.
+        """
+
         self.config = config
         self.runtime = runtime or InternalAgentRuntime()
         self.logger = logger or configure_logging(config)
@@ -185,14 +287,42 @@ class JarvisServerContext:
             semantic_storage_path=self.config.semantic_storage_path,
             procedural_storage_path=self.config.procedural_storage_path,
             goal_storage_path=self.config.goals_storage_path,
+            cognitive_evolution_storage_path=self.config.cognitive_evolution_storage_path,
         )
 
     def _write_report(self, path: Path, payload: Dict[str, Any]) -> None:
+        """
+        Persiste um relatorio operacional em JSON.
+
+        Parametros:
+        - path: arquivo de destino.
+        - payload: conteudo serializavel do relatorio.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - escreve relatórios de startup ou shutdown em disco.
+        """
+
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     @staticmethod
     def _utc_now() -> str:
+        """
+        Gera um timestamp UTC em formato ISO 8601.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - string temporal padronizada.
+
+        Efeitos no sistema:
+        - nenhum; utilitario de carimbo temporal do servidor.
+        """
+
         return datetime.now(timezone.utc).isoformat()
 
 

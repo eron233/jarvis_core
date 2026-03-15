@@ -83,6 +83,10 @@ Camada adicional de comando:
   Consulta objetivos
 - `GET /api/memoria/recente`
   Consulta memoria recente
+- `GET /api/cognicao/evolucao`
+  Payload visual do mapa evolutivo cognitivo
+- `GET /api/cognicao/evolucao/analise`
+  Analise interna das regioes e trilhas cognitivas
 - `GET /api/relatorio`
   Relatorio operacional geral
 - `GET /api/health`
@@ -114,6 +118,7 @@ Principais variaveis:
 - `JARVIS_REPORTS_DIR`
 - `JARVIS_PROCEDURAL_STORAGE_PATH`
 - `JARVIS_DEVICE_REGISTRY_PATH`
+- `JARVIS_COGNITIVE_EVOLUTION_STORAGE_PATH`
 - `JARVIS_ADMIN_VOICE`
 - `JARVIS_ADMIN_PASSWORD`
 
@@ -127,3 +132,4 @@ Arquivo base: `.env.example`
 - o deploy recomendado usa `python runtime/server.py`, `.\jarvis.cmd server` ou `docker compose up -d`
 - `runtime/server.py --check-config` pode ser usado para validar o ambiente antes do start efetivo
 - os relatorios operacionais agora incluem um resumo seguro da politica constitucional ativa
+- o painel consome os endpoints cognitivos e carrega os modulos do brain avatar por `/brain-avatar/*`

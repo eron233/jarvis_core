@@ -31,6 +31,7 @@ from typing import Any, Dict
 
 from constitutional_core.policy import load_constitutional_policy
 from executive_planner.audit import traduzir_estado, traduzir_motivo, traduzir_status
+from runtime.cognitive_evolution import CognitiveEvolutionTracker
 from runtime.autonomy import AutonomyController
 
 LOGGER = logging.getLogger("jarvis.server")
@@ -73,6 +74,7 @@ class InternalAgentRuntime:
         self.self_defense_monitor: Any = None
         self.learning_advisor: Any = None
         self.last_self_defense_report: Dict[str, Any] | None = None
+        self.cognitive_evolution_tracker: Any = None
 
     def attach_planner(
         self,
@@ -135,6 +137,12 @@ class InternalAgentRuntime:
         self.learning_advisor = (
             self.learning_advisor if self.learning_advisor is not None else SelfImprovementAdvisor()
         )
+        tracker_was_preconfigured = self.cognitive_evolution_tracker is not None
+        self.cognitive_evolution_tracker = (
+            self.cognitive_evolution_tracker
+            if self.cognitive_evolution_tracker is not None
+            else CognitiveEvolutionTracker(storage_path=None, auto_persist=False)
+        )
 
         if not self.memory:
             self.memory = {}
@@ -151,6 +159,9 @@ class InternalAgentRuntime:
         if not procedural_memory.procedures:
             procedural_memory.load_snapshot()
         procedural_memory.auto_persist = True
+        if not self.cognitive_evolution_tracker.events:
+            self.cognitive_evolution_tracker.load_snapshot()
+        self.cognitive_evolution_tracker.auto_persist = tracker_was_preconfigured
 
         if not self.workers:
             self.workers = {
@@ -237,6 +248,18 @@ class InternalAgentRuntime:
                 "worker_count": len(self.workers),
                 "politica_constitucional": self.constitutional_policy.identity.get("operating_mode"),
             }
+        )
+        self._record_cognitive_evolution_event(
+            event_type="EVENT_NETWORK_RESTRUCTURE",
+            region="runtime",
+            connections_created=len(self.workers),
+            connections_strengthened=len(self.memory),
+            estimated_cognitive_impact=0.82,
+            metadata={
+                "source": "runtime.bootstrap",
+                "workers": list(self.workers),
+                "memory_modules": list(self.memory),
+            },
         )
 
         if self.started_at is None:
@@ -399,6 +422,12 @@ class InternalAgentRuntime:
             },
         )
         self._record_procedural_outcome(task, worker_id, result)
+        self._record_cognitive_learning_from_task(
+            task=task,
+            worker_id=worker_id,
+            result=result,
+            procedural_guidance=procedural_guidance,
+        )
         self.goal_manager.record_task_result(task, result)
         return result
 
@@ -481,6 +510,30 @@ class InternalAgentRuntime:
                     "resposta": access_context["special_response"],
                 }
             )
+        elif "evolu" in normalized_command and "analis" in normalized_command:
+            evolution_level = self._resolve_cognitive_level_from_text(normalized_command)
+            cognitive_analysis = self.build_cognitive_evolution_analysis(level=evolution_level)
+            response_payload.update(
+                {
+                    "status": "authorized",
+                    "status_ptbr": traduzir_status("authorized"),
+                    "acao": "cognitive_evolution_analysis",
+                    "dados_relacionados": cognitive_analysis,
+                    "resposta": self._build_cognitive_analysis_message(cognitive_analysis, response_mode),
+                }
+            )
+        elif "evolu" in normalized_command:
+            evolution_level = self._resolve_cognitive_level_from_text(normalized_command)
+            evolution_report = self.build_cognitive_evolution_report(level=evolution_level)
+            response_payload.update(
+                {
+                    "status": "authorized",
+                    "status_ptbr": traduzir_status("authorized"),
+                    "acao": "cognitive_evolution_visualization",
+                    "dados_relacionados": evolution_report,
+                    "resposta": self._build_cognitive_evolution_message(evolution_report, response_mode),
+                }
+            )
         elif any(keyword in normalized_command for keyword in ("status", "saude", "relatorio")):
             system_report = self.build_system_report(last_cycle_result=self.last_cycle_result)
             response_payload.update(
@@ -560,7 +613,7 @@ class InternalAgentRuntime:
                     "status_ptbr": traduzir_status("authorized"),
                     "acao": "help",
                     "resposta": (
-                        "Comando nao reconhecido. Use: status, objetivos, tarefas, memoria, seguranca ou ciclo."
+                        "Comando nao reconhecido. Use: status, objetivos, tarefas, memoria, evolucao, seguranca ou ciclo."
                     ),
                 }
             )
@@ -734,6 +787,7 @@ class InternalAgentRuntime:
         goals_report = self.build_goal_operational_report()
         audit_report = self.build_audit_report()
         planner_report = self.build_planner_report()
+        evolution_report = self.build_cognitive_evolution_report(level="semanal")
         current_cycle = deepcopy(last_cycle_result or self.last_cycle_result)
 
         return {
@@ -767,6 +821,7 @@ class InternalAgentRuntime:
                 runtime_state=self.describe_state(),
                 analysis_report=self.last_self_defense_report or {},
             ),
+            "evolucao_cognitiva": evolution_report["resumo"],
             "saude_runtime": {
                 "status": "ok" if self.status == "initialized" else "degradado",
                 "status_ptbr": "saudavel" if self.status == "initialized" else "degradado",
@@ -925,6 +980,7 @@ class InternalAgentRuntime:
                 "ultima_escrita": latest_write,
                 "ultima_atualizacao_procedural": procedural_memory.latest_updated_at(),
                 "integridade_basica": integrity,
+                "eventos_evolutivos_cognitivos": len(self.cognitive_evolution_tracker.events),
             },
             "memorias_recentes": self.get_recent_semantic_entries(limit=5),
             "procedimentos_recentes": self.get_recent_procedural_entries(limit=5),
@@ -932,7 +988,34 @@ class InternalAgentRuntime:
                 {"dominio": domain, "total": total}
                 for domain, total in sorted(domain_counts.items(), key=lambda item: item[0])
             ],
+            "historico_evolutivo_recente": self.cognitive_evolution_tracker.recent_events(level="semanal", limit=5),
         }
+
+    def build_cognitive_evolution_report(self, level: str = "historica") -> Dict[str, Any]:
+        """Retorna o payload consolidado do mapa evolutivo cognitivo."""
+
+        self.bootstrap()
+        visualization = self.cognitive_evolution_tracker.build_visualization_payload(level=level)
+        visualization["estado_cognitivo"] = {
+            "procedimentos_disponiveis": len(self.memory["procedural"].procedures),
+            "entradas_semanticas": len(self.memory["semantic"].entries),
+            "objetivos_ativos": len(self.goal_manager.list_active_goals()),
+            "workers_ativos": list(self.workers),
+        }
+        return visualization
+
+    def build_cognitive_evolution_analysis(self, level: str = "historica") -> Dict[str, Any]:
+        """Retorna uma analise interna do crescimento cognitivo do Jarvis."""
+
+        self.bootstrap()
+        analysis = self.cognitive_evolution_tracker.build_analysis(level=level)
+        analysis["estado_runtime"] = {
+            "status": self.status,
+            "status_ptbr": traduzir_status(self.status),
+            "total_ciclos_executados": self.total_cycles_executed,
+            "ultima_execucao": self.last_cycle_at,
+        }
+        return analysis
 
     def build_audit_report(self) -> Dict[str, Any]:
         """Retorna um relatorio consolidado de auditoria."""
@@ -1086,12 +1169,17 @@ class InternalAgentRuntime:
         if self.device_registry is not None:
             device_snapshot = self.device_registry.snapshot()
 
+        cognitive_snapshot = None
+        if self.cognitive_evolution_tracker is not None:
+            cognitive_snapshot = self.cognitive_evolution_tracker.snapshot()
+
         return {
             "queue": deepcopy(queue_snapshot),
             "semantic_memory": deepcopy(semantic_snapshot),
             "procedural_memory": deepcopy(procedural_snapshot),
             "goals": deepcopy(goals_snapshot),
             "devices": deepcopy(device_snapshot),
+            "cognitive_evolution": deepcopy(cognitive_snapshot),
         }
 
     def describe_state(self) -> Dict[str, Any]:
@@ -1130,8 +1218,19 @@ class InternalAgentRuntime:
                 else None
             ),
             "device_registry_store": str(self.device_registry.storage_path) if self.device_registry is not None else None,
+            "cognitive_evolution_store": (
+                str(self.cognitive_evolution_tracker.storage_path)
+                if self.cognitive_evolution_tracker is not None
+                else None
+            ),
             "registered_device_count": len(self.device_registry.devices) if self.device_registry is not None else 0,
             "trusted_device_count": len(self.device_registry.list_devices(trusted_only=True)) if self.device_registry is not None else 0,
+            "cognitive_evolution_event_count": (
+                len(self.cognitive_evolution_tracker.events)
+                if self.cognitive_evolution_tracker is not None
+                else 0
+            ),
+            "brain_avatar_ready": self.cognitive_evolution_tracker is not None,
             "learning_module_loaded": self.learning_advisor is not None,
             "security_module_loaded": self.self_defense_monitor is not None,
             "last_cycle_at": self.last_cycle_at,
@@ -1214,6 +1313,110 @@ class InternalAgentRuntime:
                 "dispatch_status_ptbr": result["status_ptbr"],
             },
         )
+
+    def _record_cognitive_learning_from_task(
+        self,
+        task: Dict[str, Any],
+        worker_id: str,
+        result: Dict[str, Any],
+        procedural_guidance: list[Dict[str, Any]],
+    ) -> None:
+        """Converte execucoes concluidas em eventos evolutivos do cerebro cognitivo."""
+
+        worker_response = result.get("worker_response", {}) if isinstance(result, dict) else {}
+        evidence_count = len(task.get("evidence", [])) + len(worker_response.get("evidence", []))
+        created_connections = max(1, min(12, evidence_count or 1))
+        strengthened_connections = max(
+            1,
+            len((procedural_guidance[0] if procedural_guidance else {}).get("steps", []))
+            or len(worker_response.get("next_steps", []))
+            or 1,
+        )
+        base_region = str(task.get("domain") or worker_id)
+        impact = min(
+            2.0,
+            0.35
+            + (0.08 * created_connections)
+            + (0.04 * strengthened_connections)
+            + (0.2 if worker_response.get("summary") else 0.0),
+        )
+
+        self._record_cognitive_evolution_event(
+            event_type="EVENT_NEW_KNOWLEDGE",
+            region=base_region,
+            connections_created=created_connections,
+            connections_strengthened=max(1, strengthened_connections // 2),
+            estimated_cognitive_impact=impact,
+            metadata={
+                "source": "runtime.dispatch_task",
+                "task_id": task.get("task_id"),
+                "worker": worker_id,
+                "result_type": worker_response.get("result_type"),
+            },
+        )
+
+        if procedural_guidance:
+            self._record_cognitive_evolution_event(
+                event_type="EVENT_PATTERN_DISCOVERED",
+                region="procedural",
+                connections_created=1,
+                connections_strengthened=strengthened_connections,
+                estimated_cognitive_impact=min(1.7, impact + 0.18),
+                metadata={
+                    "source": "runtime.dispatch_task",
+                    "guidance_source": procedural_guidance[0].get("name"),
+                    "task_id": task.get("task_id"),
+                },
+            )
+
+        self._record_cognitive_evolution_event(
+            event_type="EVENT_SKILL_IMPROVED",
+            region=worker_id,
+            connections_created=0,
+            connections_strengthened=max(1, strengthened_connections),
+            estimated_cognitive_impact=min(1.9, impact + 0.12),
+            metadata={
+                "source": "runtime.procedural_memory",
+                "task_id": task.get("task_id"),
+                "worker": worker_id,
+            },
+        )
+        self._record_cognitive_evolution_event(
+            event_type="EVENT_MEMORY_CONSOLIDATED",
+            region="memory",
+            connections_created=max(1, created_connections // 2),
+            connections_strengthened=max(1, strengthened_connections),
+            estimated_cognitive_impact=min(1.6, impact + 0.08),
+            metadata={
+                "source": "runtime.memory_consolidation",
+                "task_id": task.get("task_id"),
+                "worker": worker_id,
+            },
+        )
+
+    def _record_cognitive_evolution_event(
+        self,
+        event_type: str,
+        region: str,
+        connections_created: int,
+        connections_strengthened: int,
+        estimated_cognitive_impact: float,
+        metadata: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any] | None:
+        """Registra um evento evolutivo em auditoria e memoria episodica."""
+
+        if self.cognitive_evolution_tracker is None:
+            return None
+
+        event = self.cognitive_evolution_tracker.record_event(
+            event_type=event_type,
+            region=region,
+            connections_created=connections_created,
+            connections_strengthened=connections_strengthened,
+            estimated_cognitive_impact=estimated_cognitive_impact,
+            metadata=metadata,
+        )
+        return event
 
     def _record_command_event(
         self,
@@ -1359,6 +1562,58 @@ class InternalAgentRuntime:
             risco=resumo.get("risco_geral", "desconhecido"),
             fraquezas=resumo.get("fraquezas_detectadas", 0),
             acoes=resumo.get("acoes_automaticas_realizadas", 0),
+        )
+
+    @staticmethod
+    def _resolve_cognitive_level_from_text(command_text: str) -> str:
+        """Infere o nivel temporal do mapa evolutivo a partir do comando textual."""
+
+        normalized = str(command_text or "").lower()
+        if "24h" in normalized or "recente" in normalized or "hoje" in normalized:
+            return "recente"
+        if "seman" in normalized:
+            return "semanal"
+        if "mens" in normalized:
+            return "mensal"
+        return "historica"
+
+    @staticmethod
+    def _build_cognitive_evolution_message(evolution_report: Dict[str, Any], response_mode: str) -> str:
+        """Resume o mapa evolutivo para a camada textual do Jarvis."""
+
+        if response_mode == "tecnico":
+            return json.dumps(evolution_report, ensure_ascii=False, indent=2)
+        resumo = evolution_report.get("resumo", {})
+        regiao = (resumo.get("regiao_mais_ativa") or {}).get("label", "nenhuma")
+        return (
+            "Mapa evolutivo pronto em {nivel}. Foram observados {eventos} evento(s), "
+            "{criadas} conexao(oes) nova(s) e {reforcadas} reforco(s) sinaptico(s). "
+            "A regiao com maior crescimento foi {regiao}."
+        ).format(
+            nivel=evolution_report.get("nivel_ptbr", evolution_report.get("nivel", "historica")),
+            eventos=resumo.get("total_eventos", 0),
+            criadas=resumo.get("conexoes_criadas", 0),
+            reforcadas=resumo.get("conexoes_reforcadas", 0),
+            regiao=regiao,
+        )
+
+    @staticmethod
+    def _build_cognitive_analysis_message(analysis_report: Dict[str, Any], response_mode: str) -> str:
+        """Resume a analise interna de evolucao cognitiva."""
+
+        if response_mode == "tecnico":
+            return json.dumps(analysis_report, ensure_ascii=False, indent=2)
+        mais_utilizadas = analysis_report.get("regioes_mais_utilizadas", [])
+        subutilizadas = analysis_report.get("regioes_subutilizadas", [])
+        regiao_forte = mais_utilizadas[0]["label"] if mais_utilizadas else "nenhuma"
+        regiao_fraca = subutilizadas[0]["label"] if subutilizadas else "nenhuma"
+        return (
+            "Analise cognitiva concluida. A regiao mais utilizada foi {forte} e a mais subutilizada foi {fraca}. "
+            "O sistema identificou {conexoes} trilha(s) forte(s) de aprendizado neste recorte."
+        ).format(
+            forte=regiao_forte,
+            fraca=regiao_fraca,
+            conexoes=len(analysis_report.get("conexoes_mais_fortes", [])),
         )
 
     # ==================================================

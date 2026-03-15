@@ -36,6 +36,7 @@ EVENTOS_PTBR = {
     "self_defense": "autodefesa",
     "runtime_watchdog": "watchdog_do_runtime",
     "security_remediation": "remediacao_de_seguranca",
+    "cognitive_evolution": "evolucao_cognitiva",
 }
 
 STATUS_PTBR = {

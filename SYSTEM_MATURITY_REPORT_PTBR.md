@@ -3,7 +3,7 @@
 ## Estado atual
 
 - Nivel atual: `M3 - utilizavel e persistente em consolidacao`
-- Subnivel: `M3.2 - sistema utilizavel com comando unificado`
+- Subnivel: `M3.3 - sistema utilizavel com introspeccao cognitiva`
 - Idioma visivel: `pt-BR`
 - Entrypoint do loop local: `jarvis_core/main.py`
 - Entrypoint do servidor: `jarvis_core/runtime/server.py`
@@ -39,6 +39,7 @@
 - gemeo de seguranca isolado com validacao de integridade
 - validacao interna controlada com cenarios defensivos por categoria
 - remediacao hibrida com auditoria e limite de autoaplicacao
+- mapa evolutivo cognitivo persistente e visual
 
 ## Blocos concluidos
 
@@ -58,6 +59,7 @@
 - BLOCO C - memoria procedural forte
 - BLOCO D - workers uteis por dominio
 - BLOCO E - acesso unificado, device manager e autodefesa operacional
+- BLOCO F - mapa evolutivo cognitivo
 
 ## Blocos parciais
 
@@ -84,4 +86,4 @@
 
 ## Leitura objetiva
 
-O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel utilizavel com comando unificado, autodefesa operacional e preparacao real para servico persistente. O sistema agora sobe de forma limpa, preserva estado, aplica politica viva, reaproveita memoria procedural, responde a comandos pela API e pelo cliente leve e entrega utilidade concreta por dominio via workers, sem abrir automacao perigosa. Os proximos gargalos reais passam a ser ativacao administrativa do servico Windows neste host, geracao controlada de tarefas e consolidacao de seguranca.
+O JARVIS ja ultrapassou o estado de nucleo local e entrou em um nivel utilizavel com comando unificado, autodefesa operacional, introspeccao cognitiva historica e preparacao real para servico persistente. O sistema agora sobe de forma limpa, preserva estado, aplica politica viva, reaproveita memoria procedural, responde a comandos pela API e pelo cliente leve, desenha um cerebro cognitivo evolutivo no painel e entrega utilidade concreta por dominio via workers, sem abrir automacao perigosa. Os proximos gargalos reais passam a ser ativacao administrativa do servico Windows neste host, geracao controlada de tarefas e consolidacao de seguranca.

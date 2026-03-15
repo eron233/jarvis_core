@@ -19,6 +19,7 @@ Este roadmap acompanha a evolucao do JARVIS de nucleo funcional para sistema res
 | C | Memoria procedural forte | Concluido |
 | D | Workers uteis por dominio | Concluido |
 | E | Acesso unificado, device manager e autodefesa operacional | Concluido |
+| F | Mapa evolutivo cognitivo | Concluido |
 | 12.1 | Nucleo de conhecimento de seguranca | Concluido |
 | 12.2 | Modelagem de ameaca | Concluido |
 | 12.3 | Gemeo de seguranca | Concluido |
@@ -31,6 +32,7 @@ Este roadmap acompanha a evolucao do JARVIS de nucleo funcional para sistema res
 
 - ativar o servico Windows em terminal administrativo neste host
 - BLOCO 12.6 - relatorio semanal de seguranca
+- conectar o relatorio semanal de seguranca ao historico cognitivo
 
 ## Criterio de continuidade
 

@@ -14,7 +14,11 @@ from interface.api.app import create_app
 
 
 class JarvisDashboardTests(unittest.TestCase):
+    """Valida redirecionamento e protecao do painel web."""
+
     def test_root_redireciona_para_o_painel(self) -> None:
+        """Confirma que a raiz do servico redireciona para o painel."""
+
         client = TestClient(
             create_app(
                 api_token="token-teste",
@@ -28,6 +32,8 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertEqual(response.headers["location"], "/painel")
 
     def test_painel_exige_validacao_do_dispositivo_confiavel(self) -> None:
+        """Verifica que o painel so abre apos a sessao do dispositivo confiavel."""
+
         client = TestClient(
             create_app(
                 api_token="token-teste",
@@ -57,6 +63,23 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertIn("Comando textual", unlocked_response.text)
         self.assertIn("Saude do sistema", unlocked_response.text)
         self.assertIn("Ultimas ocorrencias importantes", unlocked_response.text)
+        self.assertIn("Cerebro cognitivo evolutivo", unlocked_response.text)
+        self.assertIn("/brain-avatar/evolution_map.js", unlocked_response.text)
+
+    def test_assets_do_brain_avatar_sao_servidos_pela_api(self) -> None:
+        """Confirma que os modulos JS do brain avatar ficam acessiveis pelo mesmo servidor."""
+
+        client = TestClient(
+            create_app(
+                api_token="token-teste",
+                trusted_device_id="eron-celular-principal",
+            )
+        )
+
+        response = client.get("/brain-avatar/evolution_map.js")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("createEvolutionMap", response.text)
 
 
 if __name__ == "__main__":

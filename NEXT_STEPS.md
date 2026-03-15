@@ -4,6 +4,7 @@
 
 - ativar o servico Windows em terminal administrativo neste host
 - BLOCO 12.6 - relatorio semanal de seguranca
+- correlacionar seguranca consolidada com o mapa evolutivo cognitivo
 
 ## Delta recomendado
 
@@ -13,6 +14,7 @@
 - destacar imediatamente apenas riscos criticos e excecoes reais
 - separar novidades da semana de achados recorrentes
 - transformar a saida em base reutilizavel para painel e API
+- refletir impactos de seguranca no historico `cognitive_evolution_history.json`
 
 ## Criterios de aceite
 

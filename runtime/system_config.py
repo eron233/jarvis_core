@@ -131,6 +131,7 @@ class JarvisEnvironmentConfig:
     procedural_storage_path: Path | None = None
     goals_storage_path: Path | None = None
     device_registry_path: Path | None = None
+    cognitive_evolution_storage_path: Path | None = None
 
     def __post_init__(self) -> None:
         """
@@ -174,6 +175,11 @@ class JarvisEnvironmentConfig:
             self.device_registry_path = self.data_dir / "device_registry.json"
         else:
             self.device_registry_path = Path(self.device_registry_path)
+
+        if self.cognitive_evolution_storage_path is None:
+            self.cognitive_evolution_storage_path = self.data_dir / "cognitive_evolution_history.json"
+        else:
+            self.cognitive_evolution_storage_path = Path(self.cognitive_evolution_storage_path)
 
         self.env = self.env.strip().lower() or "development"
         self.log_level = self.log_level.strip().upper() or DEFAULT_LOG_LEVEL
@@ -227,6 +233,7 @@ class JarvisEnvironmentConfig:
             procedural_storage_path=env_map.get("JARVIS_PROCEDURAL_STORAGE_PATH"),
             goals_storage_path=env_map.get("JARVIS_GOALS_STORAGE_PATH"),
             device_registry_path=env_map.get("JARVIS_DEVICE_REGISTRY_PATH"),
+            cognitive_evolution_storage_path=env_map.get("JARVIS_COGNITIVE_EVOLUTION_STORAGE_PATH"),
         )
         config.validate()
         return config
@@ -267,6 +274,7 @@ class JarvisEnvironmentConfig:
             self.procedural_storage_path.parent,
             self.goals_storage_path.parent,
             self.device_registry_path.parent,
+            self.cognitive_evolution_storage_path.parent,
         }
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
@@ -290,6 +298,7 @@ class JarvisEnvironmentConfig:
                 "procedural_storage_path": str(self.procedural_storage_path),
                 "goals_storage_path": str(self.goals_storage_path),
                 "device_registry_path": str(self.device_registry_path),
+                "cognitive_evolution_storage_path": str(self.cognitive_evolution_storage_path),
             },
             "autenticacao_configurada": {
                 "token_configurado": self.token != DEFAULT_API_TOKEN,

@@ -213,6 +213,29 @@ Capacidades atuais:
 - envio de comando textual para o runtime
 - consulta de relatorios operacionais
 - atualizacao de estado e memoria recente
+- visualizacao do cerebro cognitivo evolutivo por canvas
+
+## Cerebro Cognitivo Evolutivo
+
+Local: `interface/brain_avatar/`
+
+Camada visual modular dedicada a representar crescimento historico da inteligencia do Jarvis sem criar um segundo backend. O brain avatar consome apenas a API atual e monta uma visualizacao leve sobre um canvas unico.
+
+Arquivos principais:
+
+- `interface/brain_avatar/brain_renderer.js`
+- `interface/brain_avatar/neural_network.js`
+- `interface/brain_avatar/neural_plasticity_engine.js`
+- `interface/brain_avatar/consciousness_map.js`
+- `interface/brain_avatar/evolution_map.js`
+
+Capacidades atuais:
+
+- renderizar regioes cognitivas e trilhas de aprendizado
+- alternar entre recortes recente, semanal, mensal e historico
+- destacar crescimento, reforco sinaptico e reestruturacao
+- consumir historico persistente vindo do runtime
+- operar com baixo custo via canvas unico e distribuicao procedural dos neuronios
 
 ## Cliente Leve
 

@@ -22,6 +22,7 @@ from typing import Annotated, Any, Dict, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from main import SystemLoopConfig, bootstrap_runtime
@@ -45,6 +46,7 @@ SESSION_COOKIE = "jarvis_trusted_device"
 SAFE_WORKER_IDS = {"runtime", "finance", "study", "studio"}
 DASHBOARD_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "index.html"
 ACCESS_GATE_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "access_gate.html"
+BRAIN_AVATAR_DIR = Path(__file__).resolve().parents[1] / "brain_avatar"
 
 
 class TaskCreateRequest(BaseModel):
@@ -95,6 +97,7 @@ def create_app(
             semantic_storage_path=effective_deployment_config.semantic_storage_path,
             procedural_storage_path=effective_deployment_config.procedural_storage_path,
             goal_storage_path=effective_deployment_config.goals_storage_path,
+            cognitive_evolution_storage_path=effective_deployment_config.cognitive_evolution_storage_path,
         )
 
     app = FastAPI(
@@ -124,6 +127,13 @@ def create_app(
         True if effective_deployment_config is None else effective_deployment_config.enable_dashboard
     )
     app.state.environment_report = _build_environment_report(app)
+
+    if BRAIN_AVATAR_DIR.exists():
+        app.mount(
+            "/brain-avatar",
+            StaticFiles(directory=BRAIN_AVATAR_DIR),
+            name="brain_avatar",
+        )
 
     def require_trusted_device(
         request: Request,
@@ -510,6 +520,50 @@ def create_app(
             "entradas_semanticas": semantic_entries,
             "eventos_episodicos": recent_events,
         }
+
+    @app.get("/api/cognicao/evolucao", dependencies=[Depends(require_trusted_device)])
+    def get_cognitive_evolution(
+        request: Request,
+        nivel: str = Query(default="historica"),
+    ) -> Dict[str, Any]:
+        """
+        Retorna o payload visual do mapa evolutivo cognitivo.
+
+        Parametros:
+        - request: requisicao HTTP atual.
+        - nivel: recorte temporal desejado para a evolucao.
+
+        Retorno:
+        - dados de visualizacao e resumo do crescimento cognitivo.
+
+        Efeitos no sistema:
+        - nenhum; apenas leitura do historico cognitivo.
+        """
+
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.build_cognitive_evolution_report(level=nivel)
+
+    @app.get("/api/cognicao/evolucao/analise", dependencies=[Depends(require_trusted_device)])
+    def get_cognitive_evolution_analysis(
+        request: Request,
+        nivel: str = Query(default="historica"),
+    ) -> Dict[str, Any]:
+        """
+        Retorna a analise interna do historico evolutivo cognitivo.
+
+        Parametros:
+        - request: requisicao HTTP atual.
+        - nivel: recorte temporal desejado para a analise.
+
+        Retorno:
+        - sintese das regioes e trilhas cognitivas mais relevantes.
+
+        Efeitos no sistema:
+        - nenhum; apenas consulta do historico cognitivo.
+        """
+
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.build_cognitive_evolution_analysis(level=nivel)
 
     @app.get("/api/relatorio", dependencies=[Depends(require_trusted_device)])
     def get_report(request: Request) -> Dict[str, Any]:

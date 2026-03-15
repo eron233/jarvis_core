@@ -161,6 +161,57 @@
       margin-top: 8px;
     }
 
+    .brain-card {
+      margin-top: 14px;
+      background: linear-gradient(180deg, rgba(10, 23, 38, 0.96), rgba(13, 32, 48, 0.98));
+      color: #f6f8fb;
+      border: 1px solid rgba(212, 175, 55, 0.24);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 18px 40px rgba(5, 13, 24, 0.24);
+    }
+
+    .brain-toolbar {
+      display: grid;
+      grid-template-columns: 1fr repeat(2, minmax(0, 180px));
+      gap: 10px;
+      margin-top: 12px;
+      align-items: end;
+    }
+
+    .brain-toolbar select {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 12px;
+      font: inherit;
+      background: rgba(255, 255, 255, 0.08);
+      color: #f6f8fb;
+    }
+
+    .brain-canvas {
+      width: 100%;
+      min-height: 420px;
+      margin-top: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #07111d;
+      display: block;
+    }
+
+    .brain-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .brain-status {
+      margin-top: 10px;
+      color: #f5deb3;
+      font-size: 0.92rem;
+    }
+
     @media (max-width: 640px) {
       .shell {
         padding: 12px;
@@ -172,6 +223,10 @@
 
       .hero h1 {
         font-size: 1.4rem;
+      }
+
+      .brain-toolbar {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -246,6 +301,36 @@
         <label>Ultimas ocorrencias importantes</label>
         <pre id="auditBox">Sem dados.</pre>
       </article>
+    </section>
+
+    <section class="brain-card">
+      <span class="label">Cerebro cognitivo evolutivo</span>
+      <h2>Mapa de evolucao da inteligencia</h2>
+      <p>Camada historica do cerebro do Jarvis para observar crescimento, plasticidade sinaptica e trilhas de aprendizado ao longo do tempo.</p>
+      <div class="brain-toolbar">
+        <label for="evolutionLevel">Zoom cognitivo
+          <select id="evolutionLevel">
+            <option value="recente">Nivel 1 - evolucao recente</option>
+            <option value="semanal">Nivel 2 - evolucao semanal</option>
+            <option value="mensal">Nivel 3 - evolucao mensal</option>
+            <option value="historica" selected>Nivel 4 - evolucao historica completa</option>
+          </select>
+        </label>
+        <button type="button" onclick="mostrarEvolucao()">Jarvis, mostre sua evolucao</button>
+        <button type="button" class="secondary" onclick="analisarEvolucao()">Jarvis, analise sua evolucao cognitiva</button>
+      </div>
+      <canvas id="brainCanvas" class="brain-canvas" width="960" height="420"></canvas>
+      <p class="brain-status" id="brainStatus">Mapa evolutivo ainda nao carregado.</p>
+      <div class="brain-grid">
+        <article class="card">
+          <label>Resumo evolutivo</label>
+          <pre id="brainSummary">Sem dados.</pre>
+        </article>
+        <article class="card">
+          <label>Analise cognitiva</label>
+          <pre id="brainAnalysis">Sem dados.</pre>
+        </article>
+      </div>
     </section>
   </main>
 
@@ -326,6 +411,9 @@
         renderJson("memoryBox", memoryReport);
         renderJson("healthBox", health);
         renderJson("auditBox", auditReport);
+        if (window.jarvisEvolutionMap && getToken() && getDeviceId()) {
+          await window.jarvisEvolutionMap.refresh();
+        }
         escreverResposta("Resumo atualizado com sucesso.");
       } catch (error) {
         escreverResposta(error.message);
@@ -368,6 +456,39 @@
       }
     }
 
+    function getEvolutionLevel() {
+      return document.getElementById("evolutionLevel").value || "historica";
+    }
+
+    async function mostrarEvolucao() {
+      if (!window.jarvisEvolutionMap) {
+        escreverResposta("Mapa evolutivo ainda nao inicializado.");
+        return;
+      }
+      try {
+        await window.jarvisEvolutionMap.showEvolution(getEvolutionLevel());
+        escreverResposta("Mapa evolutivo cognitivo atualizado.");
+      } catch (error) {
+        escreverResposta(error.message);
+      }
+    }
+
+    async function analisarEvolucao() {
+      if (!window.jarvisEvolutionMap) {
+        escreverResposta("Mapa evolutivo ainda nao inicializado.");
+        return;
+      }
+      try {
+        await window.jarvisEvolutionMap.analyzeEvolution(getEvolutionLevel());
+        escreverResposta("Analise interna da evolucao cognitiva concluida.");
+      } catch (error) {
+        escreverResposta(error.message);
+      }
+    }
+
+    window.apiFetch = apiFetch;
+    window.escreverResposta = escreverResposta;
+
     window.addEventListener("load", () => {
       document.getElementById("tokenInput").value = getToken();
       document.getElementById("deviceInput").value = getDeviceId();
@@ -377,6 +498,17 @@
       if (getToken() && getDeviceId()) {
         atualizarResumo();
       }
+    });
+  </script>
+  <script type="module">
+    import { createEvolutionMap } from "/brain-avatar/evolution_map.js";
+
+    window.jarvisEvolutionMap = createEvolutionMap({
+      canvas: document.getElementById("brainCanvas"),
+      summaryTarget: document.getElementById("brainSummary"),
+      analysisTarget: document.getElementById("brainAnalysis"),
+      statusTarget: document.getElementById("brainStatus"),
+      fetchJson: (path) => window.apiFetch(path),
     });
   </script>
 </body>

@@ -4,6 +4,14 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Criado `runtime/cognitive_evolution.py` para registrar e persistir o historico evolutivo cognitivo do Jarvis.
+- Criado `data/cognitive_evolution_history.json` como store persistente do mapa evolutivo.
+- Adicionados endpoints `/api/cognicao/evolucao` e `/api/cognicao/evolucao/analise`.
+- Integrado `runtime/internal_agent_runtime.py` para registrar eventos `EVENT_NEW_KNOWLEDGE`, `EVENT_PATTERN_DISCOVERED`, `EVENT_SKILL_IMPROVED`, `EVENT_MEMORY_CONSOLIDATED` e `EVENT_NETWORK_RESTRUCTURE`.
+- Criada a camada `interface/brain_avatar/` com renderer, plasticidade, consciencia e `evolution_map.js`.
+- Atualizado o painel para exibir o cerebro cognitivo evolutivo e acionar os comandos "Jarvis, mostre sua evolucao" e "Jarvis, analise sua evolucao cognitiva".
+- Adicionados testes dedicados em `tests/test_cognitive_evolution.py` e cobertura de API/painel para a nova camada cognitiva.
+- Validado smoke test real de `runtime/server.py`, `/health`, `/painel`, `/brain-avatar/evolution_map.js` e `/api/cognicao/evolucao`.
 - Criado `security/access_control.py` com acesso administrativo por voz reconhecida (`eron`), senha (`alter ego`) e fallback guest.
 - Criado `device/device_registry.py` para inventario e persistencia de dispositivos autorizados.
 - Adicionado endpoint textual `/api/comando` para comando unificado com resposta do runtime.

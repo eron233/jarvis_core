@@ -1,6 +1,6 @@
 # Sistema Cognitivo JARVIS
 
-O JARVIS e um sistema cognitivo modular em construcao, orientado por planejamento deterministico, memoria persistente, objetivos, API de controle, painel mobile-first, auditoria, operacao supervisionada e autodefesa interna. Nesta etapa, o projeto ja consegue subir como servico HTTP, manter fila e memoria entre reinicios, proteger acesso por token + dispositivo confiavel, ser preparado para deploy em VPS simples com Docker e manter um nucleo defensivo de conhecimento para diagnostico de risco do proprio sistema.
+O JARVIS e um sistema cognitivo modular em construcao, orientado por planejamento deterministico, memoria persistente, objetivos, API de controle, painel mobile-first, auditoria, operacao supervisionada, autodefesa interna e um cerebro cognitivo evolutivo para introspeccao historica. Nesta etapa, o projeto ja consegue subir como servico HTTP, manter fila e memoria entre reinicios, proteger acesso por token + dispositivo confiavel, ser preparado para deploy em VPS simples com Docker e manter um nucleo defensivo de conhecimento para diagnostico de risco do proprio sistema.
 
 Idioma padrao da camada visivel: `pt-BR`
 
@@ -16,6 +16,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - `device/`: registro de dispositivos autorizados
 - `interface/api/`: API FastAPI integrada ao nucleo
 - `interface/dashboard/`: painel web mobile-first servido pela API
+- `interface/brain_avatar/`: renderizacao modular do cerebro cognitivo evolutivo
 - `interface/native_client/`: cliente leve para comandos textuais
 - `service/`: servico leve do Windows para manter o Jarvis vivo
 - `learning/`: base inicial de autoaperfeicoamento estrutural
@@ -47,6 +48,9 @@ Idioma padrao da camada visivel: `pt-BR`
 - controle de acesso inicial por voz reconhecida, senha ou guest
 - registro persistente de dispositivos confiaveis
 - autodiagnostico de seguranca com gemeo, validacao e remediacao segura
+- mapa evolutivo cognitivo persistente em `data/cognitive_evolution_history.json`
+- painel com cerebro visual para crescimento historico e analise cognitiva
+- endpoints de evolucao cognitiva em `/api/cognicao/evolucao` e `/api/cognicao/evolucao/analise`
 - relatorios operacionais completos
 - healthcheck publico de deploy em `/health`
 - configuracao central por variaveis de ambiente

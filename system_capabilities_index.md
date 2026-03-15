@@ -22,6 +22,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Camada de objetivos | Implementada | `intent_layer/goal_manager.py` | JSON configuravel | `tests/test_goal_manager.py` |
 | Memoria semantica persistente | Implementada | `memory_system/semantic_memory.py` | JSON configuravel | `tests/test_semantic_memory.py` |
 | Memoria procedural persistente | Implementada | `memory_system/procedural_memory.py` | JSON configuravel | `tests/test_procedural_memory.py` |
+| Mapa evolutivo cognitivo | Implementada | `runtime/cognitive_evolution.py`, `interface/brain_avatar/evolution_map.js`, `interface/dashboard/index.html` | `data/cognitive_evolution_history.json` | `tests/test_cognitive_evolution.py`, `tests/test_api.py`, `tests/test_dashboard.py` |
 | Loop continuo local | Implementada | `main.py`, `startup_bootstrap.py` | Persistencia final de fila e memoria | `tests/test_main_loop.py`, `tests/test_startup_portability.py` |
 | Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py`, `constitutional_core/policy.py` | Reaproveita fila, memoria e objetivos | `tests/test_runtime_bootstrap.py`, `tests/test_constitutional_policy.py` |
 | API HTTP | Implementada | `interface/api/app.py` | Reaproveita o nucleo | `tests/test_api.py` |
@@ -53,6 +54,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - consultar e registrar guidance procedural
 - enriquecer memoria semantica com resumos e evidencias dos workers
 - registrar eventos episodicos e relatorios operacionais
+- registrar crescimento cognitivo historico em niveis temporalmente filtraveis
 - proteger execucao por regras de autonomia
 - persistir estado no shutdown
 - processar comandos textuais com niveis admin e guest
@@ -69,6 +71,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - listagem e criacao de tarefas
 - consulta de objetivos
 - consulta de memoria recente
+- mapa evolutivo cognitivo e analise cognitiva
 - relatorios completos de sistema, fila, objetivos, memoria e auditoria
 
 ## Capacidades do Deploy
@@ -118,6 +121,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Finalidade: objetivos persistentes
 - `data/device_registry.json`
   Finalidade: dispositivos autorizados
+- `data/cognitive_evolution_history.json`
+  Finalidade: historico persistente de crescimento cognitivo
 - `logs/jarvis.log`
   Finalidade: log operacional do servidor
 - `reports/environment_report.json`
@@ -157,6 +162,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Busca, dominio e persistencia da memoria semantica
 - `tests/test_procedural_memory.py`
   Estrutura, busca, persistencia e guidance procedural no runtime
+- `tests/test_cognitive_evolution.py`
+  Persistencia, niveis temporais e analise do historico cognitivo
 - `tests/test_workers.py`
   Utilidade concreta dos workers, evidencias e integracao com o dispatch
 - `tests/test_task_queue_persistence.py`
