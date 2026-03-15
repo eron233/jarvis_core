@@ -266,7 +266,7 @@ Quando o risco e baixo e a correcao e reversivel, o proprio sistema pode aplicar
 
 - `main.py` e `runtime/server.py` agora se bootstrapam de forma explicita para localizar a raiz do projeto em ambientes Python isolados
 - o modo servidor nao depende do executavel `uvicorn` no `PATH`
-- a API pode continuar sendo iniciada por `python -m runtime.server`, `python runtime/server.py` ou `.\jarvis.cmd server`
+- neste ambiente, a forma oficial e confiavel de subir o servidor e `python runtime/server.py` ou `.\jarvis.cmd server`
 - `runtime/server.py --check-config` valida ambiente e paths sem prender o terminal com o servidor
 
 ## Integridade Operacional

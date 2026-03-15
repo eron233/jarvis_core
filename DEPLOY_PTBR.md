@@ -197,7 +197,7 @@ docker compose logs -f jarvis_app
 O entrypoint do container executa:
 
 ```bash
-python -m runtime.server
+python runtime/server.py
 ```
 
 Esse runner:
@@ -220,3 +220,7 @@ No ambiente Windows atual, a forma oficial de menor atrito e:
 ```
 
 Isso evita depender de `python` ou `uvicorn` no `PATH` e usa o mesmo `runtime/server.py` do deploy.
+
+Observacao importante:
+
+- `python -m runtime.server` nao deve ser tratado como caminho oficial neste host, porque a resolucao do modulo nao ficou estavel neste ambiente

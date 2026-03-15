@@ -49,11 +49,12 @@ Acoes executadas:
 
 Prova da versao atual em execucao controlada:
 
-- commit: `8f2991bc5e6b6bffe5dd8d4514c82de5eed43485`
-- commit curto: `8f2991b`
+- commit: `5fb5634fb2f9a14487c3360d9fb88ae8169417d0`
+- commit curto: `5fb5634`
 - entrypoint: `runtime.server.run_server`
-- PID observado na execucao controlada: `8900`
+- PID observado na execucao controlada: `7644`
 - endpoint de identidade: `GET /api/runtime/identidade`
+- indicador do runtime: `repositorio_sujo=true`
 
 Rotas comprovadamente servidas pela versao atual:
 
@@ -68,6 +69,7 @@ Limitacao importante:
 
 - a aderencia entre codigo atual e processo servido foi comprovada em execucao controlada
 - neste ambiente de shell, a manutencao de um processo destacado de longa vida nao pode ser tratada como garantida sem supervisao externa
+- `python -m runtime.server` nao foi confiavel neste host; o entrypoint validado foi `python runtime/server.py`
 - portanto, a deriva foi eliminada e contida no ciclo de verificacao, mas a garantia de permanencia do processo depende do modelo de supervisao do host
 
 ## 4. Identidade de Build e Runtime
