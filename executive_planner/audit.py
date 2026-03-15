@@ -12,8 +12,13 @@ Integracoes principais:
 - interface.api.app
 """
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import json
+import os
+from pathlib import Path
+from threading import RLock
 from typing import Any, Dict, List, Optional
 
 #
@@ -85,7 +90,14 @@ MOTIVOS_PTBR = {
     "guest_restricted_command": "comando_restrito_ao_admin",
     "special_phrase_ignored": "frase_especial_ignorada",
     "runtime_exception": "excecao_no_loop_principal",
+    "missing_request_nonce": "nonce_ausente",
+    "missing_request_timestamp": "timestamp_ausente",
+    "invalid_request_timestamp": "timestamp_invalido",
+    "stale_request_timestamp": "timestamp_expirado",
+    "replay_detected": "replay_detectado",
 }
+
+DEFAULT_AUDIT_STORAGE_PATH = Path(__file__).resolve().parents[1] / "data" / "runtime_audit_store.json"
 
 
 def traduzir_evento(evento: str) -> str:
@@ -158,9 +170,17 @@ def traduzir_motivo(motivo: str) -> str:
 
 @dataclass
 class AuditLogger:
-    """Armazena entradas leves de auditoria em memoria."""
+    """Armazena entradas leves de auditoria em memoria e em JSON persistente."""
 
     entries: List[Dict[str, Any]] = field(default_factory=list)
+    storage_path: Path = field(default_factory=lambda: DEFAULT_AUDIT_STORAGE_PATH)
+    auto_persist: bool = False
+    _lock: RLock = field(default_factory=RLock, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Normaliza o caminho de persistencia do logger."""
+
+        self.storage_path = Path(self.storage_path)
 
     def record(self, event: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -177,22 +197,99 @@ class AuditLogger:
         - adiciona um novo evento rastreavel em `entries`.
         """
 
-        payload_normalizado = dict(payload or {})
+        with self._lock:
+            payload_normalizado = dict(payload or {})
 
-        if "status" in payload_normalizado:
-            payload_normalizado["status_ptbr"] = traduzir_status(str(payload_normalizado["status"]))
+            if "status" in payload_normalizado:
+                payload_normalizado["status_ptbr"] = traduzir_status(str(payload_normalizado["status"]))
 
-        if "reason" in payload_normalizado:
-            payload_normalizado["reason_ptbr"] = traduzir_motivo(str(payload_normalizado["reason"]))
+            if "reason" in payload_normalizado:
+                payload_normalizado["reason_ptbr"] = traduzir_motivo(str(payload_normalizado["reason"]))
 
-        if "decision" in payload_normalizado:
-            payload_normalizado["decision_ptbr"] = traduzir_estado(str(payload_normalizado["decision"]))
+            if "decision" in payload_normalizado:
+                payload_normalizado["decision_ptbr"] = traduzir_estado(str(payload_normalizado["decision"]))
 
-        entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "event": event,
-            "event_ptbr": traduzir_evento(event),
-            "payload": payload_normalizado,
-        }
-        self.entries.append(entry)
-        return entry
+            entry = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "event": event,
+                "event_ptbr": traduzir_evento(event),
+                "payload": payload_normalizado,
+            }
+            self.entries.append(entry)
+            if self.auto_persist:
+                self.save_to_disk()
+            return deepcopy(entry)
+
+    def snapshot(self) -> Dict[str, Any]:
+        """
+        Retorna o snapshot serializavel da auditoria atual.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - dicionario com metadados e todas as entradas registradas.
+
+        Efeitos no sistema:
+        - nenhum; usado por persistencia e relatorios.
+        """
+
+        with self._lock:
+            return {
+                "version": "0.1.0",
+                "entry_count": len(self.entries),
+                "saved_at": datetime.now(timezone.utc).isoformat(),
+                "entries": [deepcopy(entry) for entry in self.entries],
+            }
+
+    def save_to_disk(self) -> Dict[str, Any]:
+        """
+        Persiste a auditoria completa em disco via replace atomico.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - snapshot gravado em JSON.
+
+        Efeitos no sistema:
+        - grava a trilha de auditoria operacional e de seguranca.
+        """
+
+        with self._lock:
+            snapshot = self.snapshot()
+            self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+            temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
+            temp_path.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
+            os.replace(temp_path, self.storage_path)
+            return snapshot
+
+    def load_snapshot(self) -> Dict[str, Any]:
+        """
+        Recarrega a auditoria persistida anteriormente.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - snapshot carregado apos normalizacao.
+
+        Efeitos no sistema:
+        - substitui `entries` pelo conteudo persistido em disco.
+        """
+
+        with self._lock:
+            if not self.storage_path.exists():
+                self.entries = []
+                return self.snapshot()
+
+            snapshot = json.loads(self.storage_path.read_text(encoding="utf-8"))
+            entries = snapshot.get("entries", [])
+            self.entries = [deepcopy(entry) for entry in entries if isinstance(entry, dict)]
+            return self.snapshot()
+
+    def auto_persist_on_change(self, enabled: bool = True) -> None:
+        """Ativa ou desativa a persistencia automatica da auditoria."""
+
+        with self._lock:
+            self.auto_persist = enabled

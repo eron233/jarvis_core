@@ -4,6 +4,17 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Endurecida a integridade operacional do runtime com identidade explicita de build e boot em `runtime/runtime_identity.py`.
+- Adicionado endpoint `/api/runtime/identidade` para expor commit, timestamps, entrypoint, PID e configuracao relevante da versao em execucao.
+- Corrigida a janela de perda silenciosa da fila persistente: o planner deixou de consumir `drain()` antes do commit e passou a usar snapshot + replace atomico.
+- Endurecido `executive_planner/queue.py` com travas locais e escrita atomica em disco via `os.replace`.
+- Tornada a auditoria persistente em `executive_planner/audit.py` com snapshot, escrita atomica e recarga no bootstrap do runtime.
+- Adicionada protecao inicial anti-replay para chamadas mutantes da API por `nonce` e `timestamp`.
+- Ajustado `security/access_control.py` para tratar voz apenas como sinal informativo; acesso administrativo agora depende de senha.
+- Adicionadas travas reentrantes no runtime para reduzir condicoes de corrida nas rotinas centrais e nos relatorios.
+- Atualizados os testes de runtime, fila, API, dashboard, deploy e auditoria; adicionada `tests/test_audit_persistence.py`.
+- Validada a deriva do processo vivo antigo em `127.0.0.1:8010`, interrompido o processo residual e comprovada aderencia do codigo atual em execucao controlada.
+
 - Criado `runtime/cognitive_evolution.py` para registrar e persistir o historico evolutivo cognitivo do Jarvis.
 - Criado `data/cognitive_evolution_history.json` como store persistente do mapa evolutivo.
 - Adicionados endpoints `/api/cognicao/evolucao` e `/api/cognicao/evolucao/analise`.

@@ -1,5 +1,6 @@
 """Testes unitarios para a API real do JARVIS."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import unittest
@@ -11,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from device.device_registry import DeviceRegistry
+from executive_planner.audit import AuditLogger
 from executive_planner.queue import TaskQueue
 from interface.api.app import create_app
 from intent_layer.goal_manager import GoalManager
@@ -39,6 +41,19 @@ def reset_storage_path(path: Path) -> None:
 class JarvisApiTests(unittest.TestCase):
     """Valida a inicializacao, autenticacao e operacao basica da API."""
 
+    @staticmethod
+    def mutation_headers(
+        headers: dict[str, str],
+        nonce: str = "nonce-teste",
+        timestamp: str | None = None,
+    ) -> dict[str, str]:
+        """Retorna headers autenticados com protecao anti-replay para mutacoes."""
+
+        merged = dict(headers)
+        merged["X-Jarvis-Nonce"] = nonce
+        merged["X-Jarvis-Timestamp"] = timestamp or datetime.now(timezone.utc).isoformat()
+        return merged
+
     def build_client(self, name: str = "api") -> tuple[TestClient, dict[str, str]]:
         """Monta um cliente FastAPI com runtime isolado para teste."""
 
@@ -47,7 +62,8 @@ class JarvisApiTests(unittest.TestCase):
         goal_path = make_api_artifact_path(name, "goals")
         device_path = make_api_artifact_path(name, "devices")
         cognitive_path = make_api_artifact_path(name, "cognitive")
-        for path in (queue_path, semantic_path, goal_path, device_path, cognitive_path):
+        audit_path = make_api_artifact_path(name, "audit")
+        for path in (queue_path, semantic_path, goal_path, device_path, cognitive_path, audit_path):
             reset_storage_path(path)
 
         runtime = InternalAgentRuntime()
@@ -55,6 +71,7 @@ class JarvisApiTests(unittest.TestCase):
         runtime.goal_manager = GoalManager(storage_path=goal_path)
         runtime.device_registry = DeviceRegistry(storage_path=device_path)
         runtime.cognitive_evolution_tracker = CognitiveEvolutionTracker(storage_path=cognitive_path)
+        runtime.audit_logger = AuditLogger(storage_path=audit_path)
         runtime.memory = {
             "episodic": EpisodicMemory(),
             "semantic": SemanticMemory(storage_path=semantic_path),
@@ -69,6 +86,7 @@ class JarvisApiTests(unittest.TestCase):
                 queue_storage_path=queue_path,
                 semantic_storage_path=semantic_path,
                 cognitive_evolution_storage_path=cognitive_path,
+                audit_storage_path=audit_path,
                 install_signal_handlers=False,
             ),
         )
@@ -152,7 +170,7 @@ class JarvisApiTests(unittest.TestCase):
 
         task_response = client.post(
             "/api/tarefas",
-            headers=headers,
+            headers=self.mutation_headers(headers, nonce="task-1"),
             json={
                 "task_id": "api-task-1",
                 "goal": "Organizar estudo semanal",
@@ -170,7 +188,10 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(list_response.status_code, 200)
         self.assertEqual(list_response.json()["total"], 1)
 
-        cycle_response = client.post("/api/ciclos/executar", headers=headers)
+        cycle_response = client.post(
+            "/api/ciclos/executar",
+            headers=self.mutation_headers(headers, nonce="cycle-1"),
+        )
         self.assertEqual(cycle_response.status_code, 200)
         self.assertEqual(cycle_response.json()["resultado"]["status"], "executed")
 
@@ -195,7 +216,7 @@ class JarvisApiTests(unittest.TestCase):
 
         response = client.post(
             "/api/comando",
-            headers=headers,
+            headers=self.mutation_headers(headers, nonce="command-special"),
             json={"texto": "Jarvis ta ai", "voz_identificada": "eron"},
         )
 
@@ -211,7 +232,7 @@ class JarvisApiTests(unittest.TestCase):
 
         response = client.post(
             "/api/comando",
-            headers=headers,
+            headers=self.mutation_headers(headers, nonce="command-ignore"),
             json={"texto": "Jarvis ta ai", "voz_identificada": "visitante"},
         )
 
@@ -227,7 +248,7 @@ class JarvisApiTests(unittest.TestCase):
 
         response = client.post(
             "/api/comando",
-            headers=headers,
+            headers=self.mutation_headers(headers, nonce="command-guest"),
             json={"texto": "executar ciclo"},
         )
 
@@ -256,13 +277,50 @@ class JarvisApiTests(unittest.TestCase):
 
         command_response = client.post(
             "/api/comando",
-            headers=headers,
+            headers=self.mutation_headers(headers, nonce="command-evolution"),
             json={"texto": "Jarvis, mostre sua evolucao"},
         )
         self.assertEqual(command_response.status_code, 200)
         command_payload = command_response.json()
         self.assertEqual(command_payload["acao"], "cognitive_evolution_visualization")
         self.assertIn("regioes", command_payload["dados_relacionados"])
+
+    def test_api_rejeita_replay_em_operacao_mutante(self) -> None:
+        """Garante que a API negue reutilizacao do mesmo nonce em mutacao."""
+
+        client, headers = self.build_client("replay")
+        protected_headers = self.mutation_headers(
+            headers,
+            nonce="nonce-repetido",
+        )
+
+        first_response = client.post(
+            "/api/comando",
+            headers=protected_headers,
+            json={"texto": "status"},
+        )
+        second_response = client.post(
+            "/api/comando",
+            headers=protected_headers,
+            json={"texto": "status"},
+        )
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 403)
+        self.assertEqual(second_response.json()["detail"], "Requisicao repetida detectada.")
+
+    def test_api_expoe_identidade_do_runtime_em_endpoint_dedicado(self) -> None:
+        """Confirma rastreabilidade explicita do runtime que esta respondendo."""
+
+        client, headers = self.build_client("runtime_identity")
+
+        response = client.get("/api/runtime/identidade", headers=headers)
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["dados"]
+        self.assertIn("commit", payload)
+        self.assertIn("boot_timestamp", payload)
+        self.assertIn("entrypoint", payload)
 
 
 if __name__ == "__main__":

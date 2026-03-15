@@ -1,5 +1,6 @@
 """Testes unitarios para o painel mobile-first do JARVIS."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import unittest
@@ -52,6 +53,8 @@ class JarvisDashboardTests(unittest.TestCase):
             headers={
                 "X-Jarvis-Token": "token-teste",
                 "X-Jarvis-Device-Id": "eron-celular-principal",
+                "X-Jarvis-Nonce": "dashboard-session",
+                "X-Jarvis-Timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )
         self.assertEqual(session_response.status_code, 200)

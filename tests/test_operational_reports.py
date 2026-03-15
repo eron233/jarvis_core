@@ -1,5 +1,6 @@
 """Testes unitarios para os relatorios operacionais completos do JARVIS."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import unittest
@@ -10,6 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from executive_planner.audit import AuditLogger
 from executive_planner.queue import TaskQueue
 from interface.api.app import create_app
 from intent_layer.goal_manager import GoalManager
@@ -21,27 +23,47 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 def make_report_artifact_path(name: str, suffix: str) -> Path:
+    """Retorna o path isolado usado pelos testes de relatorios."""
+
     return PROJECT_ROOT / "tests" / "_api_artifacts" / f"{name}_{suffix}.json"
 
 
 def reset_storage_path(path: Path) -> None:
+    """Limpa o artefato persistente usado pelo cenario de teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class OperationalReportsTests(unittest.TestCase):
+    """Valida healthchecks e relatorios operacionais completos."""
+
+    @staticmethod
+    def mutation_headers(headers: dict[str, str], nonce: str) -> dict[str, str]:
+        """Retorna headers autenticados com protecao anti-replay."""
+
+        merged = dict(headers)
+        merged["X-Jarvis-Nonce"] = nonce
+        merged["X-Jarvis-Timestamp"] = datetime.now(timezone.utc).isoformat()
+        return merged
+
     def build_client(self, name: str = "reports") -> tuple[TestClient, dict[str, str]]:
+        """Monta um cliente autenticado para cenarios de relatorio."""
+
         queue_path = make_report_artifact_path(name, "queue")
         semantic_path = make_report_artifact_path(name, "semantic")
         goal_path = make_report_artifact_path(name, "goals")
+        audit_path = make_report_artifact_path(name, "audit")
         reset_storage_path(queue_path)
         reset_storage_path(semantic_path)
         reset_storage_path(goal_path)
+        reset_storage_path(audit_path)
 
         runtime = InternalAgentRuntime()
         runtime.task_queue = TaskQueue(storage_path=queue_path)
         runtime.goal_manager = GoalManager(storage_path=goal_path)
+        runtime.audit_logger = AuditLogger(storage_path=audit_path)
         runtime.memory = {
             "episodic": EpisodicMemory(),
             "semantic": SemanticMemory(storage_path=semantic_path),
@@ -55,6 +77,7 @@ class OperationalReportsTests(unittest.TestCase):
             config=SystemLoopConfig(
                 queue_storage_path=queue_path,
                 semantic_storage_path=semantic_path,
+                audit_storage_path=audit_path,
                 install_signal_handlers=False,
             ),
         )
@@ -66,6 +89,8 @@ class OperationalReportsTests(unittest.TestCase):
         return client, headers
 
     def seed_runtime(self, client: TestClient, headers: dict[str, str]) -> None:
+        """Popula o runtime com historico minimo para os relatorios."""
+
         active_goal = client.app.state.runtime.goal_manager.add_active_goal(
             title="Preparar revisao operacional",
             description="Objetivo para gerar historico de relatorios",
@@ -73,7 +98,7 @@ class OperationalReportsTests(unittest.TestCase):
         )
         client.post(
             "/api/tarefas",
-            headers=headers,
+            headers=self.mutation_headers(headers, "reports-task"),
             json={
                 "task_id": "report-task-1",
                 "goal": "Preparar revisao operacional",
@@ -84,12 +109,14 @@ class OperationalReportsTests(unittest.TestCase):
                 "parent_goal_id": active_goal["goal_id"],
             },
         )
-        client.post("/api/ciclos/executar", headers=headers)
+        client.post("/api/ciclos/executar", headers=self.mutation_headers(headers, "reports-cycle"))
         denied_headers = dict(headers)
         denied_headers["X-Jarvis-Device-Id"] = "device-indevido"
         client.get("/api/status", headers=denied_headers)
 
     def test_healthcheck_rico_exige_autenticacao_e_device_confiavel(self) -> None:
+        """Confirma protecao e conteudo do healthcheck autenticado."""
+
         client, headers = self.build_client("health_report")
 
         denied_response = client.get("/api/health")
@@ -105,8 +132,11 @@ class OperationalReportsTests(unittest.TestCase):
         self.assertTrue(payload["politica_constitucional_carregada"])
         self.assertTrue(payload["token_configurado"])
         self.assertTrue(payload["dispositivo_confiavel_configurado"])
+        self.assertIn("identidade_runtime", payload)
 
     def test_endpoints_de_relatorio_retorna_campos_principais(self) -> None:
+        """Verifica os campos essenciais dos relatorios expostos pela API."""
+
         client, headers = self.build_client("all_reports")
         self.seed_runtime(client, headers)
 
@@ -133,6 +163,7 @@ class OperationalReportsTests(unittest.TestCase):
         self.assertIn("quantidade_tarefas_concluidas", system_payload)
         self.assertIn("ultimas_falhas_registradas", system_payload)
         self.assertIn("politica_ativa", system_payload)
+        self.assertIn("identidade_runtime", system_payload)
         self.assertEqual(
             system_payload["politica_ativa"]["identidade"]["modo_operacao"],
             "autonomia_supervisionada_por_humanos",
@@ -154,4 +185,5 @@ class OperationalReportsTests(unittest.TestCase):
         self.assertIn("ultimas_decisoes_planner", audit_payload)
         self.assertIn("ultimos_acessos", audit_payload)
         self.assertIn("ultimas_tentativas_negadas", audit_payload)
+        self.assertIn("persistencia", audit_payload)
         self.assertGreaterEqual(len(audit_payload["ultimas_tentativas_negadas"]), 1)

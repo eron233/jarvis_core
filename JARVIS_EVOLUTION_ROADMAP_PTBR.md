@@ -30,9 +30,9 @@ Este roadmap acompanha a evolucao do JARVIS de nucleo funcional para sistema res
 
 ## Proxima prioridade
 
-- ativar o servico Windows em terminal administrativo neste host
+- consolidar a integridade operacional entre processo vivo, repositorio e observabilidade
+- migrar a persistencia critica mais sensivel para armazenamento mais robusto que JSON puro
 - BLOCO 12.6 - relatorio semanal de seguranca
-- conectar o relatorio semanal de seguranca ao historico cognitivo
 
 ## Criterio de continuidade
 
@@ -41,3 +41,4 @@ Este roadmap acompanha a evolucao do JARVIS de nucleo funcional para sistema res
 - fortalecer aprendizado operacional sem quebrar planner, runtime ou memoria semantica
 - manter qualquer uso de heuristica auditavel, persistente e reversivel
 - consolidar seguranca em relatorio periodico sem duplicar auditoria e relatorios operacionais
+- tratar identidade de runtime, fila, auditoria e protecao anti-replay como base obrigatoria antes de expansao forte

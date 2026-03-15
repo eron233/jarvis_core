@@ -8,6 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from executive_planner.audit import AuditLogger
 from executive_planner.queue import TaskQueue
 from memory_system.episodic_memory import EpisodicMemory
 from memory_system.procedural_memory import ProceduralMemory
@@ -16,27 +17,46 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 
 
 def make_queue_storage_path(name: str) -> Path:
+    """Retorna o path de fila usado nos cenarios de bootstrap."""
+
     return PROJECT_ROOT / "tests" / "_queue_artifacts" / f"{name}.json"
 
 
 def make_semantic_storage_path(name: str) -> Path:
+    """Retorna o path de memoria semantica usado nos cenarios de bootstrap."""
+
     return PROJECT_ROOT / "tests" / "_semantic_memory_artifacts" / f"{name}.json"
 
 
+def make_audit_storage_path(name: str) -> Path:
+    """Retorna o path de auditoria usado nos cenarios de bootstrap."""
+
+    return PROJECT_ROOT / "tests" / "_audit_artifacts" / f"{name}.json"
+
+
 def reset_storage_path(path: Path) -> None:
+    """Limpa o artefato persistente antes de cada cenario."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class RuntimeBootstrapTests(unittest.TestCase):
+    """Valida a inicializacao do runtime e seu primeiro ciclo funcional."""
+
     def test_bootstrap_initializes_core_runtime_components(self) -> None:
+        """Confirma que o bootstrap carrega os componentes centrais do runtime."""
+
         queue_storage_path = make_queue_storage_path("runtime_bootstrap")
         semantic_storage_path = make_semantic_storage_path("runtime_bootstrap")
+        audit_storage_path = make_audit_storage_path("runtime_bootstrap")
         reset_storage_path(queue_storage_path)
         reset_storage_path(semantic_storage_path)
+        reset_storage_path(audit_storage_path)
         runtime = InternalAgentRuntime()
         runtime.task_queue = TaskQueue(storage_path=queue_storage_path)
+        runtime.audit_logger = AuditLogger(storage_path=audit_storage_path)
         runtime.memory = {
             "episodic": EpisodicMemory(),
             "semantic": SemanticMemory(storage_path=semantic_storage_path),
@@ -58,6 +78,8 @@ class RuntimeBootstrapTests(unittest.TestCase):
         self.assertEqual(state["default_locale"], "pt-BR")
         self.assertTrue(state["politica_constitucional_carregada"])
         self.assertEqual(state["modo_autonomia"], "supervisionada_por_politica_constitucional")
+        self.assertIn("runtime_identity", state)
+        self.assertIn("commit", state["runtime_identity"])
         self.assertIsNotNone(runtime.planner)
         self.assertIs(runtime.planner.runtime, runtime)
         self.assertEqual(runtime.memory["semantic"].get("runtime_status"), "inicializado")
@@ -73,12 +95,17 @@ class RuntimeBootstrapTests(unittest.TestCase):
         self.assertEqual(runtime.memory["episodic"].recent(1)[0]["event_ptbr"], "inicializar")
 
     def test_bootstrapped_runtime_runs_one_planner_cycle(self) -> None:
+        """Verifica que um runtime bootstrapado executa um ciclo completo."""
+
         queue_storage_path = make_queue_storage_path("runtime_cycle")
         semantic_storage_path = make_semantic_storage_path("runtime_cycle")
+        audit_storage_path = make_audit_storage_path("runtime_cycle")
         reset_storage_path(queue_storage_path)
         reset_storage_path(semantic_storage_path)
+        reset_storage_path(audit_storage_path)
         runtime = InternalAgentRuntime()
         runtime.task_queue = TaskQueue(storage_path=queue_storage_path)
+        runtime.audit_logger = AuditLogger(storage_path=audit_storage_path)
         runtime.memory = {
             "episodic": EpisodicMemory(),
             "semantic": SemanticMemory(storage_path=semantic_storage_path),

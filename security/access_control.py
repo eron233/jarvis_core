@@ -3,7 +3,8 @@ JARVIS - Controle de Acesso Unificado
 
 Responsavel por:
 - classificar acesso administrativo ou guest
-- validar identidade declarada por voz reconhecida ou senha
+- tratar voz declarada apenas como contexto auxiliar, nao como prova administrativa
+- validar acesso administrativo real por senha
 - tratar a frase especial reservada do sistema
 
 Integracoes principais:
@@ -66,16 +67,17 @@ class AccessControl:
         normalized_password = _normalize_text(password)
         authorized_methods: list[str] = []
 
-        if normalized_voice and normalized_voice == _normalize_text(self.admin_voice):
-            authorized_methods.append("voz")
+        voice_matches_admin = bool(
+            normalized_voice and normalized_voice == _normalize_text(self.admin_voice)
+        )
         if normalized_password and normalized_password == _normalize_text(self.admin_password):
             authorized_methods.append("senha")
 
         access_level = "admin" if authorized_methods else "guest"
         is_special_wake_phrase = normalized_phrase == SPECIAL_WAKE_PHRASE
-        should_ignore = is_special_wake_phrase and normalized_voice != _normalize_text(self.admin_voice)
+        should_ignore = is_special_wake_phrase and not voice_matches_admin
         special_response = None
-        if is_special_wake_phrase and normalized_voice == _normalize_text(self.admin_voice):
+        if is_special_wake_phrase and voice_matches_admin:
             special_response = "Sim, Sr. Maciel."
 
         return {
@@ -83,6 +85,8 @@ class AccessControl:
             "admin_access": access_level == "admin",
             "authenticated_by": authorized_methods or ["guest"],
             "recognized_voice": normalized_voice or None,
+            "recognized_voice_matches_admin": voice_matches_admin,
+            "voice_is_informative_only": True,
             "special_wake_phrase": is_special_wake_phrase,
             "should_ignore": should_ignore,
             "special_response": special_response,

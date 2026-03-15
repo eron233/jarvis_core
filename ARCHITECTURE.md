@@ -359,3 +359,32 @@ Capacidades atuais:
 - bloqueio de autoalteracao para autenticacao estrutural, constitutional core e identidade fundamental
 
 Essa base agora ja cobre conhecimento defensivo, modelagem de ameaca interna, o gemeo de seguranca, a validacao interna controlada e a remediacao hibrida. Os proximos subblocos devem reutilizar esses artefatos para o relatorio consolidado de seguranca e a politica de consolidacao por excecao.
+
+## Integridade de Runtime e Base Operacional
+
+Locais principais:
+
+- `runtime/runtime_identity.py`
+- `runtime/internal_agent_runtime.py`
+- `executive_planner/queue.py`
+- `executive_planner/planner.py`
+- `executive_planner/audit.py`
+- `interface/api/app.py`
+
+O ciclo 26.5 introduziu uma camada explicita de integridade operacional para reduzir a distancia entre codigo versionado, testes e processo realmente servido.
+
+Capacidades atuais:
+
+- identidade de build e boot exposta pelo runtime
+- endpoint dedicado para inspecionar a versao efetivamente carregada
+- recarga da auditoria persistente no bootstrap
+- escrita atomica para fila e auditoria em JSON
+- mitigacao inicial de replay em chamadas mutantes da API
+- serializacao local das rotinas centrais do runtime com `RLock`
+- trilha de acesso e erro correlacionada com a identidade do processo em execucao
+
+Limites atuais:
+
+- a persistencia continua baseada em JSON e ainda nao elimina todos os riscos de concorrencia multi-processo
+- a serializacao atual endurece o runtime, mas nao substitui uma refatoracao estrutural para isolamento de estado
+- a mitigacao anti-replay e local ao processo; ela nao equivale a autenticacao forte assinada

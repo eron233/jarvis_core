@@ -45,6 +45,7 @@ tests/_policy_artifacts/
 tests/_procedural_artifacts/
 tests/_worker_artifacts/
 tests/_cognitive_evolution_artifacts/
+tests/_audit_artifacts/
 data/*
 !data/.gitkeep
 logs/*

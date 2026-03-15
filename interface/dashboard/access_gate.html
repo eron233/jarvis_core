@@ -113,6 +113,13 @@
       localStorage.setItem(DEVICE_KEY, deviceId);
     }
 
+    function criarHeadersDeProtecao() {
+      return {
+        "X-Jarvis-Nonce": crypto.randomUUID(),
+        "X-Jarvis-Timestamp": new Date().toISOString(),
+      };
+    }
+
     async function validarDispositivo() {
       const token = document.getElementById("tokenInput").value.trim();
       const deviceId = document.getElementById("deviceInput").value.trim();
@@ -129,6 +136,7 @@
           headers: {
             "X-Jarvis-Token": token,
             "X-Jarvis-Device-Id": deviceId,
+            ...criarHeadersDeProtecao(),
           },
         });
         const payload = await response.json();

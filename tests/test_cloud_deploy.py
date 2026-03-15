@@ -3,6 +3,7 @@
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -20,17 +21,25 @@ from runtime.system_config import JarvisEnvironmentConfig
 
 
 def make_cloud_artifact_path(name: str, suffix: str) -> Path:
+    """Retorna um path isolado para artefatos de nuvem simulada."""
+
     return PROJECT_ROOT / "tests" / "_cloud_artifacts" / name / suffix
 
 
 def reset_path(path: Path) -> None:
+    """Recria o ponto de partida limpo de um arquivo de teste."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
 
 
 class CloudPreparationTests(unittest.TestCase):
+    """Valida configuracao, recuperacao e contexto de servidor para deploy."""
+
     def test_environment_config_loads_defaults(self) -> None:
+        """Confirma que a configuracao padrao de ambiente e carregada."""
+
         config = JarvisEnvironmentConfig.from_env(environ={}, project_root=PROJECT_ROOT)
 
         self.assertEqual(config.env, "development")
@@ -44,6 +53,8 @@ class CloudPreparationTests(unittest.TestCase):
         self.assertEqual(config.goals_storage_path, PROJECT_ROOT / "data" / "goals.json")
 
     def test_environment_config_rejects_production_without_secrets(self) -> None:
+        """Garante que producao sem segredos seja rejeitada."""
+
         with self.assertRaises(ValueError) as context:
             JarvisEnvironmentConfig.from_env(
                 environ={"JARVIS_ENV": "production"},
@@ -54,6 +65,8 @@ class CloudPreparationTests(unittest.TestCase):
         self.assertIn("JARVIS_TRUSTED_DEVICE_ID", str(context.exception))
 
     def test_bootstrap_runtime_recovers_corrupted_storage(self) -> None:
+        """Verifica recuperacao segura quando os arquivos persistidos estao corrompidos."""
+
         scenario_dir = make_cloud_artifact_path("corrupted_recovery", "data")
         queue_path = scenario_dir / "task_queue_store.json"
         semantic_path = scenario_dir / "semantic_memory_store.json"
@@ -86,6 +99,8 @@ class CloudPreparationTests(unittest.TestCase):
         self.assertEqual(runtime.describe_state()["semantic_store"], str(semantic_path))
 
     def test_server_context_bootstraps_paths_and_exposes_health(self) -> None:
+        """Valida bootstrap do contexto de servidor e exposicao dos endpoints principais."""
+
         scenario_dir = make_cloud_artifact_path("server_context", "workspace")
         data_dir = scenario_dir / "data"
         logs_dir = scenario_dir / "logs"
@@ -144,34 +159,35 @@ class CloudPreparationTests(unittest.TestCase):
             semantic_storage_path=semantic_path,
             goals_storage_path=goals_path,
         )
-        config.validate()
+        with patch.dict("os.environ", {"JARVIS_ADMIN_PASSWORD": "senha-deploy-segura"}, clear=False):
+            config.validate()
 
-        context = JarvisServerContext(config=config)
-        bootstrap_state = context.bootstrap()
-        app = context.build_app()
-        client = TestClient(app)
+            context = JarvisServerContext(config=config)
+            bootstrap_state = context.bootstrap()
+            app = context.build_app()
+            client = TestClient(app)
 
-        public_health = client.get("/health")
-        protected_health = client.get(
-            "/api/health",
-            headers={
-                "X-Jarvis-Token": "token-deploy-seguro",
-                "X-Jarvis-Device-Id": "eron-celular-principal",
-            },
-        )
-        panel_response = client.get("/painel")
+            public_health = client.get("/health")
+            protected_health = client.get(
+                "/api/health",
+                headers={
+                    "X-Jarvis-Token": "token-deploy-seguro",
+                    "X-Jarvis-Device-Id": "eron-celular-principal",
+                },
+            )
+            panel_response = client.get("/painel")
 
-        self.assertEqual(bootstrap_state["status"], "initialized")
-        self.assertEqual(public_health.status_code, 200)
-        self.assertEqual(protected_health.status_code, 200)
-        self.assertEqual(panel_response.status_code, 200)
-        self.assertEqual(public_health.json()["ambiente"]["porta_api"], 8111)
-        self.assertTrue(public_health.json()["fila_carregada"])
-        self.assertTrue(public_health.json()["memoria_carregada"])
-        self.assertTrue(public_health.json()["objetivos_carregados"])
-        self.assertTrue(protected_health.json()["configuracao_minima_valida"])
-        self.assertTrue(config.startup_report_path.exists())
-        self.assertTrue(config.log_file_path.exists())
+            self.assertEqual(bootstrap_state["status"], "initialized")
+            self.assertEqual(public_health.status_code, 200)
+            self.assertEqual(protected_health.status_code, 200)
+            self.assertEqual(panel_response.status_code, 200)
+            self.assertEqual(public_health.json()["ambiente"]["porta_api"], 8111)
+            self.assertTrue(public_health.json()["fila_carregada"])
+            self.assertTrue(public_health.json()["memoria_carregada"])
+            self.assertTrue(public_health.json()["objetivos_carregados"])
+            self.assertTrue(protected_health.json()["configuracao_minima_valida"])
+            self.assertTrue(config.startup_report_path.exists())
+            self.assertTrue(config.log_file_path.exists())
 
 
 if __name__ == "__main__":

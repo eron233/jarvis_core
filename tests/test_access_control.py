@@ -15,12 +15,14 @@ class AccessControlTests(unittest.TestCase):
     """Valida a politica inicial de acesso do Jarvis."""
 
     def test_special_phrase_returns_reserved_response_for_admin_voice(self) -> None:
-        """Confirma a resposta reservada quando a voz reconhecida e a do admin."""
+        """Confirma a resposta reservada sem tratar voz textual como admin real."""
 
         access = AccessControl().evaluate(phrase="Jarvis ta ai", voice_id="eron")
 
-        self.assertTrue(access["admin_access"])
+        self.assertFalse(access["admin_access"])
         self.assertEqual(access["special_response"], "Sim, Sr. Maciel.")
+        self.assertTrue(access["recognized_voice_matches_admin"])
+        self.assertTrue(access["voice_is_informative_only"])
 
     def test_special_phrase_is_ignored_without_admin_voice(self) -> None:
         """Garante que a frase reservada seja ignorada sem a voz reconhecida."""

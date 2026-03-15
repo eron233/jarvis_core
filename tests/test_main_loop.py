@@ -26,6 +26,12 @@ def make_semantic_storage_path(name: str) -> Path:
     return PROJECT_ROOT / "tests" / "_main_loop_artifacts" / f"{name}_semantic.json"
 
 
+def make_audit_storage_path(name: str) -> Path:
+    """Retorna o path de auditoria usado nos testes do loop."""
+
+    return PROJECT_ROOT / "tests" / "_main_loop_artifacts" / f"{name}_audit.json"
+
+
 def reset_storage_path(path: Path) -> None:
     """Remove artefatos antigos antes da execucao do teste."""
 
@@ -42,8 +48,10 @@ class MainLoopTests(unittest.TestCase):
 
         queue_storage_path = make_queue_storage_path("bootstrap")
         semantic_storage_path = make_semantic_storage_path("bootstrap")
+        audit_storage_path = make_audit_storage_path("bootstrap")
         reset_storage_path(queue_storage_path)
         reset_storage_path(semantic_storage_path)
+        reset_storage_path(audit_storage_path)
 
         queue = TaskQueue(storage_path=queue_storage_path)
         queue.enqueue(
@@ -74,6 +82,7 @@ class MainLoopTests(unittest.TestCase):
             config=SystemLoopConfig(
                 queue_storage_path=queue_storage_path,
                 semantic_storage_path=semantic_storage_path,
+                audit_storage_path=audit_storage_path,
                 install_signal_handlers=False,
             ),
         )
@@ -96,11 +105,13 @@ class MainLoopTests(unittest.TestCase):
                 install_signal_handlers=False,
                 queue_storage_path=make_queue_storage_path("idle"),
                 semantic_storage_path=make_semantic_storage_path("idle"),
+                audit_storage_path=make_audit_storage_path("idle"),
             ),
             logger=logs.append,
         )
         reset_storage_path(loop.config.queue_storage_path)
         reset_storage_path(loop.config.semantic_storage_path)
+        reset_storage_path(loop.config.audit_storage_path)
 
         summary = loop.run()
 
@@ -116,8 +127,10 @@ class MainLoopTests(unittest.TestCase):
 
         queue_storage_path = make_queue_storage_path("restart")
         semantic_storage_path = make_semantic_storage_path("restart")
+        audit_storage_path = make_audit_storage_path("restart")
         reset_storage_path(queue_storage_path)
         reset_storage_path(semantic_storage_path)
+        reset_storage_path(audit_storage_path)
 
         queue = TaskQueue(storage_path=queue_storage_path)
         queue.enqueue(
@@ -142,6 +155,7 @@ class MainLoopTests(unittest.TestCase):
                 install_signal_handlers=False,
                 queue_storage_path=queue_storage_path,
                 semantic_storage_path=semantic_storage_path,
+                audit_storage_path=audit_storage_path,
             ),
             logger=lambda _: None,
         )
@@ -156,6 +170,7 @@ class MainLoopTests(unittest.TestCase):
             config=SystemLoopConfig(
                 queue_storage_path=queue_storage_path,
                 semantic_storage_path=semantic_storage_path,
+                audit_storage_path=audit_storage_path,
                 install_signal_handlers=False,
             ),
         )
@@ -187,8 +202,10 @@ class MainLoopTests(unittest.TestCase):
         logs: list[str] = []
         queue_path = make_queue_storage_path("watchdog")
         semantic_path = make_semantic_storage_path("watchdog")
+        audit_path = make_audit_storage_path("watchdog")
         reset_storage_path(queue_path)
         reset_storage_path(semantic_path)
+        reset_storage_path(audit_path)
 
         loop = JarvisSystemLoop(
             runtime=FlakyRuntime(),
@@ -200,6 +217,7 @@ class MainLoopTests(unittest.TestCase):
                 install_signal_handlers=False,
                 queue_storage_path=queue_path,
                 semantic_storage_path=semantic_path,
+                audit_storage_path=audit_path,
             ),
             logger=logs.append,
         )

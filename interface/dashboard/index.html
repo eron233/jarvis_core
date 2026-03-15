@@ -380,6 +380,10 @@
       }
       headers["X-Jarvis-Token"] = token;
       headers["X-Jarvis-Device-Id"] = deviceId;
+      if (["POST", "PUT", "PATCH", "DELETE"].includes((options.method || "GET").toUpperCase())) {
+        headers["X-Jarvis-Nonce"] = crypto.randomUUID();
+        headers["X-Jarvis-Timestamp"] = new Date().toISOString();
+      }
 
       const response = await fetch(path, { ...options, headers });
       const payload = await response.json().catch(() => ({}));

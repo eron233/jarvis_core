@@ -42,6 +42,8 @@ from runtime.system_config import (
 
 TOKEN_HEADER = "X-Jarvis-Token"
 DEVICE_HEADER = "X-Jarvis-Device-Id"
+NONCE_HEADER = "X-Jarvis-Nonce"
+TIMESTAMP_HEADER = "X-Jarvis-Timestamp"
 SESSION_COOKIE = "jarvis_trusted_device"
 SAFE_WORKER_IDS = {"runtime", "finance", "study", "studio"}
 DASHBOARD_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "index.html"
@@ -98,6 +100,7 @@ def create_app(
             procedural_storage_path=effective_deployment_config.procedural_storage_path,
             goal_storage_path=effective_deployment_config.goals_storage_path,
             cognitive_evolution_storage_path=effective_deployment_config.cognitive_evolution_storage_path,
+            audit_storage_path=effective_deployment_config.audit_storage_path,
         )
 
     app = FastAPI(
@@ -127,6 +130,16 @@ def create_app(
         True if effective_deployment_config is None else effective_deployment_config.enable_dashboard
     )
     app.state.environment_report = _build_environment_report(app)
+    app.state.runtime.configure_runtime_identity(
+        entrypoint="interface.api.app.create_app",
+        environment=app.state.environment_report,
+        loaded_config={
+            "host_api": app.state.environment_report.get("host_api"),
+            "porta_api": app.state.environment_report.get("porta_api"),
+            "loop_runtime_ativo": app.state.environment_report.get("loop_runtime_ativo"),
+            "painel_ativo": app.state.environment_report.get("painel_ativo"),
+        },
+    )
 
     if BRAIN_AVATAR_DIR.exists():
         app.mount(
@@ -139,6 +152,8 @@ def create_app(
         request: Request,
         x_jarvis_token: Annotated[str | None, Header(alias=TOKEN_HEADER)] = None,
         x_jarvis_device_id: Annotated[str | None, Header(alias=DEVICE_HEADER)] = None,
+        x_jarvis_nonce: Annotated[str | None, Header(alias=NONCE_HEADER)] = None,
+        x_jarvis_timestamp: Annotated[str | None, Header(alias=TIMESTAMP_HEADER)] = None,
     ) -> Dict[str, str]:
         """
         Valida token e device id antes de liberar endpoints protegidos.
@@ -159,6 +174,8 @@ def create_app(
             request=request,
             token=x_jarvis_token,
             device_id=x_jarvis_device_id,
+            request_nonce=x_jarvis_nonce,
+            request_timestamp=x_jarvis_timestamp,
         )
 
     @app.get("/", include_in_schema=False)
@@ -207,6 +224,8 @@ def create_app(
         request: Request,
         x_jarvis_token: Annotated[str | None, Header(alias=TOKEN_HEADER)] = None,
         x_jarvis_device_id: Annotated[str | None, Header(alias=DEVICE_HEADER)] = None,
+        x_jarvis_nonce: Annotated[str | None, Header(alias=NONCE_HEADER)] = None,
+        x_jarvis_timestamp: Annotated[str | None, Header(alias=TIMESTAMP_HEADER)] = None,
     ) -> JSONResponse:
         """
         Cria a sessao HTTP do dispositivo confiavel no navegador.
@@ -227,6 +246,8 @@ def create_app(
             request=request,
             token=x_jarvis_token,
             device_id=x_jarvis_device_id,
+            request_nonce=x_jarvis_nonce,
+            request_timestamp=x_jarvis_timestamp,
         )
         response = JSONResponse(
             {
@@ -239,6 +260,7 @@ def create_app(
             value=_build_trusted_session_value(request.app.state.api_token, access_context["device_id"]),
             httponly=True,
             samesite="lax",
+            secure=request.url.scheme == "https",
         )
         return response
 
@@ -359,6 +381,27 @@ def create_app(
         return {
             "mensagem": "Estado atual do sistema recuperado com sucesso.",
             "dados": runtime.describe_state(),
+        }
+
+    @app.get("/api/runtime/identidade", dependencies=[Depends(require_trusted_device)])
+    def get_runtime_identity(request: Request) -> Dict[str, Any]:
+        """
+        Retorna a identidade verificavel do runtime que esta respondendo.
+
+        Parametros:
+        - request: requisicao HTTP atual.
+
+        Retorno:
+        - commit, boot, entrypoint e configuracao resumida do runtime.
+
+        Efeitos no sistema:
+        - nenhum; fornece rastreabilidade do processo ativo.
+        """
+
+        runtime = _ensure_runtime_initialized(request)
+        return {
+            "mensagem": "Identidade do runtime recuperada com sucesso.",
+            "dados": runtime.build_runtime_identity_report(),
         }
 
     @app.post("/api/ciclos/executar", dependencies=[Depends(require_trusted_device)])
@@ -733,6 +776,8 @@ def _validate_trusted_access(
     request: Request,
     token: str | None,
     device_id: str | None,
+    request_nonce: str | None = None,
+    request_timestamp: str | None = None,
 ) -> Dict[str, str]:
     """
     Valida token e device id para acesso protegido.
@@ -803,6 +848,21 @@ def _validate_trusted_access(
             primary=device_id == request.app.state.trusted_device_id,
             metadata={"last_client_host": client_host or "desconhecido"},
         )
+
+    if _requires_replay_protection(request):
+        replay_reason = _validate_replay_headers(
+            runtime=runtime,
+            request=request,
+            device_id=device_id,
+            request_nonce=request_nonce,
+            request_timestamp=request_timestamp,
+        )
+        if replay_reason is not None:
+            _record_access_attempt(runtime, request, device_id, False, replay_reason, client_host)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=_map_replay_error_to_detail(replay_reason),
+            )
 
     _record_access_attempt(runtime, request, device_id, True, None, client_host)
     return {"device_id": device_id}
@@ -887,6 +947,106 @@ def _build_trusted_session_value(api_token: str, device_id: str) -> str:
     return hashlib.sha256(f"{api_token}:{device_id}".encode("utf-8")).hexdigest()
 
 
+def _requires_replay_protection(request: Request) -> bool:
+    """
+    Informa se a rota atual exige nonce e timestamp para reduzir replay.
+
+    Parametros:
+    - request: requisicao HTTP atual.
+
+    Retorno:
+    - `True` quando a chamada muta estado ou executa acao sensivel.
+
+    Efeitos no sistema:
+    - nenhum; usado pela camada de autenticacao HTTP.
+    """
+
+    return request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}
+
+
+def _validate_replay_headers(
+    runtime: InternalAgentRuntime,
+    request: Request,
+    device_id: str,
+    request_nonce: str | None,
+    request_timestamp: str | None,
+) -> str | None:
+    """
+    Valida nonce e timestamp de chamadas mutantes para reduzir replay simples.
+
+    Parametros:
+    - runtime: runtime compartilhado da aplicacao.
+    - request: requisicao HTTP atual.
+    - device_id: dispositivo confiavel ja validado.
+    - request_nonce: nonce enviado pelo cliente.
+    - request_timestamp: timestamp enviado pelo cliente.
+
+    Retorno:
+    - `None` quando a protecao passou, ou o motivo tecnico da negacao.
+
+    Efeitos no sistema:
+    - registra o nonce observado em memoria do runtime.
+    """
+
+    if not request_nonce:
+        return "missing_request_nonce"
+    if not request_timestamp:
+        return "missing_request_timestamp"
+
+    try:
+        request_dt = _parse_request_timestamp(request_timestamp)
+    except ValueError:
+        return "invalid_request_timestamp"
+
+    age_seconds = abs((datetime.now(timezone.utc) - request_dt).total_seconds())
+    if age_seconds > 120:
+        return "stale_request_timestamp"
+
+    accepted, reason = runtime.validate_request_replay(
+        device_id=device_id,
+        request_path=request.url.path,
+        request_method=request.method,
+        request_timestamp=request_timestamp,
+        request_nonce=request_nonce,
+    )
+    if not accepted:
+        return reason or "replay_detected"
+    return None
+
+
+def _parse_request_timestamp(value: str) -> datetime:
+    """Converte timestamp HTTP do cliente para `datetime` UTC."""
+
+    normalized = str(value).strip()
+    if normalized.isdigit():
+        numeric_value = int(normalized)
+        if len(normalized) >= 13:
+            return datetime.fromtimestamp(numeric_value / 1000, tz=timezone.utc)
+        return datetime.fromtimestamp(numeric_value, tz=timezone.utc)
+
+    try:
+        parsed = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("timestamp invalido") from exc
+
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _map_replay_error_to_detail(reason: str) -> str:
+    """Traduz o motivo tecnico de replay para uma mensagem HTTP clara."""
+
+    messages = {
+        "missing_request_nonce": "Nonce de requisicao ausente.",
+        "missing_request_timestamp": "Timestamp de requisicao ausente.",
+        "invalid_request_timestamp": "Timestamp de requisicao invalido.",
+        "stale_request_timestamp": "Timestamp de requisicao expirado.",
+        "replay_detected": "Requisicao repetida detectada.",
+    }
+    return messages.get(reason, "Requisicao negada pela camada anti-replay.")
+
+
 def _is_runtime_secret_configured(value: str | None, default_value: str) -> bool:
     """
     Informa se um segredo configurado difere do valor padrao inseguro.
@@ -934,6 +1094,7 @@ def _build_environment_report(app: FastAPI) -> Dict[str, Any]:
             "queue_storage_path": str(getattr(app.state.system_config, "queue_storage_path", "")),
             "semantic_storage_path": str(getattr(app.state.system_config, "semantic_storage_path", "")),
             "goals_storage_path": str(getattr(app.state.system_config, "goal_storage_path", "")),
+            "audit_storage_path": str(getattr(app.state.system_config, "audit_storage_path", "")),
             "device_registry_path": str(getattr(app.state.system_config, "device_registry_path", "")),
         },
         "autenticacao_configurada": {
@@ -942,6 +1103,7 @@ def _build_environment_report(app: FastAPI) -> Dict[str, Any]:
                 app.state.trusted_device_id,
                 DEFAULT_TRUSTED_DEVICE_ID,
             ),
+            "protecao_anti_replay_mutante": True,
         },
     }
 

@@ -269,6 +269,14 @@ Quando o risco e baixo e a correcao e reversivel, o proprio sistema pode aplicar
 - a API pode continuar sendo iniciada por `python -m runtime.server`, `python runtime/server.py` ou `.\jarvis.cmd server`
 - `runtime/server.py --check-config` valida ambiente e paths sem prender o terminal com o servidor
 
+## Integridade Operacional
+
+- a versao em execucao agora pode ser verificada em `/api/runtime/identidade`
+- o runtime expoe commit, boot, entrypoint, PID e configuracao relevante para evitar deriva silenciosa entre processo vivo e repositorio
+- a fila persistente passou a usar commit atomico no planner, reduzindo risco de perda entre leitura e persistencia
+- a auditoria operacional agora persiste em disco por padrao no path configuravel `JARVIS_AUDIT_STORAGE_PATH`
+- chamadas mutantes da API passaram a exigir `X-Jarvis-Nonce` e `X-Jarvis-Timestamp` para mitigacao inicial de replay
+
 ## Documentacao Relacionada
 
 - `ARCHITECTURE.md`

@@ -34,6 +34,7 @@ DEFAULT_API_PORT = 8000
 DEFAULT_LOOP_INTERVAL_SECONDS = 5.0
 DEFAULT_IDLE_SLEEP_SECONDS = 10.0
 DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_ADMIN_PASSWORD = "alter ego"
 
 
 def _parse_bool(value: str | None, default: bool) -> bool:
@@ -132,6 +133,7 @@ class JarvisEnvironmentConfig:
     goals_storage_path: Path | None = None
     device_registry_path: Path | None = None
     cognitive_evolution_storage_path: Path | None = None
+    audit_storage_path: Path | None = None
 
     def __post_init__(self) -> None:
         """
@@ -180,6 +182,11 @@ class JarvisEnvironmentConfig:
             self.cognitive_evolution_storage_path = self.data_dir / "cognitive_evolution_history.json"
         else:
             self.cognitive_evolution_storage_path = Path(self.cognitive_evolution_storage_path)
+
+        if self.audit_storage_path is None:
+            self.audit_storage_path = self.data_dir / "runtime_audit_store.json"
+        else:
+            self.audit_storage_path = Path(self.audit_storage_path)
 
         self.env = self.env.strip().lower() or "development"
         self.log_level = self.log_level.strip().upper() or DEFAULT_LOG_LEVEL
@@ -234,6 +241,7 @@ class JarvisEnvironmentConfig:
             goals_storage_path=env_map.get("JARVIS_GOALS_STORAGE_PATH"),
             device_registry_path=env_map.get("JARVIS_DEVICE_REGISTRY_PATH"),
             cognitive_evolution_storage_path=env_map.get("JARVIS_COGNITIVE_EVOLUTION_STORAGE_PATH"),
+            audit_storage_path=env_map.get("JARVIS_AUDIT_STORAGE_PATH"),
         )
         config.validate()
         return config
@@ -257,6 +265,8 @@ class JarvisEnvironmentConfig:
             errors.append(
                 "Defina JARVIS_TRUSTED_DEVICE_ID com o identificador do dispositivo confiavel antes de subir em producao."
             )
+        if self.env in {"production", "prod"} and str(os.environ.get("JARVIS_ADMIN_PASSWORD", DEFAULT_ADMIN_PASSWORD)) == DEFAULT_ADMIN_PASSWORD:
+            errors.append("Defina JARVIS_ADMIN_PASSWORD com um valor proprio antes de subir em producao.")
 
         if errors:
             formatted_errors = "\n".join(f"- {error}" for error in errors)
@@ -275,6 +285,7 @@ class JarvisEnvironmentConfig:
             self.goals_storage_path.parent,
             self.device_registry_path.parent,
             self.cognitive_evolution_storage_path.parent,
+            self.audit_storage_path.parent,
         }
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
@@ -299,10 +310,12 @@ class JarvisEnvironmentConfig:
                 "goals_storage_path": str(self.goals_storage_path),
                 "device_registry_path": str(self.device_registry_path),
                 "cognitive_evolution_storage_path": str(self.cognitive_evolution_storage_path),
+                "audit_storage_path": str(self.audit_storage_path),
             },
             "autenticacao_configurada": {
                 "token_configurado": self.token != DEFAULT_API_TOKEN,
                 "dispositivo_confiavel_configurado": self.trusted_device_id != DEFAULT_TRUSTED_DEVICE_ID,
+                "senha_admin_configurada": str(os.environ.get("JARVIS_ADMIN_PASSWORD", DEFAULT_ADMIN_PASSWORD)) != DEFAULT_ADMIN_PASSWORD,
             },
         }
 

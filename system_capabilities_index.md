@@ -17,21 +17,21 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Capacidade | Estado | Arquivos principais | Persistencia | Testes |
 | --- | --- | --- | --- | --- |
 | Identidade e principios constitucionais | Implementada | `constitutional_core/identity.json`, `constitutional_core/principles.json`, `constitutional_core/policy.py` | JSON de configuracao | `tests/test_constitutional_policy.py` |
-| Planejador executivo deterministico | Implementada | `executive_planner/planner.py`, `executive_planner/prioritizer.py`, `executive_planner/validator.py`, `executive_planner/audit.py` | Auditoria em memoria | `tests/test_planner.py` |
+| Planejador executivo deterministico | Implementada | `executive_planner/planner.py`, `executive_planner/prioritizer.py`, `executive_planner/validator.py`, `executive_planner/audit.py` | Auditoria persistente configuravel + memoria | `tests/test_planner.py`, `tests/test_audit_persistence.py` |
 | Fila persistente de tarefas | Implementada | `executive_planner/queue.py` | JSON configuravel | `tests/test_task_queue_persistence.py` |
 | Camada de objetivos | Implementada | `intent_layer/goal_manager.py` | JSON configuravel | `tests/test_goal_manager.py` |
 | Memoria semantica persistente | Implementada | `memory_system/semantic_memory.py` | JSON configuravel | `tests/test_semantic_memory.py` |
 | Memoria procedural persistente | Implementada | `memory_system/procedural_memory.py` | JSON configuravel | `tests/test_procedural_memory.py` |
 | Mapa evolutivo cognitivo | Implementada | `runtime/cognitive_evolution.py`, `interface/brain_avatar/evolution_map.js`, `interface/dashboard/index.html` | `data/cognitive_evolution_history.json` | `tests/test_cognitive_evolution.py`, `tests/test_api.py`, `tests/test_dashboard.py` |
 | Loop continuo local | Implementada | `main.py`, `startup_bootstrap.py` | Persistencia final de fila e memoria | `tests/test_main_loop.py`, `tests/test_startup_portability.py` |
-| Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py`, `constitutional_core/policy.py` | Reaproveita fila, memoria e objetivos | `tests/test_runtime_bootstrap.py`, `tests/test_constitutional_policy.py` |
-| API HTTP | Implementada | `interface/api/app.py` | Reaproveita o nucleo | `tests/test_api.py` |
+| Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py`, `runtime/runtime_identity.py`, `constitutional_core/policy.py` | Reaproveita fila, memoria, auditoria e objetivos | `tests/test_runtime_bootstrap.py`, `tests/test_constitutional_policy.py`, `tests/test_operational_reports.py` |
+| API HTTP | Implementada | `interface/api/app.py` | Reaproveita o nucleo | `tests/test_api.py`, `tests/test_dashboard.py` |
 | Comando textual unificado | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py`, `security/access_control.py` | Auditoria + memoria episodica | `tests/test_api.py`, `tests/test_access_control.py` |
 | Painel mobile-first | Implementada | `interface/dashboard/index.html`, `interface/dashboard/access_gate.html` | Sessao de dispositivo confiavel | `tests/test_dashboard.py` |
 | Cliente nativo leve | Implementada | `interface/native_client/jarvis_client.py` | Usa a API local | Smoke test real + cobertura indireta de `/api/comando` |
 | Workers uteis por dominio | Implementada | `workers/worker_runtime.py`, `workers/worker_study.py`, `workers/worker_studio.py`, `workers/worker_finance.py`, `workers/worker_utils.py` | Reaproveita memoria e auditoria do runtime | `tests/test_workers.py` |
-| Autenticacao por dispositivo confiavel | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py` | Variaveis de ambiente + auditoria | `tests/test_api.py`, `tests/test_dashboard.py` |
-| Controle de acesso por voz ou senha | Implementada | `security/access_control.py`, `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Em memoria + headers da API | `tests/test_access_control.py`, `tests/test_api.py` |
+| Autenticacao por dispositivo confiavel | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py` | Variaveis de ambiente + auditoria persistente | `tests/test_api.py`, `tests/test_dashboard.py` |
+| Controle de acesso por voz ou senha | Implementada com limites | `security/access_control.py`, `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Em memoria + headers da API | `tests/test_access_control.py`, `tests/test_api.py` |
 | Registro de dispositivos autorizados | Implementada | `device/device_registry.py`, `interface/api/app.py`, `runtime/internal_agent_runtime.py` | JSON configuravel | `tests/test_device_registry.py`, `tests/test_api.py` |
 | Relatorios operacionais completos | Implementada | `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Reaproveita estado do runtime | `tests/test_operational_reports.py` |
 | Configuracao central de ambiente | Implementada | `runtime/system_config.py`, `.env.example` | Variaveis de ambiente | `tests/test_cloud_deploy.py` |
@@ -185,6 +185,9 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 
 ## Lacunas Atuais
 
+- a mitigacao anti-replay ainda e local ao processo e nao substitui assinatura criptografica ou sessao forte
+- a persistencia em JSON foi endurecida, mas continua sendo o principal gargalo estrutural para concorrencia multi-processo
+- o processo vivo precisa ser sempre validado por `/api/runtime/identidade`; smoke isolado nao basta sem essa prova
 - ainda nao houve smoke test real de container neste ambiente por ausencia de `docker`
 - a instalacao real do servico Windows ainda depende de terminal com privilegio administrativo neste host
 - a politica viva ja governa validator e runtime, mas ainda nao existe geracao controlada de tarefas alinhada a essa mesma politica

@@ -20,6 +20,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import sys
 from threading import Thread
@@ -42,6 +43,7 @@ ensure_project_root_on_path(__file__)
 from interface.api.app import create_app
 from main import JarvisSystemLoop, SystemLoopConfig, bootstrap_runtime
 from runtime.internal_agent_runtime import InternalAgentRuntime
+from runtime.runtime_identity import load_build_metadata
 from runtime.system_config import JarvisEnvironmentConfig
 
 
@@ -210,9 +212,10 @@ class JarvisServerContext:
                 "timestamp": self._utc_now(),
                 "mensagem": "Resumo de ambiente do deploy do JARVIS.",
                 "ambiente": self.config.build_environment_report(),
-                "runtime": self.runtime.describe_state(),
-                "bootstrap": self.bootstrap_state,
-            },
+            "runtime": self.runtime.describe_state(),
+            "bootstrap": self.bootstrap_state,
+            "identidade_runtime": self.runtime.build_runtime_identity_report(),
+        },
         )
         self.logger.info(
             "[startup] ambiente=%s host=%s porta=%s loop_ativo=%s painel_ativo=%s",
@@ -288,6 +291,7 @@ class JarvisServerContext:
             procedural_storage_path=self.config.procedural_storage_path,
             goal_storage_path=self.config.goals_storage_path,
             cognitive_evolution_storage_path=self.config.cognitive_evolution_storage_path,
+            audit_storage_path=self.config.audit_storage_path,
         )
 
     def _write_report(self, path: Path, payload: Dict[str, Any]) -> None:
@@ -339,7 +343,12 @@ def configure_logging(config: JarvisEnvironmentConfig) -> logging.Logger:
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
 
-    file_handler = logging.FileHandler(config.log_file_path, encoding="utf-8")
+    file_handler = RotatingFileHandler(
+        config.log_file_path,
+        maxBytes=1_048_576,
+        backupCount=3,
+        encoding="utf-8",
+    )
     file_handler.setFormatter(formatter)
 
     logger.handlers.clear()
@@ -355,6 +364,18 @@ def run_server(config: JarvisEnvironmentConfig | None = None) -> int:
     logger = configure_logging(config)
     context = JarvisServerContext(config=config, logger=logger)
     app = context.build_app()
+    context.runtime.configure_runtime_identity(
+        entrypoint="runtime.server.run_server",
+        environment=config.build_environment_report(),
+        loaded_config={
+            "host_api": config.api_host,
+            "porta_api": config.api_port,
+            "loop_runtime_ativo": config.enable_runtime_loop,
+            "painel_ativo": config.enable_dashboard,
+            "audit_storage_path": str(config.audit_storage_path),
+        },
+        build_metadata=load_build_metadata(),
+    )
     context.start_runtime_loop()
 
     logger.info("[startup] API do JARVIS pronta para responder em http://%s:%s", config.api_host, config.api_port)

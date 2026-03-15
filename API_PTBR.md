@@ -87,6 +87,8 @@ Camada adicional de comando:
   Payload visual do mapa evolutivo cognitivo
 - `GET /api/cognicao/evolucao/analise`
   Analise interna das regioes e trilhas cognitivas
+- `GET /api/runtime/identidade`
+  Identidade do runtime em execucao com commit, boot, entrypoint, PID e configuracao relevante
 - `GET /api/relatorio`
   Relatorio operacional geral
 - `GET /api/health`
@@ -128,8 +130,15 @@ Arquivo base: `.env.example`
 
 - respostas visiveis continuam em pt-BR
 - endpoints protegidos continuam protegidos no modo de servidor
+- chamadas mutantes protegidas agora exigem tambem `X-Jarvis-Nonce` e `X-Jarvis-Timestamp`
 - o painel e servido pela mesma API
 - o deploy recomendado usa `python runtime/server.py`, `.\jarvis.cmd server` ou `docker compose up -d`
 - `runtime/server.py --check-config` pode ser usado para validar o ambiente antes do start efetivo
 - os relatorios operacionais agora incluem um resumo seguro da politica constitucional ativa
 - o painel consome os endpoints cognitivos e carrega os modulos do brain avatar por `/brain-avatar/*`
+
+## Limites Atuais da Autenticacao HTTP
+
+- a mitigacao anti-replay atual reduz reaproveitamento trivial de requisicoes, mas ainda nao substitui assinatura criptografica
+- a protecao de `nonce` e local ao processo e nao e compartilhada entre multiplas instancias
+- o campo de voz nao deve ser tratado como autenticacao forte; ele e apenas informativo para fluxos textuais controlados

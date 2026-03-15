@@ -21,7 +21,7 @@ from startup_bootstrap import ensure_project_root_on_path
 ensure_project_root_on_path(__file__)
 
 from executive_planner.queue import TaskQueue
-from executive_planner.audit import traduzir_motivo, traduzir_status
+from executive_planner.audit import AuditLogger, traduzir_motivo, traduzir_status
 from memory_system.episodic_memory import EpisodicMemory
 from memory_system.procedural_memory import ProceduralMemory
 from memory_system.semantic_memory import SemanticMemory
@@ -51,6 +51,7 @@ class SystemLoopConfig:
     procedural_storage_path: Optional[Path] = None
     goal_storage_path: Optional[Path] = None
     cognitive_evolution_storage_path: Optional[Path] = None
+    audit_storage_path: Optional[Path] = None
 
 
 def bootstrap_runtime(
@@ -75,6 +76,10 @@ def bootstrap_runtime(
             storage_path=config.cognitive_evolution_storage_path
         )
         _load_cognitive_evolution_storage(runtime.cognitive_evolution_tracker, logger)
+
+    if config.audit_storage_path is not None:
+        runtime.audit_logger = AuditLogger(storage_path=config.audit_storage_path)
+        _load_audit_storage(runtime.audit_logger, logger)
 
     episodic_memory = runtime.memory.get("episodic") if runtime.memory else None
     procedural_memory = runtime.memory.get("procedural") if runtime.memory else None
@@ -325,6 +330,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=None,
         help="Caminho alternativo do arquivo de persistencia da evolucao cognitiva.",
     )
+    parser.add_argument(
+        "--audit-storage-path",
+        type=Path,
+        default=None,
+        help="Caminho alternativo do arquivo de persistencia da auditoria.",
+    )
     return parser
 
 
@@ -341,12 +352,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         stop_when_idle=args.stop_when_idle,
         queue_storage_path=args.queue_storage_path,
         semantic_storage_path=args.semantic_storage_path,
-        procedural_storage_path=args.procedural_storage_path,
+            procedural_storage_path=args.procedural_storage_path,
         goal_storage_path=args.goal_storage_path,
         cognitive_evolution_storage_path=(
             args.cognitive_evolution_storage_path
             or PROJECT_ROOT / "data" / "cognitive_evolution_history.json"
         ),
+        audit_storage_path=args.audit_storage_path or PROJECT_ROOT / "data" / "runtime_audit_store.json",
     )
     loop = JarvisSystemLoop(config=config)
     loop.run()
@@ -533,6 +545,46 @@ def _load_goal_manager(
         ),
     )
     return goal_manager
+
+
+def _load_audit_storage(
+    audit_logger: AuditLogger,
+    logger: Callable[[str], None] | None,
+) -> None:
+    audit_logger.storage_path.parent.mkdir(parents=True, exist_ok=True)
+    if not audit_logger.storage_path.exists():
+        snapshot = audit_logger.save_to_disk()
+        _log_message(
+            logger,
+            "[bootstrap] auditoria persistente criada em {path} com {count} evento(s).".format(
+                path=audit_logger.storage_path,
+                count=snapshot["entry_count"],
+            ),
+        )
+        audit_logger.auto_persist_on_change(True)
+        return
+
+    try:
+        snapshot = audit_logger.load_snapshot()
+    except json.JSONDecodeError:
+        backup_path = _backup_corrupted_storage(audit_logger.storage_path)
+        _log_message(
+            logger,
+            "[bootstrap] auditoria corrompida. Backup salvo em {path}. Reinicializando armazenamento.".format(
+                path=backup_path,
+            ),
+        )
+        audit_logger.entries = []
+        snapshot = audit_logger.save_to_disk()
+
+    audit_logger.auto_persist_on_change(True)
+    _log_message(
+        logger,
+        "[bootstrap] auditoria persistente carregada de {path} com {count} evento(s).".format(
+            path=audit_logger.storage_path,
+            count=snapshot["entry_count"],
+        ),
+    )
 
 
 def _backup_corrupted_storage(storage_path: Path) -> Path:
