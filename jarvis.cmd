@@ -21,6 +21,7 @@ if errorlevel 1 exit /b 1
 
 if /I "%MODE%"=="loop" goto :loop
 if /I "%MODE%"=="server" goto :server
+if /I "%MODE%"=="native-app" goto :native_app
 if /I "%MODE%"=="api-direct" goto :api_direct
 if /I "%MODE%"=="check-config" goto :check_config
 
@@ -33,6 +34,10 @@ exit /b %errorlevel%
 
 :server
 "%PYTHON_BIN%" "%PROJECT_ROOT%runtime\server.py" %FORWARDED_ARGS%
+exit /b %errorlevel%
+
+:native_app
+"%PYTHON_BIN%" "%PROJECT_ROOT%jarvis_native.pyw" %FORWARDED_ARGS%
 exit /b %errorlevel%
 
 :api_direct
@@ -62,5 +67,5 @@ echo Defina PYTHON_BIN ou instale um interpretador acessivel.
 exit /b 1
 
 :usage
-echo Uso: jarvis.cmd ^<loop^|server^|api-direct^|check-config^> [argumentos]
+echo Uso: jarvis.cmd ^<loop^|server^|native-app^|api-direct^|check-config^> [argumentos]
 exit /b 1

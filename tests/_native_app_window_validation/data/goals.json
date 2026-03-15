@@ -1,0 +1,12 @@
+{
+  "strategic_goals": [],
+  "active_goals": [],
+  "constraints": [],
+  "preferences": {
+    "default_locale": "pt-BR",
+    "autonomy_level": "supervisionado",
+    "response_style": "direto",
+    "tone": "tecnico"
+  },
+  "updated_at": "2026-03-15T17:58:59.497873+00:00"
+}

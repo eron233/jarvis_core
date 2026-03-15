@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
-  "last_updated_at": "2026-03-15T13:09:26.783544+00:00",
-  "event_count": 48,
+  "last_updated_at": "2026-03-15T21:23:17.329974+00:00",
+  "event_count": 78,
   "events": [
     {
       "event_id": "evolution-00001",
@@ -1249,6 +1249,816 @@
     {
       "event_id": "evolution-00048",
       "data_evento": "2026-03-15T13:09:26.783544+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00049",
+      "data_evento": "2026-03-15T16:58:35.956010+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00050",
+      "data_evento": "2026-03-15T16:58:37.218840+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00051",
+      "data_evento": "2026-03-15T16:59:25.918177+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00052",
+      "data_evento": "2026-03-15T16:59:28.331783+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00053",
+      "data_evento": "2026-03-15T16:59:29.434527+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00054",
+      "data_evento": "2026-03-15T17:00:35.739681+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00055",
+      "data_evento": "2026-03-15T17:00:38.463278+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00056",
+      "data_evento": "2026-03-15T17:00:39.710102+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00057",
+      "data_evento": "2026-03-15T17:03:39.541908+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00058",
+      "data_evento": "2026-03-15T17:55:01.576527+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00059",
+      "data_evento": "2026-03-15T17:55:04.417756+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00060",
+      "data_evento": "2026-03-15T17:55:05.979159+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00061",
+      "data_evento": "2026-03-15T17:56:47.601022+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00062",
+      "data_evento": "2026-03-15T18:21:50.549585+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00063",
+      "data_evento": "2026-03-15T19:04:34.336237+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00064",
+      "data_evento": "2026-03-15T20:06:18.918814+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00065",
+      "data_evento": "2026-03-15T20:06:45.843130+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00066",
+      "data_evento": "2026-03-15T20:06:51.961242+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00067",
+      "data_evento": "2026-03-15T20:07:46.866091+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00068",
+      "data_evento": "2026-03-15T20:08:15.504157+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00069",
+      "data_evento": "2026-03-15T20:08:19.863990+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00070",
+      "data_evento": "2026-03-15T20:10:43.425425+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00071",
+      "data_evento": "2026-03-15T20:10:51.288437+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00072",
+      "data_evento": "2026-03-15T20:10:53.655074+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00073",
+      "data_evento": "2026-03-15T21:03:40.583496+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00074",
+      "data_evento": "2026-03-15T21:03:46.909878+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00075",
+      "data_evento": "2026-03-15T21:03:48.798566+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00076",
+      "data_evento": "2026-03-15T21:23:12.129031+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00077",
+      "data_evento": "2026-03-15T21:23:15.776127+00:00",
+      "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
+      "tipo_aprendizado": "reestruturacao_de_rede",
+      "regiao_cerebral": "cerebro_estrutural",
+      "regiao_cerebral_ptbr": "Cerebro Estrutural",
+      "quantidade_conexoes_criadas": 4,
+      "quantidade_conexoes_reforcadas": 3,
+      "impacto_cognitivo_estimado": 0.82,
+      "cor_evento": "#4cc9f0",
+      "descricao_evento": "Reorganizacao da topologia cognitiva ativa.",
+      "metadata": {
+        "source": "runtime.bootstrap",
+        "workers": [
+          "runtime",
+          "finance",
+          "studio",
+          "study"
+        ],
+        "memory_modules": [
+          "episodic",
+          "semantic",
+          "procedural"
+        ]
+      }
+    },
+    {
+      "event_id": "evolution-00078",
+      "data_evento": "2026-03-15T21:23:17.329974+00:00",
       "tipo_evento": "EVENT_NETWORK_RESTRUCTURE",
       "tipo_aprendizado": "reestruturacao_de_rede",
       "regiao_cerebral": "cerebro_estrutural",

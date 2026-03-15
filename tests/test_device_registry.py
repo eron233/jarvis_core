@@ -3,6 +3,7 @@
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -57,6 +58,32 @@ class DeviceRegistryTests(unittest.TestCase):
         reloaded = DeviceRegistry(storage_path=path)
         self.assertTrue(reloaded.is_trusted("eron-celular-principal"))
         self.assertTrue(any(device["primary"] for device in reloaded.list_devices(trusted_only=True)))
+
+    def test_registry_avoids_rewriting_when_device_is_unchanged(self) -> None:
+        """Evita salvar em disco a cada request identica do app nativo."""
+
+        path = make_registry_path("unchanged")
+        reset_storage_path(path)
+
+        registry = DeviceRegistry(storage_path=path)
+        registry.ensure_device(
+            device_id="jarvis-dispositivo-local",
+            nome="jarvis-dispositivo-local",
+            trusted=True,
+            primary=True,
+            metadata={"source": "api_security_gate", "last_client_host": "127.0.0.1"},
+        )
+
+        with patch.object(registry, "save", wraps=registry.save) as save_mock:
+            registry.ensure_device(
+                device_id="jarvis-dispositivo-local",
+                nome="jarvis-dispositivo-local",
+                trusted=True,
+                primary=True,
+                metadata={"source": "api_security_gate", "last_client_host": "127.0.0.1"},
+            )
+
+        save_mock.assert_not_called()
 
 
 if __name__ == "__main__":

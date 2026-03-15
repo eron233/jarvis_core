@@ -40,6 +40,15 @@ class AccessControlTests(unittest.TestCase):
         self.assertTrue(access["admin_access"])
         self.assertIn("senha", access["authenticated_by"])
 
+    def test_special_phrase_accepts_admin_password(self) -> None:
+        """Confirma que a frase reservada tambem aceita a chave admin."""
+
+        access = AccessControl().evaluate(phrase="Jarvis ta ai", password="alter ego")
+
+        self.assertTrue(access["admin_access"])
+        self.assertEqual(access["special_response"], "Sim, Sr. Maciel.")
+        self.assertFalse(access["should_ignore"])
+
 
 if __name__ == "__main__":
     unittest.main()

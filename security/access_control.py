@@ -75,9 +75,10 @@ class AccessControl:
 
         access_level = "admin" if authorized_methods else "guest"
         is_special_wake_phrase = normalized_phrase == SPECIAL_WAKE_PHRASE
-        should_ignore = is_special_wake_phrase and not voice_matches_admin
+        special_access_allowed = bool(authorized_methods) or voice_matches_admin
+        should_ignore = is_special_wake_phrase and not special_access_allowed
         special_response = None
-        if is_special_wake_phrase and voice_matches_admin:
+        if is_special_wake_phrase and special_access_allowed:
             special_response = "Sim, Sr. Maciel."
 
         return {

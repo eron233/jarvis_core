@@ -20,6 +20,8 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import threading
+import time
 from typing import Any, Dict, List
 
 
@@ -64,6 +66,7 @@ class DeviceRegistry:
 
     storage_path: Path = field(default_factory=lambda: DEFAULT_REGISTRY_PATH)
     devices: List[Dict[str, Any]] = field(default_factory=list)
+    _lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
 
     def __post_init__(self) -> None:
         """Normaliza o path e garante um registro inicial utilizavel."""
@@ -76,49 +79,65 @@ class DeviceRegistry:
     def load(self) -> Dict[str, Any]:
         """Carrega o registro persistente do disco."""
 
-        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        if not self.storage_path.exists():
-            self.devices = [self._normalize_device(device) for device in deepcopy(DEFAULT_DEVICES)]
-            return self.save()
+        with self._lock:
+            self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+            if not self.storage_path.exists():
+                self.devices = [self._normalize_device(device) for device in deepcopy(DEFAULT_DEVICES)]
+                return self.save()
 
-        data = json.loads(self.storage_path.read_text(encoding="utf-8"))
-        persisted_devices = data.get("devices", [])
-        if isinstance(persisted_devices, list) and persisted_devices:
-            self.devices = [self._normalize_device(device) for device in persisted_devices]
-        else:
-            self.devices = [self._normalize_device(device) for device in deepcopy(DEFAULT_DEVICES)]
-        return self.snapshot()
+            data = json.loads(self.storage_path.read_text(encoding="utf-8"))
+            persisted_devices = data.get("devices", [])
+            if isinstance(persisted_devices, list) and persisted_devices:
+                self.devices = [self._normalize_device(device) for device in persisted_devices]
+            else:
+                self.devices = [self._normalize_device(device) for device in deepcopy(DEFAULT_DEVICES)]
+            return self.snapshot()
 
     def save(self) -> Dict[str, Any]:
         """Persiste o registro atual no disco."""
 
-        snapshot = self.snapshot()
-        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
-        temp_path.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
-        os.replace(temp_path, self.storage_path)
-        return snapshot
+        with self._lock:
+            snapshot = self.snapshot()
+            self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+            temp_path = self.storage_path.with_name(
+                f"{self.storage_path.name}.{os.getpid()}.{threading.get_ident()}.tmp"
+            )
+            temp_path.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
+
+            for attempt in range(5):
+                try:
+                    os.replace(temp_path, self.storage_path)
+                    break
+                except PermissionError:
+                    if attempt == 4:
+                        raise
+                    time.sleep(0.05 * (attempt + 1))
+            if temp_path.exists():
+                temp_path.unlink(missing_ok=True)
+            return snapshot
 
     def snapshot(self) -> Dict[str, Any]:
         """Retorna o estado serializavel do registro."""
 
-        trusted_total = len([device for device in self.devices if device.get("trusted")])
-        primary_devices = [device["device_id"] for device in self.devices if device.get("primary")]
-        return {
-            "updated_at": self._utc_now(),
-            "device_count": len(self.devices),
-            "trusted_device_count": trusted_total,
-            "primary_devices": primary_devices,
-            "devices": [deepcopy(self._normalize_device(device)) for device in self.devices],
-        }
+        with self._lock:
+            trusted_total = len([device for device in self.devices if device.get("trusted")])
+            primary_devices = [device["device_id"] for device in self.devices if device.get("primary")]
+            return {
+                "updated_at": self._utc_now(),
+                "device_count": len(self.devices),
+                "trusted_device_count": trusted_total,
+                "primary_devices": primary_devices,
+                "devices": [deepcopy(self._normalize_device(device)) for device in self.devices],
+            }
 
     def list_devices(self, trusted_only: bool = False) -> List[Dict[str, Any]]:
         """Lista os dispositivos conhecidos, opcionalmente filtrando os confiaveis."""
 
-        devices = [deepcopy(self._normalize_device(device)) for device in self.devices]
-        if trusted_only:
-            devices = [device for device in devices if device.get("trusted")]
-        return devices
+        with self._lock:
+            devices = [deepcopy(self._normalize_device(device)) for device in self.devices]
+            if trusted_only:
+                devices = [device for device in devices if device.get("trusted")]
+            return devices
 
     def ensure_device(
         self,
@@ -131,49 +150,68 @@ class DeviceRegistry:
     ) -> Dict[str, Any]:
         """Garante que um dispositivo exista no registro, atualizando sua confianca quando necessario."""
 
-        normalized_id = str(device_id).strip()
-        if not normalized_id:
-            raise ValueError("device_id nao pode ficar vazio.")
+        with self._lock:
+            normalized_id = str(device_id).strip()
+            if not normalized_id:
+                raise ValueError("device_id nao pode ficar vazio.")
 
-        for device in self.devices:
-            if device["device_id"] != normalized_id:
-                continue
+            for device in self.devices:
+                if device["device_id"] != normalized_id:
+                    continue
 
-            device["nome"] = nome or device.get("nome") or normalized_id
-            device["tipo"] = tipo or device.get("tipo", "client")
-            device["trusted"] = bool(trusted)
-            device["primary"] = bool(primary or device.get("primary", False))
-            device["updated_at"] = self._utc_now()
-            merged_metadata = dict(device.get("metadata", {}))
-            merged_metadata.update(metadata or {})
-            device["metadata"] = merged_metadata
+                new_name = nome or device.get("nome") or normalized_id
+                new_type = tipo or device.get("tipo", "client")
+                new_trusted = bool(trusted)
+                new_primary = bool(primary or device.get("primary", False))
+                merged_metadata = dict(device.get("metadata", {}))
+                merged_metadata.update(metadata or {})
+
+                changed = any(
+                    (
+                        device.get("nome") != new_name,
+                        device.get("tipo") != new_type,
+                        bool(device.get("trusted")) != new_trusted,
+                        bool(device.get("primary")) != new_primary,
+                        dict(device.get("metadata", {})) != merged_metadata,
+                    )
+                )
+
+                if changed:
+                    device["nome"] = new_name
+                    device["tipo"] = new_type
+                    device["trusted"] = new_trusted
+                    device["primary"] = new_primary
+                    device["updated_at"] = self._utc_now()
+                    device["metadata"] = merged_metadata
+                    self.save()
+
+                return deepcopy(self._normalize_device(device))
+
+            device = self._normalize_device(
+                {
+                    "device_id": normalized_id,
+                    "nome": nome or normalized_id,
+                    "tipo": tipo,
+                    "trusted": trusted,
+                    "primary": primary,
+                    "metadata": metadata or {},
+                }
+            )
+            self.devices.append(device)
             self.save()
             return deepcopy(device)
-
-        device = self._normalize_device(
-            {
-                "device_id": normalized_id,
-                "nome": nome or normalized_id,
-                "tipo": tipo,
-                "trusted": trusted,
-                "primary": primary,
-                "metadata": metadata or {},
-            }
-        )
-        self.devices.append(device)
-        self.save()
-        return deepcopy(device)
 
     def is_trusted(self, device_id: str | None) -> bool:
         """Informa se o device id informado esta autorizado."""
 
-        if not device_id:
-            return False
-        normalized = str(device_id).strip()
-        return any(
-            device["device_id"] == normalized and bool(device.get("trusted"))
-            for device in self.devices
-        )
+        with self._lock:
+            if not device_id:
+                return False
+            normalized = str(device_id).strip()
+            return any(
+                device["device_id"] == normalized and bool(device.get("trusted"))
+                for device in self.devices
+            )
 
     def build_report(self) -> Dict[str, Any]:
         """Retorna um resumo amigavel do registro de dispositivos."""

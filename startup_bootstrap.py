@@ -28,6 +28,6 @@ def ensure_project_root_on_path(current_file: str | Path) -> Path:
 
     project_root = discover_project_root(current_file)
     project_root_str = str(project_root)
-    if project_root_str not in sys.path:
-        sys.path.insert(0, project_root_str)
+    sys.path[:] = [path for path in sys.path if path != project_root_str]
+    sys.path.insert(0, project_root_str)
     return project_root

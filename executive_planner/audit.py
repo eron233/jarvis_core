@@ -19,6 +19,8 @@ import json
 import os
 from pathlib import Path
 from threading import RLock
+import threading
+import time
 from typing import Any, Dict, List, Optional
 
 #
@@ -259,9 +261,20 @@ class AuditLogger:
         with self._lock:
             snapshot = self.snapshot()
             self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-            temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
+            temp_path = self.storage_path.with_name(
+                f"{self.storage_path.name}.{os.getpid()}.{threading.get_ident()}.tmp"
+            )
             temp_path.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
-            os.replace(temp_path, self.storage_path)
+            for attempt in range(5):
+                try:
+                    os.replace(temp_path, self.storage_path)
+                    break
+                except PermissionError:
+                    if attempt == 4:
+                        raise
+                    time.sleep(0.05 * (attempt + 1))
+            if temp_path.exists():
+                temp_path.unlink(missing_ok=True)
             return snapshot
 
     def load_snapshot(self) -> Dict[str, Any]:

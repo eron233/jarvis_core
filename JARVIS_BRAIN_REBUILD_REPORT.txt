@@ -1,0 +1,65 @@
+JARVIS BRAIN REBUILD REPORT
+Data: 2026-03-15
+
+1. Quantidade de neuronios
+- 1560 neuronios visiveis
+
+2. Quantidade de sinapses
+- 14800 sinapses visiveis
+- distribuicao alvo: aproximadamente 80 por cento locais e 20 por cento longas
+
+3. Engine usada
+- Qt WebEngine embutido no app nativo
+- renderer em JavaScript com canvas 2D e projecao 3D propria
+- nao foi usado Three.js vendorizado porque o projeto nao possuia a biblioteca localmente e a entrega precisou continuar autocontida/offline
+
+4. Metodo usado para formar a silhueta cerebral
+- cerebro gerado por campo implicito com dois hemisferios principais
+- fissura central sutil para separar os hemisferios
+- volume de uniao interna para representar a ponte central/corpus callosum
+- neuronios distribuidos por amostragem dentro desse volume, nunca fora da silhueta
+- sulcos e leitura cortical sugeridos por curvas de superficie e pontos de casca
+
+5. Regioes cognitivas e cores
+- Memoria: azul
+- Planejamento: amarelo
+- Execucao: verde
+- Seguranca: vermelho
+- Evolucao: roxo
+- Sinapses: ciano
+- as regioes nao formam cinco clusters isolados; cada neuronio recebe mistura de influencias regionais dentro de uma unica rede neural integrada
+
+6. Atividade neural
+- pulsos percorrendo sinapses
+- neuronios acendendo conforme ativacao
+- atividade minima em idle
+- thinking com enfase entre memoria e planejamento
+- execution com bursts verdes
+- alert com reforco vermelho
+- learning com reforco roxo e maior uso de conexoes longas
+
+7. Tecnicas de otimizacao usadas
+- geometria neural estavel e precomputada, sem recriar o cerebro inteiro a cada frame
+- limite de pulsos simultaneos por estado visual
+- janela rotativa para renderizar apenas parte das sinapses locais por frame
+- renderizacao integral das sinapses longas e pulsos ativos
+- afinidades de estado precomputadas por sinapse
+- fallback headless mantido apenas para testes automatizados
+
+8. Interacao
+- no painel compacto, clique no cerebro para expandir
+- na visao ampliada, o cerebro ocupa a area principal em sobreposicao e o chat fica oculto temporariamente
+- na visao ampliada: arrastar para rotacao, shift + arrastar para mover, scroll para zoom
+
+9. Validacao realizada
+- cena embutida respondeu com estado, foco, contagem de neuronios e sinapses
+- pixels reais foram lidos diretamente do canvas renderizado
+- expansao do cerebro validada como visivel
+- app nativo relancado com sucesso
+- suite nativa: OK
+- suite completa: 95 testes, OK
+
+10. Limitacoes atuais
+- o renderer continua sendo um motor 3D proprio em canvas, nao um mesh WebGL completo
+- os estados thinking/execution/alert/learning sao inferidos a partir do payload atual e da variacao de ciclos/eventos; ainda nao recebem um sinal dedicado do runtime
+- a superficie cortical ainda e uma silhueta neural forte, nao um modelo anatomico medico de alta fidelidade

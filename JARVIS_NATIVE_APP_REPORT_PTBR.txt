@@ -1,0 +1,59 @@
+JARVIS NATIVE APP REPORT PTBR
+Data: 2026-03-15
+
+1. O que foi reaproveitado
+- Runtime atual do Jarvis.
+- API local existente como camada interna de comunicacao.
+- Planner executivo, memoria, workers e contratos reais dos endpoints.
+- Launcher existente `jarvis.cmd`, agora com suporte ao modo `native-app`.
+- Cliente nativo HTTP ja existente como referencia de autenticacao e contrato.
+- Painel web e brain avatar como base de auditoria e referencia visual/funcional.
+
+2. O que foi migrado do navegador para o app
+- A experiencia principal passou para uma janela nativa em PySide6/Qt.
+- O chat principal agora roda dentro do app, sem depender de abrir localhost manualmente.
+- A lateral de navegacao e o status resumido passaram para dentro da janela nativa.
+- O cerebro/avatar ganhou uma renderizacao nativa leve dentro do app, sem navegador embutido.
+
+3. O que ja funciona no app nativo
+- Abre uma janela propria do Jarvis com tema escuro real.
+- Verifica se o runtime ja esta ativo.
+- Inicia o runtime automaticamente quando necessario.
+- Aguarda healthcheck positivo antes de liberar a interface.
+- Chat funcional consumindo a API real do Jarvis.
+- Resposta ao comando especial "Jarvis ta ai".
+- Lateral real com visoes de chat, status, objetivos, tarefas, memoria, logs, seguranca e sistema.
+- Status resumido dentro do app com runtime, ciclos, objetivos, tarefas e autenticacao.
+- Avatar/cerebro nativo leve reagindo a dados reais de cognicao.
+- Launcher sem console via `jarvis_native.pyw` e `jarvis_native.vbs`.
+
+4. O que ainda esta parcial
+- O renderer web completo do brain avatar nao foi portado 1:1. Nesta fase foi entregue uma versao nativa leve, real e honesta.
+- A lateral ja consome dados reais, mas ainda esta em modo operacional enxuto, sem toda a riqueza visual do painel web antigo.
+- O modo de microfone ficou apenas preparado na interface; nao e dependencia desta entrega.
+- Se multiplas instancias diferentes do runtime forem iniciadas apontando para o mesmo storage persistente, ainda pode haver disputa de arquivos. O fluxo principal do app evita isso ao verificar health antes de iniciar outra instancia na mesma configuracao.
+
+5. Como abrir o Jarvis agora
+- Forma recomendada para uso comum no Windows: executar `C:\jarvis\jarvis_core\jarvis_native.vbs`.
+- Alternativa sem console: executar `C:\jarvis\jarvis_core\jarvis_native.pyw`.
+- Alternativa tecnica/legado: `jarvis.cmd native-app`.
+
+6. Se o runtime inicia automaticamente
+- Sim. Ao abrir o app, ele testa o healthcheck local.
+- Se a API ja estiver ativa, o app reutiliza a instancia existente.
+- Se a API nao estiver ativa, o app inicia o runtime automaticamente, aguarda disponibilidade e so depois libera a janela principal.
+
+7. Se ainda existe alguma dependencia residual de CMD
+- Nao na experiencia principal do usuario quando o app e aberto por `jarvis_native.vbs` ou `jarvis_native.pyw`.
+- O CMD continua existindo apenas como opcao tecnica de manutencao, logs, testes e launcher legado.
+- O runtime continua sendo um subprocesso Python interno, mas desacoplado da interacao principal do usuario e com painel web desativado quando iniciado pelo app nativo.
+
+8. Consumo aproximado
+- Medicao isolada do app nativo: ~64.7 MB de working set.
+- Medicao isolada do runtime: ~50.3 MB de working set.
+- Consumo combinado aproximado logo apos abrir: ~115 MB.
+- Observacao: a medicao de consumo foi feita em execucao isolada curta do app Qt com runtime local. A validacao de janela real sem console foi feita separadamente com `pythonw`.
+
+9. Proximo passo recomendado
+- Empacotar o app em executavel unico do Windows, com icone e atalho amigavel, mantendo `jarvis_native.vbs` como fallback.
+- Como evolucao visual, portar gradualmente as animacoes mais avancadas do brain avatar web para renderizacao nativa Qt sem reintroduzir dependencia de navegador.

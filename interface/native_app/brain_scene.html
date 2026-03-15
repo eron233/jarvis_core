@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JARVIS Brain Scene</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #020508;
+      --panel: rgba(4, 10, 16, 0.72);
+      --line: rgba(125, 177, 208, 0.18);
+      --text: #eaf5fb;
+      --muted: #8fa5b4;
+      --accent: #7fd8ff;
+      --warm: #ffd479;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(44, 127, 171, 0.12), transparent 26%),
+        radial-gradient(circle at 88% 84%, rgba(255, 212, 121, 0.08), transparent 22%),
+        linear-gradient(180deg, #04070b 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: "Bahnschrift", "Segoe UI", sans-serif;
+    }
+
+    .scene-shell {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid rgba(125, 177, 208, 0.12);
+      background:
+        radial-gradient(circle at 50% 30%, rgba(52, 93, 122, 0.14), transparent 36%),
+        linear-gradient(180deg, rgba(5, 10, 16, 0.94), rgba(2, 5, 8, 0.98));
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    canvas.dragging {
+      cursor: grabbing;
+    }
+
+    .hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .pillbar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(4, 10, 16, 0.74);
+      color: var(--text);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      backdrop-filter: blur(6px);
+    }
+
+    .focus-pill {
+      color: var(--accent);
+    }
+
+    .state-pill {
+      color: var(--warm);
+    }
+
+    .legendbar {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 98px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(4, 10, 16, 0.62);
+      color: var(--text);
+      font-size: 11px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      backdrop-filter: blur(6px);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .hintbar {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .panel {
+      max-width: min(340px, 48%);
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    .panel strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .panel span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .warm {
+      color: var(--warm);
+    }
+  </style>
+</head>
+<body>
+  <div class="scene-shell">
+    <canvas id="brainCanvas"></canvas>
+    <div class="hud">
+      <div class="pillbar">
+        <span class="pill state-pill" id="statePill">Estado Idle</span>
+        <span class="pill focus-pill" id="focusPill">Foco aguardando</span>
+        <span class="pill" id="countPill">0 neuronios</span>
+        <span class="pill" id="synapsePill">0 sinapses</span>
+      </div>
+      <div class="hintbar">
+        <div class="panel">
+          <strong>Controles</strong>
+          <span id="hintLine">Clique para expandir o cerebro. No modo amplo voce pode girar, mover e aplicar zoom.</span>
+          <span id="controlLine">Use a roda do mouse para zoom. Duplo clique para resetar a camera.</span>
+        </div>
+        <div class="panel">
+          <strong>Leitura atual</strong>
+          <span id="statusLine" class="warm">Cerebro 3D inicializando.</span>
+          <span id="detailLine">Aguardando o primeiro mapa cognitivo do Jarvis.</span>
+        </div>
+      </div>
+      <div class="legendbar">
+        <span class="legend-item"><span class="legend-dot" style="color:#4f8cff;background:#4f8cff"></span>Memoria</span>
+        <span class="legend-item"><span class="legend-dot" style="color:#ffd74a;background:#ffd74a"></span>Planejamento</span>
+        <span class="legend-item"><span class="legend-dot" style="color:#54de73;background:#54de73"></span>Execucao</span>
+        <span class="legend-item"><span class="legend-dot" style="color:#ff5d5d;background:#ff5d5d"></span>Seguranca</span>
+        <span class="legend-item"><span class="legend-dot" style="color:#a86cff;background:#a86cff"></span>Evolucao</span>
+        <span class="legend-item"><span class="legend-dot" style="color:#67f2ff;background:#67f2ff"></span>Sinapses</span>
+      </div>
+    </div>
+  </div>
+  <script src="brain_scene.js"></script>
+</body>
+</html>
