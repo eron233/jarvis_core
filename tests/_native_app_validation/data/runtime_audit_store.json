@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
-  "entry_count": 2878,
-  "saved_at": "2026-03-15T22:03:02.916048+00:00",
+  "entry_count": 2908,
+  "saved_at": "2026-03-15T22:05:35.724102+00:00",
   "entries": [
     {
       "timestamp": "2026-03-15T17:58:13.425059+00:00",
@@ -28774,6 +28774,306 @@
     },
     {
       "timestamp": "2026-03-15T22:03:02.916048+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:13.019879+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:13.101553+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:23.183298+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:23.277929+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:33.361121+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:33.443793+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:43.529615+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:43.664261+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:53.776524+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:03:53.851217+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:03.929891+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:04.015663+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:14.094870+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:14.170667+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:24.269069+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:24.407699+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:34.501974+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:34.597212+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:44.687961+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:44.789690+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:54.890184+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:04:54.975839+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:05:05.058560+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:05:05.166272+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:05:15.280194+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:05:15.374940+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:05:25.474261+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:05:25.552455+00:00",
+      "event": "review",
+      "event_ptbr": "revisar",
+      "payload": {
+        "status": "idle",
+        "reason": "no_tasks",
+        "status_ptbr": "ociosa",
+        "reason_ptbr": "sem_tarefas"
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:05:35.640325+00:00",
+      "event": "plan",
+      "event_ptbr": "planejar",
+      "payload": {
+        "task_count": 0,
+        "task_ids": []
+      }
+    },
+    {
+      "timestamp": "2026-03-15T22:05:35.724102+00:00",
       "event": "review",
       "event_ptbr": "revisar",
       "payload": {
