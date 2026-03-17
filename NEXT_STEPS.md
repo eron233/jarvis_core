@@ -5,6 +5,7 @@
 - consolidar a persistencia critica para alem de JSON puro nas trilhas de fila, auditoria e eventos mais sensiveis
 - BLOCO 12.6 - relatorio semanal de seguranca
 - validar servico Windows e Docker apenas como trilhas auxiliares fora do nucleo local ja validado
+- rotacionar explicitamente credenciais bootstrap para o ambiente-alvo definitivo apos o primeiro uso
 
 ## Delta recomendado
 

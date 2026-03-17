@@ -41,8 +41,9 @@ exit /b %errorlevel%
 exit /b %errorlevel%
 
 :api_direct
-"%PYTHON_BIN%" -m uvicorn interface.api.app:app --app-dir "%PROJECT_ROOT%" %FORWARDED_ARGS%
-exit /b %errorlevel%
+echo [Jarvis] Aviso: o modo api-direct foi aposentado como caminho oficial.
+echo [Jarvis] Redirecionando para o servidor oficial em runtime\server.py.
+goto :server
 
 :check_config
 "%PYTHON_BIN%" "%PROJECT_ROOT%runtime\server.py" --check-config %FORWARDED_ARGS%
@@ -67,5 +68,16 @@ echo Defina PYTHON_BIN ou instale um interpretador acessivel.
 exit /b 1
 
 :usage
-echo Uso: jarvis.cmd ^<loop^|server^|native-app^|api-direct^|check-config^> [argumentos]
+echo Launcher tecnico oficial do Jarvis.
+echo.
+echo Contextos oficiais:
+echo   loop        = loop puro standalone via main.py
+echo   server      = servidor HTTP/API oficial via runtime\server.py
+echo   native-app  = aplicativo nativo real via interface\native_app\main.py
+echo   check-config= validacao de ambiente do servidor oficial
+echo.
+echo Compatibilidade:
+echo   api-direct  = shim legado que redireciona para server
+echo.
+echo Uso: jarvis.cmd ^<loop^|server^|native-app^|check-config^> [argumentos]
 exit /b 1

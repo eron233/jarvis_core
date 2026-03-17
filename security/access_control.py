@@ -19,6 +19,12 @@ from dataclasses import dataclass
 import os
 from typing import Any, Dict
 
+from runtime.system_config import (
+    PBKDF2_ITERATIONS,
+    resolve_access_bootstrap,
+    verify_password_hash,
+)
+
 
 # JARVIS_SECURITY_GATE
 # ==================================================
@@ -26,7 +32,6 @@ from typing import Any, Dict
 # ==================================================
 
 DEFAULT_ADMIN_VOICE = "eron"
-DEFAULT_ADMIN_PASSWORD = "alter ego"
 SPECIAL_WAKE_PHRASE = "jarvis ta ai"
 
 
@@ -43,15 +48,41 @@ class AccessControl:
     """Aplica as regras iniciais de acesso do Jarvis sem criar contas multiplas."""
 
     admin_voice: str = DEFAULT_ADMIN_VOICE
-    admin_password: str = DEFAULT_ADMIN_PASSWORD
+    admin_password_hash: str = ""
+    admin_password_salt: str = ""
+    admin_password_iterations: int = PBKDF2_ITERATIONS
+    admin_password_source: str = "bootstrap_file"
 
     @classmethod
     def from_env(cls) -> "AccessControl":
         """Constroi o controle de acesso a partir do ambiente."""
 
+        access_bootstrap = resolve_access_bootstrap()
         return cls(
             admin_voice=str(os.environ.get("JARVIS_ADMIN_VOICE", DEFAULT_ADMIN_VOICE)),
-            admin_password=str(os.environ.get("JARVIS_ADMIN_PASSWORD", DEFAULT_ADMIN_PASSWORD)),
+            admin_password_hash=access_bootstrap.admin_password_hash,
+            admin_password_salt=access_bootstrap.admin_password_salt,
+            admin_password_iterations=access_bootstrap.admin_password_iterations,
+            admin_password_source=access_bootstrap.admin_password_source,
+        )
+
+    @classmethod
+    def from_plaintext(
+        cls,
+        admin_password: str,
+        admin_voice: str = DEFAULT_ADMIN_VOICE,
+    ) -> "AccessControl":
+        """Cria um controle de acesso de teste a partir de senha explicita."""
+
+        from runtime.system_config import derive_password_hash
+
+        password_hash, password_salt = derive_password_hash(admin_password)
+        return cls(
+            admin_voice=admin_voice,
+            admin_password_hash=password_hash,
+            admin_password_salt=password_salt,
+            admin_password_iterations=PBKDF2_ITERATIONS,
+            admin_password_source="unit_test",
         )
 
     def evaluate(
@@ -64,13 +95,18 @@ class AccessControl:
 
         normalized_phrase = _normalize_text(phrase)
         normalized_voice = _normalize_text(voice_id)
-        normalized_password = _normalize_text(password)
+        normalized_password = str(password or "")
         authorized_methods: list[str] = []
 
         voice_matches_admin = bool(
             normalized_voice and normalized_voice == _normalize_text(self.admin_voice)
         )
-        if normalized_password and normalized_password == _normalize_text(self.admin_password):
+        if normalized_password and verify_password_hash(
+            normalized_password,
+            password_hash=self.admin_password_hash,
+            password_salt=self.admin_password_salt,
+            iterations=self.admin_password_iterations,
+        ):
             authorized_methods.append("senha")
 
         access_level = "admin" if authorized_methods else "guest"

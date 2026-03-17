@@ -103,6 +103,7 @@ def create_app(
             cognitive_evolution_storage_path=effective_deployment_config.cognitive_evolution_storage_path,
             audit_storage_path=effective_deployment_config.audit_storage_path,
             self_defense_report_path=effective_deployment_config.self_defense_report_path,
+            enable_vital_organs_background=True,
         )
 
     app = FastAPI(
@@ -121,13 +122,15 @@ def create_app(
     app.state.api_token = (
         api_token
         or getattr(effective_deployment_config, "token", None)
-        or DEFAULT_API_TOKEN
     )
     app.state.trusted_device_id = (
         trusted_device_id
         or getattr(effective_deployment_config, "trusted_device_id", None)
-        or DEFAULT_TRUSTED_DEVICE_ID
     )
+    if not app.state.api_token or not app.state.trusted_device_id:
+        raise ValueError(
+            "A API do JARVIS precisa de token e device id confiavel resolvidos pelo ambiente ou bootstrap seguro."
+        )
     app.state.enable_dashboard = (
         True if effective_deployment_config is None else effective_deployment_config.enable_dashboard
     )
@@ -1111,4 +1114,4 @@ def _build_environment_report(app: FastAPI) -> Dict[str, Any]:
     }
 
 
-app = create_app()
+app = create_app(config=SystemLoopConfig(enable_vital_organs_background=True))

@@ -32,7 +32,9 @@ from executive_planner.audit import traduzir_estado
 # BLOCO: Fila persistente e normalizacao de tarefas
 # ==================================================
 
-DEFAULT_STORAGE_PATH = Path(__file__).with_name("task_queue_store.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_STORAGE_PATH = PROJECT_ROOT / "data" / "task_queue_store.json"
+LEGACY_STORAGE_PATH = Path(__file__).with_name("task_queue_store.json")
 
 
 @dataclass
@@ -59,6 +61,7 @@ class TaskQueue:
         """
 
         self.storage_path = Path(self.storage_path)
+        self._migrate_legacy_storage_if_needed()
 
     def enqueue(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -376,6 +379,30 @@ class TaskQueue:
         temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
         temp_path.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")
         os.replace(temp_path, self.storage_path)
+
+    def _migrate_legacy_storage_if_needed(self) -> None:
+        """
+        Migra automaticamente a fila legada para o store oficial em `data/`.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - move o arquivo legado para o path oficial quando a fila ainda nao foi migrada.
+        """
+
+        if self.storage_path != DEFAULT_STORAGE_PATH:
+            return
+        if self.storage_path.exists():
+            return
+        if not LEGACY_STORAGE_PATH.exists() or LEGACY_STORAGE_PATH == self.storage_path:
+            return
+
+        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(LEGACY_STORAGE_PATH, self.storage_path)
 
     @staticmethod
     def _utc_now() -> str:

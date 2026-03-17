@@ -44,6 +44,8 @@
 - auditoria persistente com recarga no bootstrap
 - mitigacao inicial anti-replay para requisicoes mutantes
 - endurecimento local de concorrencia no runtime e na fila
+- bootstrap seguro de credenciais sem fallback para senha admin fraca
+- stores vivos unificados em `data/` como caminho operacional oficial
 
 ## Blocos concluidos
 
@@ -86,6 +88,7 @@
 - a mitigacao anti-replay atual e suficiente para endurecimento local, mas ainda nao equivale a autenticacao forte com assinatura ou sessao rotativa
 - ainda nao foi executado um smoke test real de Docker neste ambiente porque `docker` nao esta disponivel aqui
 - a instalacao real do servico Windows ficou bloqueada por permissao administrativa do sistema neste host
+- o bootstrap seguro eliminou a senha admin fraca por padrao, mas ainda depende de rotacao operacional consciente quando usado pela primeira vez
 - a politica viva ja governa validator e runtime, mas ainda nao orienta uma geracao controlada de tarefas
 - a memoria procedural ja registra e reaproveita heuristicas, mas os workers ainda nao exploram esse guidance de forma rica
 - os workers ja entregam valor real, mas ainda nao possuem conectores externos autorizados nem profundidade multimodal

@@ -19,6 +19,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -373,10 +374,9 @@ class CognitiveEvolutionTracker:
             return
         payload = snapshot or self._build_snapshot()
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        self.storage_path.write_text(
-            json.dumps(payload, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
+        temp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temp_path, self.storage_path)
 
     def _normalize_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
         """Normaliza eventos carregados de snapshots antigos ou incompletos."""

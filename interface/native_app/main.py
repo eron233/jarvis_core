@@ -1,4 +1,4 @@
-"""Entrypoint do aplicativo nativo leve do JARVIS."""
+"""Entrypoint real do aplicativo nativo do JARVIS."""
 
 from __future__ import annotations
 

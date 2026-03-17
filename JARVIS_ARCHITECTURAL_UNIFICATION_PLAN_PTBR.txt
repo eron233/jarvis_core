@@ -1,0 +1,564 @@
+JARVIS - PLANO DE UNIFICACAO ARQUITETURAL
+Data: 2026-03-16
+Projeto: C:\Users\User\Documents\jarvis_core
+Base principal: JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt
+
+Premissas deste plano:
+- nao remover nada cegamente
+- nao quebrar o fluxo principal local que ja funciona
+- reduzir ambiguidade antes de reduzir volume de codigo
+- manter compatibilidade temporaria apenas onde o risco de regressao justificar
+- priorizar fontes de verdade operacionais, nao conveniencias historicas
+
+==================================================
+1. RESUMO EXECUTIVO
+==================================================
+
+O Jarvis ja tem um nucleo funcional relativamente coerente, mas ainda esta dividido contra si mesmo em quatro frentes:
+
+1. entrypoints e launchers
+2. contratos externos da API
+3. cerebro/avatar em duas stacks paralelas
+4. diagnostico interno fragmentado entre seguranca, higiene, prevencao e auto-otimizacao
+
+O objetivo desta unificacao nao e "deixar mais bonito". E reduzir:
+- ambiguidade operacional
+- risco de subir o processo errado
+- manutencao duplicada
+- divergencia entre clientes
+- relatorios internos competindo entre si
+
+Decisao geral do plano:
+- manter um entrypoint oficial por contexto
+- manter um contrato oficial por responsabilidade
+- transformar caminhos redundantes em wrappers temporarios ou aliases explicitamente marcados
+- aposentar legados por etapas, com compatibilidade temporaria apenas onde necessario
+
+==================================================
+2. DUPLICACOES MAIS PERIGOSAS
+==================================================
+
+2.1 API/servidor com multiplos caminhos de subida
+Gravidade: muito alta
+Porque e perigoso:
+- pode produzir processos com bootstrap diferente
+- pode gerar divergencia de logging, identidade de runtime e loop em background
+Itens envolvidos:
+- runtime/server.py
+- main.py
+- jarvis.cmd
+- jarvis_run.cmd
+- service/jarvis_windows_service.py
+- interface/native_app/runtime_bootstrap.py
+
+2.2 Cerebro visual em duas stacks independentes
+Gravidade: alta
+Porque e perigoso:
+- mesmo backend cognitivo, duas engines visuais diferentes
+- manutencao duplicada
+- risco de drift semantico entre web e app nativo
+Itens envolvidos:
+- interface/brain_avatar/*
+- interface/native_app/brain_scene.html
+- interface/native_app/brain_scene.js
+- interface/native_app/brain_widget.py
+
+2.3 Diagnostico interno fragmentado
+Gravidade: alta
+Porque e perigoso:
+- varios modulos "vigiam" o sistema ao mesmo tempo com fronteiras difusas
+- dificil dizer quem e a fonte oficial do diagnostico estrutural
+Itens envolvidos:
+- security/self_defense.py
+- runtime/vital_organs/*
+- learning/self_improvement.py
+
+2.4 API com rota duplicada para relatorio geral
+Gravidade: media
+Porque e perigoso:
+- clientes e docs podem adotar rotas diferentes para a mesma responsabilidade
+Itens envolvidos:
+- /api/relatorio
+- /api/relatorio/sistema
+
+2.5 Artefatos historicos misturados com stores oficiais
+Gravidade: media
+Porque e perigoso:
+- polui a leitura operacional
+- dificulta auditoria humana
+- faz parecer que existem multiplos stores vivos
+Itens envolvidos:
+- data/status_validation_*
+- data/zero_partials_*
+- reports/status_validation_*
+- reports/zero_partials_*
+- varios artefatos em tests/_*
+
+==================================================
+3. FONTES DE VERDADE FINAIS POR AREA
+==================================================
+
+3.1 Runtime bootstrap
+Fonte de verdade final:
+- main.py -> bootstrap_runtime
+Motivo:
+- ja e o bootstrap compartilhado reutilizado pelo servidor
+- evita criar outro bootstrap paralelo
+
+3.2 Servidor HTTP/API
+Fonte de verdade final:
+- runtime/server.py
+Motivo:
+- e o caminho mais completo
+- inclui contexto de deploy, logging, startup/shutdown report e loop opcional
+
+3.3 Loop puro sem API
+Fonte de verdade final:
+- main.py
+Motivo:
+- permanece como entrypoint tecnico do loop standalone
+- nao deve disputar o papel de "servidor oficial"
+
+3.4 Launcher tecnico do projeto
+Fonte de verdade final:
+- jarvis.cmd
+Motivo:
+- centraliza modos de execucao
+- e o ponto natural para orquestrar server, loop, native-app e check-config
+
+3.5 Launcher amigavel para usuario Windows
+Fonte de verdade final:
+- jarvis_run.cmd como wrapper opcional explicitamente amigavel
+Motivo:
+- pode sobreviver apenas como atalho/UX
+- nao deve ser descrito como entrypoint tecnico principal
+
+3.6 App nativo
+Fonte de verdade final:
+- interface/native_app/main.py
+Wrapper tecnico aceitavel:
+- jarvis_native.pyw
+Wrapper historico a reavaliar:
+- jarvis_native.vbs
+
+3.7 Configuracao de ambiente
+Fonte de verdade final:
+- runtime/system_config.py -> JarvisEnvironmentConfig
+
+3.8 Stores vivos principais
+Fonte de verdade final:
+- data/task_queue_store.json
+- data/semantic_memory_store.json
+- data/procedural_memory_store.json
+- data/goals.json
+- data/device_registry.json
+- data/runtime_audit_store.json
+- data/cognitive_evolution_history.json
+- reports/self_defense_latest.json
+
+3.9 API de relatorio geral
+Fonte de verdade final proposta:
+- /api/relatorio/sistema
+Alias temporario:
+- /api/relatorio
+
+3.10 Cliente web principal
+Fonte de verdade final:
+- interface/dashboard/index.html
+
+3.11 Cliente CLI leve
+Fonte de verdade final:
+- interface/native_client/jarvis_client.py
+Observacao:
+- nao compete com dashboard; compete como cliente utilitario
+
+3.12 Cliente nativo desktop
+Fonte de verdade final:
+- interface/native_app/*
+Observacao:
+- nao deve duplicar responsabilidades de launcher ou bootstrap alem do necessario
+
+3.13 Cerebro/avatar visual compartilhado
+Fonte de verdade final proposta:
+- interface/brain_avatar como biblioteca visual oficial
+Observacao:
+- o native app deve convergir para reutilizar essa stack ou um subconjunto dela
+- o brain_scene nativo nao deve seguir como engine paralela definitiva
+
+3.14 Diagnostico estrutural e operacional interno
+Fonte de verdade final proposta:
+- runtime/vital_organs para integridade, higiene, prevencao e otimizacao intraprocesso
+- security/self_defense.py para diagnostico defensivo/autorizado de seguranca
+Observacao:
+- self_improvement sai do caminho principal de diagnostico
+
+==================================================
+4. ORDEM SEGURA DE UNIFICACAO
+==================================================
+
+BLOCO 1 - ENTRYPOINTS E LAUNCHERS
+Objetivo:
+- matar a ambiguidade de subida antes de tocar no resto
+Acao:
+- definir formalmente:
+  - main.py = loop puro
+  - runtime/server.py = servidor oficial
+  - jarvis.cmd = launcher tecnico oficial
+  - jarvis_run.cmd = wrapper UX local
+  - interface/native_app/main.py = app nativo real
+  - jarvis_native.pyw = wrapper tecnico do app nativo
+  - jarvis_native.vbs = legacy a aposentar ou reduzir a shim minimo
+Risco:
+- baixo a medio
+Dependencias:
+- nenhuma estrutural forte
+
+BLOCO 2 - API SOBREPOSTA
+Objetivo:
+- unificar contrato externo antes de mexer em clientes
+Acao:
+- manter /api/relatorio/sistema como endpoint oficial
+- transformar /api/relatorio em alias explicitamente deprecated por uma fase
+- revisar docs e clientes para apontarem para /api/relatorio/sistema
+Risco:
+- baixo
+Dependencias:
+- bloco 1 nao precisa estar concluido
+
+BLOCO 3 - CEREBRO / AVATAR
+Objetivo:
+- decidir uma unica stack visual-mestre
+Acao:
+- consolidar interface/brain_avatar como biblioteca oficial
+- mapear o que de brain_scene.js ainda tem valor unico
+- portar, reaproveitar ou absorver esse valor na stack oficial
+- deixar NativeBrainWidget como integrador/host, nao como dono de uma engine separada
+Risco:
+- alto
+Dependencias:
+- bloco 2 recomendado
+- exige inventario de features visuais realmente unicas do native app
+
+BLOCO 4 - DIAGNOSTICO INTERNO
+Objetivo:
+- separar claramente:
+  - seguranca defensiva
+  - integridade estrutural
+  - higiene de runtime/git/stores
+  - prevencao de falha
+  - auto-otimizacao leve
+Acao:
+- manter runtime/vital_organs como camada continua intraprocesso
+- manter self_defense para seguranca defensiva autorizada
+- retirar self_improvement do caminho principal de "orgao" e rebaixar para auxiliar offline/consultivo
+Risco:
+- medio
+Dependencias:
+- bloco 1 recomendado para evitar mexer em runtime ainda ambiguo
+
+BLOCO 5 - STORES E LEGADO RESTANTE
+Objetivo:
+- remover a sombra de legado depois que a operacao principal ja estiver clara
+Acao:
+- manter migracao legada so enquanto houver risco real de disco antigo
+- depois remover referencias legadas do caminho principal e deixar apenas migracao controlada se ainda for necessaria
+Risco:
+- medio
+Dependencias:
+- bloco 1 e 4 recomendados
+
+BLOCO 6 - ARTEFATOS HISTORICOS
+Objetivo:
+- limpar a paisagem do projeto sem tocar no nucleo
+Acao:
+- separar store vivo, historico e artefato de teste
+- mover snapshots historicos operacionais para subdiretorio archival claro
+- deixar data/ e reports/ do root com foco no estado vivo atual
+Risco:
+- baixo a medio
+Dependencias:
+- nenhuma critica, mas melhor depois de stores e launchers definidos
+
+==================================================
+5. ITENS QUE PODEM SER REMOVIDOS SEM RISCO
+==================================================
+
+Em tese, com baixo risco e depois de validacao minima:
+- alias documental que trate /api/relatorio como rota secundaria, desde que /api/relatorio/sistema permaneça
+- referencias documentais que apresentem jarvis_run.cmd como entrypoint tecnico
+- referencias documentais que apresentem api-direct como caminho normal de operacao
+
+Itens potencialmente removiveis de codigo com baixo risco, mas so depois de confirmacao:
+- jarvis_native.vbs, se nenhum fluxo real depender dele
+- exposicao promocional de /api/relatorio como rota "principal"
+
+==================================================
+6. ITENS QUE EXIGEM MIGRACAO
+==================================================
+
+6.1 Cerebro/avatar
+Exige migracao:
+- sim
+Por que:
+- ha trabalho real nas duas stacks
+- remover uma sem absorver o valor da outra desperdiça implementacao
+Migracao recomendada:
+- inventariar capacidades exclusivas do brain_scene nativo
+- portar o que for unico para a stack oficial escolhida
+- depois deixar a stack perdedora apenas como host fino ou aposenta-la
+
+6.2 Launchers nativos
+Exige migracao:
+- parcial
+Por que:
+- ha usuarios/atalhos que podem depender de pyw ou vbs
+Migracao recomendada:
+- padronizar o fluxo tecnico em jarvis.cmd e jarvis_native.pyw
+- manter compatibilidade curta no VBS apenas se ele for necessario para atalho legado
+
+6.3 Diagnostico interno
+Exige migracao:
+- sim
+Por que:
+- nao basta apagar; e preciso redefinir ownership de cada diagnostico
+Migracao recomendada:
+- matriz clara de responsabilidade por orgao/modulo
+
+==================================================
+7. ITENS QUE EXIGEM COMPATIBILIDADE TEMPORARIA
+==================================================
+
+/api/relatorio
+- manter temporariamente como alias deprecated
+- remover apenas depois que painel, app nativo, cliente CLI, docs e testes estiverem alinhados
+
+jarvis_run.cmd
+- manter temporariamente como wrapper UX
+- documentar que o launcher tecnico oficial e jarvis.cmd
+
+jarvis_native.pyw
+- manter como wrapper tecnico do app nativo
+- nao competir com interface/native_app/main.py como fonte de verdade
+
+Constantes de legacy store
+- manter temporariamente enquanto a migracao de disco ainda existir
+- remover depois que a limpeza final de legado for concluida
+
+==================================================
+8. SEQUENCIA RECOMENDADA DE LIMPEZA
+==================================================
+
+PASSO 1
+Tema:
+- entrypoints e launchers
+Objetivo:
+- uma narrativa operacional unica
+Saida esperada:
+- matriz oficial "quem sobe o que"
+
+PASSO 2
+Tema:
+- contrato da API
+Objetivo:
+- uma rota oficial por responsabilidade
+Saida esperada:
+- /api/relatorio/sistema oficial
+- /api/relatorio temporario
+
+PASSO 3
+Tema:
+- clientes
+Objetivo:
+- alinhar dashboard, CLI e app nativo ao mesmo contrato
+Saida esperada:
+- clientes sem depender de alias antigos
+
+PASSO 4
+Tema:
+- cerebro/avatar
+Objetivo:
+- stack visual unica ou claramente hierarquizada
+Saida esperada:
+- um renderer mestre
+- outro apenas como host/adaptador ou aposentado
+
+PASSO 5
+Tema:
+- diagnostico interno
+Objetivo:
+- ownership claro por tipo de diagnostico
+Saida esperada:
+- menos fragmentacao entre self_defense, vital_organs e self_improvement
+
+PASSO 6
+Tema:
+- stores e artefatos
+Objetivo:
+- separar estado vivo, historico e teste
+Saida esperada:
+- menos ambiguidade visual em data/ e reports/
+
+==================================================
+9. PLANO POR BLOCO SOLICITADO
+==================================================
+
+9.1 ENTRYPOINTS E LAUNCHERS
+Tipo de problema:
+- duplicacao real
+- sobreposicao funcional
+- legado nao desativado
+Fonte de verdade final:
+- main.py para loop puro
+- runtime/server.py para servidor/API
+- jarvis.cmd para launcher tecnico oficial
+- interface/native_app/main.py para app nativo
+Itens a manter:
+- main.py
+- runtime/server.py
+- jarvis.cmd
+- jarvis_run.cmd como wrapper UX
+- jarvis_native.pyw como wrapper tecnico
+- service/jarvis_windows_service.py
+- interface/native_app/runtime_bootstrap.py apenas como bootstrap local do app nativo
+Itens a aposentar:
+- jarvis.cmd api-direct como caminho operacional principal
+- jarvis_native.vbs se nao houver dependencia real
+Ordem:
+- primeira
+Risco:
+- medio
+Dependencias:
+- nenhuma
+Observacoes:
+- esta e a unificacao mais importante para impedir que o Jarvis continue subindo por topologias diferentes
+
+9.2 CEREBRO / AVATAR
+Tipo de problema:
+- sobreposicao funcional
+- sombra arquitetural
+Fonte de verdade final:
+- interface/brain_avatar como biblioteca visual oficial
+Itens a manter:
+- interface/brain_avatar
+- NativeBrainWidget como adaptador/host
+Itens a aposentar:
+- ownership arquitetural de brain_scene.js como engine paralela definitiva
+Ordem:
+- quarta
+Risco:
+- alto
+Dependencias:
+- contratos da API cognitiva estabilizados
+Observacoes:
+- o app nativo pode continuar tendo experiencia diferente
+- o que nao pode continuar e ter uma engine cognitiva paralela sem dono claro
+
+9.3 DIAGNOSTICO INTERNO
+Tipo de problema:
+- sobreposicao funcional
+- sombra arquitetural
+Fonte de verdade final:
+- runtime/vital_organs para integridade, higiene, prevencao e otimização leve
+- security/self_defense.py para seguranca defensiva autorizada
+Itens a manter:
+- self_defense.py
+- structural_integrity_monitor.py
+- runtime_hygiene_engine.py
+- failure_prevention_engine.py
+- self_optimization_core.py
+- vital_organs_orchestrator.py
+Itens a aposentar:
+- papel "quase-orgao" de learning/self_improvement.py no caminho principal
+Ordem:
+- quinta
+Risco:
+- medio
+Dependencias:
+- unificacao narrativa de runtime/launchers
+Observacoes:
+- self_improvement pode permanecer como modulo consultivo, nao como centro de auto-organizacao
+
+9.4 API SOBREPOSTA
+Tipo de problema:
+- duplicado real
+Fonte de verdade final:
+- /api/relatorio/sistema
+Itens a manter:
+- /api/relatorio/sistema
+- alias temporario /api/relatorio
+Itens a aposentar:
+- /api/relatorio como rota principal
+Ordem:
+- segunda
+Risco:
+- baixo
+Dependencias:
+- clientes precisam ser auditados depois
+Observacoes:
+- e uma limpeza simples com grande ganho de clareza
+
+9.5 STORES E LEGADO RESTANTE
+Tipo de problema:
+- legado nao desativado
+- sombra arquitetural leve
+Fonte de verdade final:
+- stores em data/
+Itens a manter:
+- defaults oficiais em data/
+- migracao controlada enquanto ainda for util
+Itens a aposentar:
+- referencias legadas no caminho principal depois da janela de compatibilidade
+Ordem:
+- sexta
+Risco:
+- medio
+Dependencias:
+- launchers e runtime estabilizados
+Observacoes:
+- aqui a maior parte do trabalho ja foi feita
+- o restante e limpeza fina, nao reestruturacao total
+
+9.6 ARTEFATOS HISTORICOS
+Tipo de problema:
+- sobreposicao visual
+- ambiguidade operacional
+Fonte de verdade final:
+- data/ e reports/ do root apenas para estado vivo corrente
+Itens a manter:
+- stores vivos oficiais
+- relatórios operacionais correntes
+Itens a aposentar ou mover:
+- snapshots de validacao antigos dentro de data/
+- snapshots historicos dentro de reports/
+- artefatos de teste fora de area claramente segregada
+Ordem:
+- ultima
+Risco:
+- baixo
+Dependencias:
+- stores oficiais e launchers ja definidos
+Observacoes:
+- a limpeza aqui melhora auditoria e entendimento humano do projeto
+
+==================================================
+10. CONCLUSAO HONESTA
+==================================================
+
+O Jarvis nao precisa de uma reescrita.
+Ele precisa de uma unificacao disciplinada.
+
+Hoje, a persistencia principal ja esta muito mais madura do que a superficie operacional do sistema.
+O que mais precisa ser unificado nao e fila ou memoria. E:
+- como o sistema sobe
+- qual rota e oficial
+- qual cliente e o referencial
+- qual cerebro visual e o mestre
+- quem e dono de cada diagnostico interno
+
+Diagnostico final:
+- o plano seguro comeca por entrypoints e API
+- passa por clientes e cerebro
+- fecha com diagnostico interno e limpeza de legado
+
+Se essa ordem for respeitada, a unificacao pode acontecer sem quebrar o que ja funciona.
+Se a limpeza comecar pelo cerebro, pelos orgaos internos ou por remocoes de legado antes dos entrypoints, o risco de regressao sobe bastante.

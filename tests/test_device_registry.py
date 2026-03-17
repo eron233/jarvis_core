@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import unittest
 from unittest.mock import patch
+import json
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -67,8 +68,8 @@ class DeviceRegistryTests(unittest.TestCase):
 
         registry = DeviceRegistry(storage_path=path)
         registry.ensure_device(
-            device_id="jarvis-dispositivo-local",
-            nome="jarvis-dispositivo-local",
+            device_id="device-local-teste-principal",
+            nome="device-local-teste-principal",
             trusted=True,
             primary=True,
             metadata={"source": "api_security_gate", "last_client_host": "127.0.0.1"},
@@ -76,14 +77,63 @@ class DeviceRegistryTests(unittest.TestCase):
 
         with patch.object(registry, "save", wraps=registry.save) as save_mock:
             registry.ensure_device(
-                device_id="jarvis-dispositivo-local",
-                nome="jarvis-dispositivo-local",
+                device_id="device-local-teste-principal",
+                nome="device-local-teste-principal",
                 trusted=True,
                 primary=True,
                 metadata={"source": "api_security_gate", "last_client_host": "127.0.0.1"},
             )
 
         save_mock.assert_not_called()
+
+    def test_registry_removes_weak_legacy_device_on_load(self) -> None:
+        """Sanitiza o device id legado fraco ao recarregar o store persistido."""
+
+        path = make_registry_path("sanitize_legacy")
+        reset_storage_path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "devices": [
+                        {
+                            "device_id": "jarvis-dispositivo-local",
+                            "nome": "Legado fraco",
+                            "tipo": "mobile",
+                            "trusted": True,
+                            "primary": True,
+                        },
+                        {
+                            "device_id": "eron-celular-principal",
+                            "nome": "Celular do Eron",
+                            "tipo": "mobile",
+                            "trusted": True,
+                            "primary": True,
+                        },
+                    ]
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        registry = DeviceRegistry(storage_path=path)
+
+        self.assertFalse(registry.is_trusted("jarvis-dispositivo-local"))
+        self.assertTrue(registry.is_trusted("eron-celular-principal"))
+        self.assertFalse(any(device["device_id"] == "jarvis-dispositivo-local" for device in registry.list_devices()))
+
+    def test_registry_rejects_weak_legacy_device_id_on_write(self) -> None:
+        """Impede que o id legado fraco volte a entrar no caminho principal."""
+
+        path = make_registry_path("reject_legacy")
+        reset_storage_path(path)
+
+        registry = DeviceRegistry(storage_path=path)
+
+        with self.assertRaises(ValueError):
+            registry.ensure_device(device_id="jarvis-dispositivo-local")
 
 
 if __name__ == "__main__":

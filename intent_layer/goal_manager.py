@@ -18,6 +18,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -27,7 +28,9 @@ from typing import Any, Dict, List, Optional
 # BLOCO: Persistencia e normalizacao da camada de objetivos
 # ==================================================
 
-DEFAULT_GOALS_PATH = Path(__file__).with_name("goals.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_GOALS_PATH = PROJECT_ROOT / "data" / "goals.json"
+LEGACY_GOALS_PATH = Path(__file__).with_name("goals.json")
 
 GOAL_STATE_PTBR = {
     "draft": "rascunho",
@@ -66,6 +69,7 @@ class GoalManager:
         """
 
         self.storage_path = Path(self.storage_path)
+        self._migrate_legacy_storage_if_needed()
         self.load()
 
     def load(self) -> Dict[str, Any]:
@@ -85,7 +89,9 @@ class GoalManager:
         snapshot = self._normalize_snapshot(self.data)
         snapshot["updated_at"] = self._utc_now()
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        self.storage_path.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")
+        temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
+        temp_path.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temp_path, self.storage_path)
         self.data = snapshot
         return self.snapshot()
 
@@ -256,6 +262,30 @@ class GoalManager:
 
         if self.auto_persist:
             self.save()
+
+    def _migrate_legacy_storage_if_needed(self) -> None:
+        """
+        Migra automaticamente o arquivo legado de objetivos para `data/`.
+
+        Parametros:
+        - nenhum.
+
+        Retorno:
+        - nenhum.
+
+        Efeitos no sistema:
+        - move o store antigo quando a camada de objetivos ainda nao foi migrada.
+        """
+
+        if self.storage_path != DEFAULT_GOALS_PATH:
+            return
+        if self.storage_path.exists():
+            return
+        if not LEGACY_GOALS_PATH.exists() or LEGACY_GOALS_PATH == self.storage_path:
+            return
+
+        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(LEGACY_GOALS_PATH, self.storage_path)
 
     def _build_goal(
         self,

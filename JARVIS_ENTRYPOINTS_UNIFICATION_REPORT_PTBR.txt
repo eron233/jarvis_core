@@ -1,0 +1,146 @@
+JARVIS - RELATORIO DE UNIFICACAO DE ENTRYPOINTS E LAUNCHERS
+
+1. ENTRYPOINTS ENCONTRADOS
+
+- main.py
+  Papel final: loop puro standalone do Jarvis.
+- runtime/server.py
+  Papel final: servidor HTTP/API oficial do Jarvis.
+- jarvis.cmd
+  Papel final: launcher tecnico oficial no Windows atual.
+- jarvis_run.cmd
+  Papel final: wrapper UX local para iniciar o servidor oficial.
+- interface/native_app/main.py
+  Papel final: aplicativo nativo real do Jarvis.
+- jarvis_native.pyw
+  Papel final: wrapper tecnico sem console do aplicativo nativo.
+- jarvis_native.vbs
+  Papel final: shim minima de compatibilidade para abrir o app nativo sem console.
+- service/jarvis_windows_service.py
+  Papel relacionado: supervisor do entrypoint oficial de servidor no Windows.
+
+2. LAUNCHER OFICIAL POR CONTEXTO
+
+- Loop puro local: main.py
+- Servidor HTTP/API e painel: runtime/server.py
+- Operacao tecnica no Windows atual: jarvis.cmd
+- Uso humano local com menor atrito: jarvis_run.cmd
+- App nativo real: interface/native_app/main.py
+- App nativo sem console: jarvis_native.pyw
+
+3. WRAPPERS MANTIDOS
+
+- jarvis_run.cmd
+  Mantido como wrapper UX local.
+  Nao e fonte de verdade.
+  Encaminha para jarvis.cmd server.
+  Agora respeita JARVIS_API_HOST e JARVIS_API_PORT quando definidos.
+
+- jarvis_native.pyw
+  Mantido como wrapper tecnico sem console.
+  Nao implementa bootstrap proprio.
+  Encaminha para interface/native_app/main.py.
+
+- jarvis_native.vbs
+  Mantido apenas como shim minima de compatibilidade para hosts Windows que preferem abrir o app nativo via WSH.
+  Agora chama jarvis.cmd native-app em vez de tentar resolver um Python paralelo ou hardcoded.
+
+- jarvis.cmd modo api-direct
+  Mantido apenas como shim legado de compatibilidade.
+  Nao sobe mais um caminho divergente.
+  Redireciona explicitamente para o servidor oficial.
+
+4. WRAPPERS APOSENTADOS OU REDUZIDOS
+
+- api-direct dentro de jarvis.cmd
+  Aposentado como caminho oficial.
+  Reduzido a alias legado de compatibilidade.
+
+- jarvis_native.vbs
+  Reduzido a shim minima.
+  Deixou de resolver executaveis Python paralelos e deixou de carregar path hardcoded de outra maquina.
+
+5. MUDANCAS APLICADAS
+
+- main.py documentado como entrypoint oficial do loop puro standalone.
+- runtime/server.py documentado como servidor HTTP/API oficial.
+- service/jarvis_windows_service.py alinhado para declarar que supervisiona o entrypoint oficial de servidor.
+- jarvis.cmd ajustado para:
+  - declarar papeis claros por modo
+  - tratar api-direct como legado
+  - redirecionar api-direct para server
+- jarvis_run.cmd ajustado para:
+  - se declarar como wrapper UX local
+  - encaminhar para jarvis.cmd server
+  - respeitar host/porta definidos por ambiente
+- jarvis_native.pyw ajustado para:
+  - se declarar wrapper tecnico do app nativo
+  - apontar diretamente para interface/native_app/main.py
+- jarvis_native.vbs ajustado para:
+  - virar shim minima
+  - chamar o launcher tecnico oficial em vez de um bootstrap paralelo
+- README.md, API_PTBR.md, DEPLOY_PTBR.md e CHANGELOG.md atualizados para refletir a nova fonte de verdade operacional.
+- tests/test_startup_portability.py endurecido para:
+  - validar o api-direct como shim legado
+  - isolar totalmente os stores temporarios dos testes de startup
+  - evitar dependencia dos stores vivos do workspace
+
+6. VALIDACAO REAL EXECUTADA
+
+Testes automatizados:
+- python -m unittest discover -s tests -v
+- Resultado final: 105/105 OK
+
+Smoke real do loop puro:
+- main.py --max-cycles 1 --stop-when-idle
+- Resultado: OK
+
+Smoke real do servidor oficial:
+- runtime/server.py
+- Endpoints validados: /health, /docs, /painel
+- Resultado: OK
+
+Smoke real do launcher tecnico:
+- jarvis.cmd check-config
+- jarvis.cmd server
+- Endpoints validados: /health, /painel
+- Resultado: OK
+
+Smoke real do wrapper UX:
+- jarvis_run.cmd
+- Endpoints validados: /health, /painel
+- Resultado: OK
+
+Smoke real do app nativo:
+- jarvis.cmd native-app --offscreen --auto-close-ms 1000
+- Runtime exposto e detectado durante o smoke
+- Resultado: OK
+
+7. RISCOS RESTANTES
+
+- jarvis_native.vbs continua dependente do Windows Script Host. Ele ficou minimo e correto, mas segue sendo uma camada historica de compatibilidade.
+- api-direct ainda existe como alias legado. A ambiguidade operacional foi eliminada, mas o nome ainda permanece para compatibilidade com chamadas antigas.
+- service/jarvis_windows_service.py nao foi alterado neste bloco alem do alinhamento documental; a validacao operacional do servico em host com privilegio administrativo continua pertencendo a um bloco proprio.
+- Ainda existem multiplos contextos legitimos de subida porque o sistema tem multiplos produtos reais:
+  - loop puro
+  - servidor HTTP/API
+  - app nativo
+  Isso nao e mais ambiguidade, mas exige disciplina de documentacao continua.
+
+8. PROXIMO BLOCO RECOMENDADO
+
+- BLOCO 2 do plano: unificacao do contrato da API e limpeza da sobreposicao entre /api/relatorio e /api/relatorio/sistema.
+- Motivo: depois de matar a ambiguidade de subida, o maior risco funcional restante do nucleo exposto ao usuario fica no contrato duplicado da API.
+
+CONCLUSAO HONESTA
+
+O bloco de entrypoints e launchers ficou unificado de forma segura.
+Agora existe uma fonte de verdade clara por contexto:
+- main.py para loop puro
+- runtime/server.py para servidor HTTP/API
+- jarvis.cmd para operacao tecnica no Windows
+- jarvis_run.cmd apenas como wrapper UX
+- interface/native_app/main.py como app nativo real
+- jarvis_native.pyw e jarvis_native.vbs apenas como wrappers auxiliares
+
+Nao ha mais disputa operacional entre launchers ativos no caminho principal do sistema.

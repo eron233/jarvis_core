@@ -1,5 +1,5 @@
 """
-JARVIS - Servidor de Runtime
+JARVIS - Servidor HTTP/API Oficial
 
 Responsavel por:
 - inicializar o contexto de deploy do Jarvis
@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 import json
 import logging
 from logging.handlers import RotatingFileHandler
+import os
 from pathlib import Path
 import sys
 from threading import Thread
@@ -266,6 +267,7 @@ class JarvisServerContext:
         if self.loop_worker is not None:
             loop_summary = self.loop_worker.stop(reason=reason)
 
+        self.runtime.shutdown_vital_organs(reason=reason)
         persisted_state = self.runtime.persist_runtime_state()
         shutdown_report = {
             "timestamp": self._utc_now(),
@@ -294,6 +296,7 @@ class JarvisServerContext:
             cognitive_evolution_storage_path=self.config.cognitive_evolution_storage_path,
             audit_storage_path=self.config.audit_storage_path,
             self_defense_report_path=self.config.self_defense_report_path,
+            enable_vital_organs_background=True,
         )
 
     def _write_report(self, path: Path, payload: Dict[str, Any]) -> None:
@@ -312,7 +315,9 @@ class JarvisServerContext:
         """
 
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        temp_path = path.with_name(f"{path.name}.tmp")
+        temp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temp_path, path)
 
     @staticmethod
     def _utc_now() -> str:

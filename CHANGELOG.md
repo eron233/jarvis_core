@@ -4,6 +4,16 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Unificados os entrypoints e launchers por responsabilidade: `main.py` ficou como loop puro standalone, `runtime/server.py` como servidor HTTP/API oficial e `jarvis.cmd` como launcher tecnico oficial.
+- Reduzidos `jarvis_run.cmd`, `jarvis_native.pyw` e `jarvis_native.vbs` a wrappers auxiliares explicitamente documentados, sem disputar a fonte de verdade operacional.
+- Transformado o modo `api-direct` de `jarvis.cmd` em shim legado que apenas redireciona para `server`, eliminando um caminho divergente de subida.
+- Eliminada a senha administrativa fraca como fallback efetivo; `runtime/system_config.py` agora resolve credenciais seguras por ambiente ou bootstrap persistido em `data/jarvis_access_bootstrap.json`.
+- Atualizados `security/access_control.py`, `interface/native_client/jarvis_client.py`, `interface/native_app/config.py` e `jarvis_run.cmd` para consumir o bootstrap seguro em vez de defaults previsiveis.
+- Unificados os stores vivos oficiais em `data/` e adicionada migracao automatica de fila, memoria semantica e objetivos a partir dos caminhos legados.
+- Corrigido `main.py::bootstrap_runtime()` para preservar componentes explicitamente injetados no runtime e evitar sobrescrita silenciosa por paths vindos do ambiente.
+- Endurecido `device/device_registry.py` para remover automaticamente o `device_id` legado fraco `jarvis-dispositivo-local` do store persistente e rejeitar sua reintroducao.
+- Endurecidos `memory_system/semantic_memory.py`, `memory_system/procedural_memory.py`, `intent_layer/goal_manager.py`, `runtime/cognitive_evolution.py` e `runtime/server.py` com escrita atomica para reduzir corrupcao parcial.
+- Ajustados `.gitignore` e a trilha operacional para separar melhor codigo versionado de estado vivo e artefatos de validacao nativa.
 - Corrigido `interface/native_client/jarvis_client.py` para enviar `X-Jarvis-Nonce` e `X-Jarvis-Timestamp`, ficando compativel com a API endurecida.
 - Estendido `SystemLoopConfig` com `device_registry_path` e `self_defense_report_path`, eliminando deriva para paths padrao no bootstrap do runtime.
 - Ajustado `runtime/server.py`, `main.py` e `interface/api/app.py` para propagar corretamente os paths configurados do registro de dispositivos e do relatorio de autodefesa.
@@ -31,7 +41,7 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Atualizado o painel para exibir o cerebro cognitivo evolutivo e acionar os comandos "Jarvis, mostre sua evolucao" e "Jarvis, analise sua evolucao cognitiva".
 - Adicionados testes dedicados em `tests/test_cognitive_evolution.py` e cobertura de API/painel para a nova camada cognitiva.
 - Validado smoke test real de `runtime/server.py`, `/health`, `/painel`, `/brain-avatar/evolution_map.js` e `/api/cognicao/evolucao`.
-- Criado `security/access_control.py` com acesso administrativo por voz reconhecida (`eron`), senha (`alter ego`) e fallback guest.
+- Criado `security/access_control.py` com voz especial reconhecida (`eron`), senha administrativa segura e fallback guest.
 - Criado `device/device_registry.py` para inventario e persistencia de dispositivos autorizados.
 - Adicionado endpoint textual `/api/comando` para comando unificado com resposta do runtime.
 - Atualizado o painel para enviar comandos ao runtime pela API em vez de resolver tudo no cliente.

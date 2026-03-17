@@ -46,8 +46,8 @@ def build_native_app_config() -> NativeAppConfig:
 
     return NativeAppConfig(
         api_base_url="http://127.0.0.1:8000",
-        api_token="jarvis-local-dev-token",
-        device_id="jarvis-dispositivo-local",
+        api_token="token-nativo-teste-seguro",
+        device_id="device-nativo-teste-principal",
         python_executable=Path(sys.executable),
         project_root=PROJECT_ROOT,
         runtime_entrypoint=PROJECT_ROOT / "runtime" / "server.py",

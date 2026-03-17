@@ -20,6 +20,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import json
 import logging
+from pathlib import Path
 from threading import RLock
 from typing import Any, Dict
 
@@ -78,6 +79,7 @@ class InternalAgentRuntime:
         self.last_self_defense_report: Dict[str, Any] | None = None
         self.cognitive_evolution_tracker: Any = None
         self.runtime_identity: Dict[str, Any] | None = None
+        self.vital_organs_orchestrator: Any = None
         self._state_lock = RLock()
         self._request_nonces: Dict[str, str] = {}
 
@@ -140,6 +142,68 @@ class InternalAgentRuntime:
                 self.runtime_identity.update(load_build_metadata())
             return deepcopy(self.runtime_identity)
 
+    def configure_vital_organs(
+        self,
+        *,
+        project_root: Path,
+        report_path: Path,
+        official_paths: Dict[str, Path],
+        legacy_paths: Dict[str, Path],
+        official_data_dir: Path,
+        official_reports_dir: Path,
+        cycle_interval_seconds: float,
+        idle_sleep_seconds: float,
+        background_enabled: bool,
+    ) -> None:
+        """Configura os orgaos vitais internos sem expo-los para a interface."""
+
+        from runtime.vital_organs.vital_organs_orchestrator import VitalOrgansOrchestrator
+
+        with self._state_lock:
+            if self.vital_organs_orchestrator is None:
+                self.vital_organs_orchestrator = VitalOrgansOrchestrator(
+                    project_root=Path(project_root),
+                    report_path=Path(report_path),
+                    official_paths={label: Path(path) for label, path in official_paths.items()},
+                    legacy_paths={label: Path(path) for label, path in legacy_paths.items()},
+                    official_data_dir=Path(official_data_dir),
+                    official_reports_dir=Path(official_reports_dir),
+                    cycle_interval_seconds=cycle_interval_seconds,
+                    idle_sleep_seconds=idle_sleep_seconds,
+                    background_enabled=background_enabled,
+                )
+                return
+
+            self.vital_organs_orchestrator.reconfigure(
+                cycle_interval_seconds=cycle_interval_seconds,
+                idle_sleep_seconds=idle_sleep_seconds,
+                background_enabled=background_enabled,
+            )
+
+    def run_vital_organs_cycle_once(self) -> Dict[str, Any] | None:
+        """Executa uma rodada manual dos orgaos vitais ja configurados."""
+
+        orchestrator = self.vital_organs_orchestrator
+        if orchestrator is None:
+            return None
+        return orchestrator.run_cycle(self)
+
+    def start_vital_organs(self) -> None:
+        """Inicia os orgaos vitais em segundo plano quando configurados."""
+
+        orchestrator = self.vital_organs_orchestrator
+        if orchestrator is None:
+            return
+        orchestrator.start(self)
+
+    def shutdown_vital_organs(self, reason: str = "requested") -> None:
+        """Encerra de forma limpa os orgaos vitais internos do runtime."""
+
+        orchestrator = self.vital_organs_orchestrator
+        if orchestrator is None:
+            return
+        orchestrator.stop(reason=reason)
+
     def validate_request_replay(
         self,
         *,
@@ -181,6 +245,7 @@ class InternalAgentRuntime:
             from memory_system.semantic_memory import SemanticMemory
             from device.device_registry import DeviceRegistry
             from learning.self_improvement import SelfImprovementAdvisor
+            from runtime.system_config import JarvisEnvironmentConfig
             from security.access_control import AccessControl
             from security.self_defense import SelfDefenseMonitor
             from workers.worker_finance import FinanceWorker
@@ -188,8 +253,13 @@ class InternalAgentRuntime:
             from workers.worker_studio import StudioWorker
             from workers.worker_study import StudyWorker
 
+            deployment_config = JarvisEnvironmentConfig.from_env()
             self.constitutional_policy = self.constitutional_policy or load_constitutional_policy()
-            self.task_queue = self.task_queue if self.task_queue is not None else TaskQueue()
+            self.task_queue = (
+                self.task_queue
+                if self.task_queue is not None
+                else TaskQueue(storage_path=deployment_config.queue_storage_path)
+            )
             if len(self.task_queue) == 0:
                 self.task_queue.load_from_disk()
             self.task_queue.auto_persist_on_change(True)
@@ -199,15 +269,29 @@ class InternalAgentRuntime:
                 self.validator.set_policy(self.constitutional_policy)
             if hasattr(self.autonomy_controller, "set_policy"):
                 self.autonomy_controller.set_policy(self.constitutional_policy)
-            self.audit_logger = self.audit_logger if self.audit_logger is not None else AuditLogger()
+            self.audit_logger = (
+                self.audit_logger
+                if self.audit_logger is not None
+                else AuditLogger(storage_path=deployment_config.audit_storage_path)
+            )
             if not self.audit_logger.entries:
                 self.audit_logger.load_snapshot()
             self.audit_logger.auto_persist_on_change(True)
-            self.goal_manager = self.goal_manager if self.goal_manager is not None else GoalManager()
-            self.device_registry = self.device_registry if self.device_registry is not None else DeviceRegistry()
+            self.goal_manager = (
+                self.goal_manager
+                if self.goal_manager is not None
+                else GoalManager(storage_path=deployment_config.goals_storage_path)
+            )
+            self.device_registry = (
+                self.device_registry
+                if self.device_registry is not None
+                else DeviceRegistry(storage_path=deployment_config.device_registry_path)
+            )
             self.access_control = self.access_control if self.access_control is not None else AccessControl.from_env()
             self.self_defense_monitor = (
-                self.self_defense_monitor if self.self_defense_monitor is not None else SelfDefenseMonitor()
+                self.self_defense_monitor
+                if self.self_defense_monitor is not None
+                else SelfDefenseMonitor(report_path=deployment_config.self_defense_report_path)
             )
             self.learning_advisor = (
                 self.learning_advisor if self.learning_advisor is not None else SelfImprovementAdvisor()
@@ -216,18 +300,31 @@ class InternalAgentRuntime:
             self.cognitive_evolution_tracker = (
                 self.cognitive_evolution_tracker
                 if self.cognitive_evolution_tracker is not None
-                else CognitiveEvolutionTracker(storage_path=None, auto_persist=False)
+                else CognitiveEvolutionTracker(
+                    storage_path=deployment_config.cognitive_evolution_storage_path,
+                    auto_persist=False,
+                )
             )
 
             if not self.memory:
                 self.memory = {}
 
             self.memory.setdefault("episodic", EpisodicMemory())
-            self.memory.setdefault("semantic", SemanticMemory())
-            self.memory.setdefault("procedural", ProceduralMemory())
+            self.memory.setdefault(
+                "semantic",
+                SemanticMemory(storage_path=deployment_config.semantic_storage_path),
+            )
+            self.memory.setdefault(
+                "procedural",
+                ProceduralMemory(storage_path=deployment_config.procedural_storage_path),
+            )
 
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
+            if getattr(semantic_memory, "storage_path", None) is None:
+                semantic_memory.storage_path = deployment_config.semantic_storage_path
+            if getattr(procedural_memory, "storage_path", None) is None:
+                procedural_memory.storage_path = deployment_config.procedural_storage_path
             if not semantic_memory.entries and not semantic_memory.facts:
                 semantic_memory.load_snapshot()
             semantic_memory.auto_persist = True

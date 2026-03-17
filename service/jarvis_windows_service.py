@@ -10,6 +10,9 @@ Integracoes principais:
 - runtime.server
 - runtime.system_config
 - main
+
+Observacao:
+- este servico supervisiona o entrypoint oficial de servidor, sem criar um bootstrap paralelo
 """
 
 from __future__ import annotations

@@ -31,7 +31,7 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Cliente nativo leve | Implementada e validada | `interface/native_client/jarvis_client.py` | Usa a API local com `nonce` e `timestamp` | `tests/test_native_client.py` + smoke test real contra `/api/comando` |
 | Workers uteis por dominio | Implementada | `workers/worker_runtime.py`, `workers/worker_study.py`, `workers/worker_studio.py`, `workers/worker_finance.py`, `workers/worker_utils.py` | Reaproveita memoria e auditoria do runtime | `tests/test_workers.py` |
 | Autenticacao por dispositivo confiavel | Implementada | `interface/api/app.py`, `runtime/internal_agent_runtime.py` | Variaveis de ambiente + auditoria persistente | `tests/test_api.py`, `tests/test_dashboard.py` |
-| Controle de acesso por voz ou senha | Implementada com limites | `security/access_control.py`, `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Em memoria + headers da API | `tests/test_access_control.py`, `tests/test_api.py` |
+| Controle de acesso por voz ou senha | Implementada com endurecimento estrutural | `security/access_control.py`, `runtime/system_config.py`, `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Bootstrap seguro em `data/jarvis_access_bootstrap.json` + headers da API | `tests/test_access_control.py`, `tests/test_api.py`, `tests/test_cloud_deploy.py` |
 | Registro de dispositivos autorizados | Implementada | `device/device_registry.py`, `interface/api/app.py`, `runtime/internal_agent_runtime.py` | JSON configuravel | `tests/test_device_registry.py`, `tests/test_api.py` |
 | Relatorios operacionais completos | Implementada | `runtime/internal_agent_runtime.py`, `interface/api/app.py` | Reaproveita estado do runtime | `tests/test_operational_reports.py` |
 | Configuracao central de ambiente | Implementada | `runtime/system_config.py`, `.env.example` | Variaveis de ambiente | `tests/test_cloud_deploy.py` |
@@ -123,6 +123,8 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
   Finalidade: dispositivos autorizados
 - `data/cognitive_evolution_history.json`
   Finalidade: historico persistente de crescimento cognitivo
+- `data/jarvis_access_bootstrap.json`
+  Finalidade: token efetivo, device confiavel principal e hash seguro da senha administrativa
 - `logs/jarvis.log`
   Finalidade: log operacional do servidor
 - `reports/environment_report.json`

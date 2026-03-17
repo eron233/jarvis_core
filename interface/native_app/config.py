@@ -8,9 +8,7 @@ from pathlib import Path
 import sys
 
 from runtime.system_config import (
-    DEFAULT_API_PORT,
-    DEFAULT_API_TOKEN,
-    DEFAULT_TRUSTED_DEVICE_ID,
+    JarvisEnvironmentConfig,
 )
 
 
@@ -54,15 +52,16 @@ class NativeAppConfig:
     def from_env(cls) -> "NativeAppConfig":
         """Carrega a configuracao principal a partir do ambiente atual."""
 
-        api_port = int(os.environ.get("JARVIS_API_PORT", DEFAULT_API_PORT))
+        runtime_config = JarvisEnvironmentConfig.from_env()
+        api_port = int(os.environ.get("JARVIS_API_PORT", runtime_config.api_port))
         api_base_url = os.environ.get(
             "JARVIS_NATIVE_API_BASE_URL",
             f"http://127.0.0.1:{api_port}",
         ).rstrip("/")
         return cls(
             api_base_url=api_base_url,
-            api_token=os.environ.get("JARVIS_TOKEN", DEFAULT_API_TOKEN),
-            device_id=os.environ.get("JARVIS_TRUSTED_DEVICE_ID", DEFAULT_TRUSTED_DEVICE_ID),
+            api_token=runtime_config.token,
+            device_id=runtime_config.trusted_device_id,
             python_executable=resolve_runtime_python_executable(),
             project_root=PROJECT_ROOT,
             runtime_entrypoint=PROJECT_ROOT / "runtime" / "server.py",
@@ -72,4 +71,3 @@ class NativeAppConfig:
             status_refresh_interval_ms=int(os.environ.get("JARVIS_NATIVE_STATUS_REFRESH_MS", "15000")),
             brain_refresh_interval_ms=int(os.environ.get("JARVIS_NATIVE_BRAIN_REFRESH_MS", "20000")),
         )
-

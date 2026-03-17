@@ -40,7 +40,7 @@ Converter a camada externa e operacional visivel do JARVIS para portugues do Bra
 - `C:\Users\User\Documents\scaffold_validation.md`
 - `C:\Users\User\Documents\jarvis_core\constitutional_core\identity.json`
 - `C:\Users\User\Documents\jarvis_core\constitutional_core\principles.json`
-- `C:\Users\User\Documents\jarvis_core\intent_layer\goals.json`
+- `C:\Users\User\Documents\jarvis_core\data\goals.json`
 
 ## Arquivos traduzidos
 
@@ -58,7 +58,7 @@ Converter a camada externa e operacional visivel do JARVIS para portugues do Bra
 
 - Nomes de arquivos Python, classes, funcoes e modulos: preservados para estabilidade arquitetural e compatibilidade com imports.
 - Valores internos estaveis como `status`, `event`, `reason` e `state`: mantidos em ingles para nao quebrar fluxo interno, testes preexistentes e persistencia ja consolidada.
-- Artefatos de persistencia `task_queue_store.json` e `semantic_memory_store.json`: mantidos como artefatos de dados, sem traducao estrutural para evitar migracao desnecessaria.
+- Artefatos de persistencia vivos em `data/`: mantidos como artefatos operacionais, sem traducao estrutural para evitar migracao desnecessaria.
 
 ## Termos padronizados
 

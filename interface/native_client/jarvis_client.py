@@ -22,6 +22,7 @@ import uuid
 from typing import Any, Dict, Optional
 from urllib import error, request
 
+from runtime.system_config import JarvisEnvironmentConfig
 
 # JARVIS_API_LAYER
 # ==================================================
@@ -31,26 +32,42 @@ from urllib import error, request
 DEFAULT_COMMAND_URL = "http://localhost:8000/api/comando"
 
 
+def load_client_defaults() -> dict[str, str]:
+    """Carrega defaults reais do cliente a partir da configuracao efetiva do runtime."""
+
+    config = JarvisEnvironmentConfig.from_env()
+    command_url = os.environ.get(
+        "JARVIS_CLIENT_URL",
+        f"http://127.0.0.1:{config.api_port}/api/comando",
+    )
+    return {
+        "url": command_url,
+        "token": config.token,
+        "device_id": config.trusted_device_id,
+    }
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     """Monta o parser do cliente nativo."""
 
+    defaults = load_client_defaults()
     parser = argparse.ArgumentParser(description="Cliente leve do Jarvis para envio de comandos.")
     parser.add_argument("--texto", help="Comando textual a ser enviado para o Jarvis.")
     parser.add_argument("--voz", dest="voz_identificada", help="Identidade de voz reconhecida.")
     parser.add_argument("--senha", help="Senha administrativa opcional.")
     parser.add_argument(
         "--url",
-        default=os.environ.get("JARVIS_CLIENT_URL", DEFAULT_COMMAND_URL),
+        default=defaults["url"] or DEFAULT_COMMAND_URL,
         help="URL do endpoint de comando da API.",
     )
     parser.add_argument(
         "--token",
-        default=os.environ.get("JARVIS_TOKEN", ""),
+        default=defaults["token"],
         help="Token da API do Jarvis.",
     )
     parser.add_argument(
         "--device-id",
-        default=os.environ.get("JARVIS_TRUSTED_DEVICE_ID", ""),
+        default=defaults["device_id"],
         help="Device id confiavel usado na autenticacao da API.",
     )
     parser.add_argument(

@@ -65,7 +65,7 @@ Capacidades atuais:
 Artefatos principais:
 
 - `intent_layer/goal_manager.py`
-- `intent_layer/goals.json`
+- `data/goals.json`
 
 ## Sistema de Memoria
 
@@ -266,6 +266,7 @@ Modelo atual de protecao:
 - headers `X-Jarvis-Token` e `X-Jarvis-Device-Id`
 - sessao derivada para liberar o painel
 - auditoria de acessos autorizados e negados
+- bootstrap seguro de credenciais em `data/jarvis_access_bootstrap.json`, sem fallback silencioso para senha admin fraca
 
 ## Relatorios Operacionais
 

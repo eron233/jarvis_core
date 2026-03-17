@@ -26,9 +26,13 @@ Idioma padrao da camada visivel: `pt-BR`
 ## Entrypoints
 
 - Runtime interno: `runtime/internal_agent_runtime.py`
-- Loop continuo local: `main.py`
-- Servidor para VPS/API/painel: `runtime/server.py`
-- Launcher oficial no Windows atual: `jarvis.cmd`
+- Loop continuo local e standalone: `main.py`
+- Servidor HTTP/API oficial para deploy e operacao local: `runtime/server.py`
+- Launcher tecnico oficial no Windows atual: `jarvis.cmd`
+- Wrapper UX local para subir o servidor oficial: `jarvis_run.cmd`
+- App nativo real: `interface/native_app/main.py`
+- Wrapper tecnico sem console do app nativo: `jarvis_native.pyw`
+- Shim minima de compatibilidade para abrir o app nativo: `jarvis_native.vbs`
 - Cliente leve: `interface/native_client/jarvis_client.py`
 - Servico leve do Windows: `service/jarvis_windows_service.py`
 
@@ -45,7 +49,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - painel web para uso em celular
 - workers uteis por dominio com resposta estruturada e evidencia
 - endpoint textual `/api/comando` com resposta do runtime
-- controle de acesso inicial por voz reconhecida, senha ou guest
+- controle de acesso inicial por token, dispositivo confiavel, senha administrativa segura e voz especial para wake phrase
 - registro persistente de dispositivos confiaveis
 - autodiagnostico de seguranca com gemeo, validacao e remediacao segura
 - mapa evolutivo cognitivo persistente em `data/cognitive_evolution_history.json`
@@ -98,19 +102,19 @@ Capacidades atuais:
 
 ## Execucao Local
 
-Loop continuo controlado:
+Loop continuo puro:
 
 ```powershell
 python main.py --max-cycles 1 --stop-when-idle
 ```
 
-No Windows atual, se `python` nao estiver no `PATH`, use o launcher oficial:
+No Windows atual, se `python` nao estiver no `PATH`, use o launcher tecnico oficial:
 
 ```powershell
 .\jarvis.cmd loop --max-cycles 1 --stop-when-idle
 ```
 
-Servidor HTTP completo:
+Servidor HTTP/API oficial:
 
 ```powershell
 set JARVIS_ENV=development
@@ -119,10 +123,28 @@ set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
 python runtime\server.py
 ```
 
-Opcao equivalente, mais robusta no ambiente local atual:
+Opcao equivalente e oficial no ambiente local atual:
 
 ```powershell
 .\jarvis.cmd server
+```
+
+Wrapper UX local para uso humano no Windows:
+
+```powershell
+.\jarvis_run.cmd
+```
+
+Aplicativo nativo real:
+
+```powershell
+python interface\native_app\main.py
+```
+
+Wrapper tecnico sem console do aplicativo nativo:
+
+```powershell
+pythonw jarvis_native.pyw
 ```
 
 Cliente leve nativo:
@@ -134,6 +156,8 @@ python interface\native_client\jarvis_client.py --texto "status do sistema" --to
 Observacao:
 
 - o cliente nativo agora envia automaticamente `nonce` e `timestamp`, ficando compativel com a protecao anti-replay atual da API
+- `jarvis.cmd` e a unica fonte de verdade para launchers no Windows; `jarvis_run.cmd`, `jarvis_native.pyw` e `jarvis_native.vbs` sao apenas wrappers auxiliares
+- o modo `api-direct` de `jarvis.cmd` continua existindo apenas como shim legado e redireciona para `server`; ele nao e mais um caminho oficial distinto de operacao
 
 Servico Windows leve:
 
@@ -146,7 +170,7 @@ Observacao:
 
 - a instalacao do servico Windows exige terminal com privilegio administrativo
 - o servico Windows e a operacao com Docker ficam fora do nucleo local validado automaticamente nesta sessao; eles permanecem auxiliares ate validacao operacional no host alvo
-- o acesso administrativo por comando aceita `voz_identificada=eron` ou senha `alter ego`
+- o acesso administrativo por comando aceita `voz_identificada=eron` como contexto especial e senha administrativa segura configurada por ambiente ou bootstrap
 - a frase especial `Jarvis ta ai` responde `Sim, Sr. Maciel.` apenas quando a voz reconhecida e `eron`
 
 Para iniciar o Jarvis como aplicativo no Windows, aperte a tecla Windows e digite `J`.
@@ -200,8 +224,17 @@ http://localhost:8000/painel
 - `JARVIS_DEVICE_REGISTRY_PATH`
 - `JARVIS_AUDIT_STORAGE_PATH`
 - `JARVIS_SELF_DEFENSE_REPORT_PATH`
+- `JARVIS_ADMIN_PASSWORD`
 
 O arquivo base fica em `.env.example`.
+
+Se `JARVIS_TOKEN`, `JARVIS_TRUSTED_DEVICE_ID` ou `JARVIS_ADMIN_PASSWORD` nao forem informados com valores fortes, o Jarvis cria um bootstrap seguro em `data/jarvis_access_bootstrap.json` e grava orientacao operacional em `reports/JARVIS_ADMIN_BOOTSTRAP_CREDENTIAL_PTBR.txt`.
+
+Observacoes operacionais importantes:
+
+- o valor legado `jarvis-dispositivo-local` deixou de ser aceito como dispositivo confiavel e e removido automaticamente do registro persistente quando encontrado
+- a operacao normal do runtime agora usa apenas stores vivos em `data/` e nao deve mais sujar o Git com estado operacional
+- residuos antigos em `tests/_tmp/` podem continuar presos pelo Windows em alguns hosts; eles ficam fora do caminho principal e ignorados pelo Git
 
 ## Persistencia
 
@@ -213,6 +246,7 @@ Por padrao, o modo de servidor usa:
 - `data/goals.json`
 - `data/device_registry.json`
 - `data/runtime_audit_store.json`
+- `data/jarvis_access_bootstrap.json`
 - `logs/jarvis.log`
 - `reports/environment_report.json`
 - `reports/shutdown_report.json`

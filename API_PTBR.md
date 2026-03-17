@@ -6,7 +6,7 @@ Fornecer acesso HTTP ao nucleo operacional do JARVIS sem duplicar planner, runti
 
 ## Inicializacao Recomendada
 
-Modo servidor completo:
+Servidor HTTP/API oficial:
 
 ```powershell
 set JARVIS_ENV=development
@@ -15,7 +15,7 @@ set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
 python runtime\server.py
 ```
 
-Modo portavel no Windows atual:
+Launcher tecnico oficial no Windows atual:
 
 ```powershell
 .\jarvis.cmd server
@@ -27,18 +27,12 @@ Validacao de configuracao antes da subida:
 .\jarvis.cmd check-config
 ```
 
-Modo FastAPI direto:
-
-```powershell
-set JARVIS_TOKEN=seu_token_seguro
-set JARVIS_TRUSTED_DEVICE_ID=eron-celular-principal
-python -m uvicorn interface.api.app:app --host 0.0.0.0 --port 8000
-```
-
 Observacao operacional:
 
-- em ambientes como o atual, prefira `python -m uvicorn ...` em vez de depender do comando `uvicorn` no `PATH`
-- nao use `--reload` como caminho oficial de operacao
+- `runtime/server.py` e o unico entrypoint oficial do servidor HTTP/API
+- `.\jarvis.cmd server` e o wrapper tecnico oficial desse mesmo entrypoint no Windows atual
+- o modo `api-direct` do launcher sobrevive apenas como shim legado e redireciona para `server`
+- nao use `python -m uvicorn ...` nem `--reload` como caminho operacional oficial do projeto
 
 ## Autenticacao
 
@@ -52,8 +46,8 @@ Endpoints protegidos exigem token valido e `device id` do dispositivo confiavel.
 
 Camada adicional de comando:
 
-- voz reconhecida `eron` concede nivel administrativo
-- senha `alter ego` concede nivel administrativo
+- voz reconhecida `eron` continua apenas como contexto especial para a frase reservada
+- a senha administrativa precisa vir do ambiente ou do bootstrap seguro gerado em `data/jarvis_access_bootstrap.json`
 - sem essas credenciais, o comando opera em modo guest
 - a frase `Jarvis ta ai` responde `Sim, Sr. Maciel.` apenas com a voz `eron`
 
@@ -125,6 +119,8 @@ Principais variaveis:
 - `JARVIS_ADMIN_PASSWORD`
 
 Arquivo base: `.env.example`
+
+Se os segredos nao forem fornecidos explicitamente, a API passa a usar o bootstrap seguro persistido em `data/jarvis_access_bootstrap.json` e registra a orientacao inicial em `reports/JARVIS_ADMIN_BOOTSTRAP_CREDENTIAL_PTBR.txt`.
 
 ## Observacoes Operacionais
 

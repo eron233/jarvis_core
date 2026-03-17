@@ -1,0 +1,176 @@
+Retomei a auditoria do ponto em que parou e vou continuar só com leitura e consolidação. Agora vou fechar os blocos que faltam: bootstrap, launchers nativos, dashboard/brain, coordenação entre dispositivos e órgãos vitais, porque é aí que normalmente ficam as duplicações menos óbvias.
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\startup_bootstrap.py -TotalCount 220para 4s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\interface\native_app\runtime_bootstrap.py -TotalCount 260para 5s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\interface\native_app\config.py -TotalCount 260para 4s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\interface\native_client\jarvis_client.py -TotalCount 260para 4s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\interface\native_app\api_client.py -Pattern '^class |^def |/api/|/health|brain|comando|identidade' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 7s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\interface\native_app\main.py -Pattern '^class |^def |QApplication|JarvisRuntimeBootstrapper|MainWindow|brain' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 7s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\interface\native_app\main_window.py -Pattern '^class |^def |Brain|status|tarefas|objetivos|relatorio|comando' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 6s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\interface\dashboard\access_gate.html -TotalCount 240para 6s
+
+
+Agora vou fechar o bloco visual/cognitivo, porque ali é onde normalmente aparecem duas implementações paralelas do mesmo “cérebro”: uma web e outra nativa. Também vou cruzar coordenação e órgãos vitais para ver se existe mais de um sistema tentando coordenar dispositivos, sync ou auto-organização.
+
+Executado Get-ChildItem C:\Users\User\Documents\jarvis_core\runtime\vital_organs -File | ForEach-Object { $_.Name }; Get-ChildItem C:\Users\User\Documents\jarvis_core\runtime\vital_organs -File | Select-String -Pattern '^class |^def |integrity|optimization|hygiene|failure|sync|coordination|git' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 10s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\coordination\TASK_LOCKS.json -TotalCount 200para 6s
+
+
+Executado Get-ChildItem C:\Users\User\Documents\jarvis_core\interface\brain_avatar -File | ForEach-Object { $_.Name }; Get-ChildItem C:\Users\User\Documents\jarvis_core\interface\brain_avatar -File | Select-String -Pattern '^export |^function |^class |render|evolution|conscious|plastic|neural' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 8s
+
+
+Executado Get-ChildItem C:\Users\User\Documents\jarvis_core\interface\native_app -File | ForEach-Object { $_.Name }; Get-ChildItem C:\Users\User\Documents\jarvis_core\interface\native_app -File | Select-String -Pattern 'Brain|brain|scene|evolution|conscious|plastic|neural|render' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 12s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\interface\dashboard\index.html -Pattern 'fetch\(|/api/|brain-avatar|cognicao|relatorio|tarefas|objetivos|comando|health' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 7s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\executive_planner\planner.py -Pattern '^class |def |TaskQueue|GoalManager|policy|validator|priorit' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 3s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\runtime\internal_agent_runtime.py -Pattern '^class |def configure_vital_organs|def start_vital_organs|def run_vital_organs_cycle_once|def build_runtime_identity_report|def build_environment_report|def build_health_report|def run_planner_cycle|self_defense|self_improvement|device_registry|cognitive_evolution|worker_' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 10s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\runtime\autonomy.py,C:\Users\User\Documents\jarvis_core\constitutional_core\policy.py,C:\Users\User\Documents\jarvis_core\executive_planner\validator.py -Pattern '^class |^def |policy|autonomy|approval|blocked|sensitive|prohibited' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 5s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\coordination\SESSION_CHECKPOINT_PTBR.md -TotalCount 220para 3s
+
+
+Já ficou claro que há algumas zonas de ambiguidade fortes: launchers, clientes e cérebro visual. Antes de fechar o relatório, vou checar o serviço Windows, o launcher nativo e alguns pontos de config para separar o que é caminho oficial do que ainda ficou vivo como alternativa paralela ou legado não desativado.
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\learning\self_improvement.py,C:\Users\User\Documents\jarvis_core\runtime\vital_organs\self_optimization_core.py -Pattern '^class |^def |optimiz|improv|suggest|apply' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 3s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\main.py -Pattern '^def |^class |bootstrap_runtime|JarvisSystemLoop|configure_vital_organs|start_vital_organs|run\(' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 6s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\runtime\server.py -Pattern '^def |^class |create_app|bootstrap_runtime|uvicorn|JarvisServerContext|RuntimeLoopWorker|check-config|run_server' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 4s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\service\jarvis_windows_service.py -Pattern '^class |^def |jarvis.cmd|server.py|main.py|python|restart|monitor|service' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 7s
+
+
+Estou fechando a parte de stores e arquivos vivos agora, porque ela define se existe uma única fonte de verdade ou múltiplos caminhos antigos ainda respirando no projeto. Também vou checar a presença física de stores fora de data/, para distinguir o que é só constante legada do que ainda existe no disco e pode confundir operação.
+
+Executado Get-ChildItem -Path C:\Users\User\Documents\jarvis_core -Recurse -File -Include *.cmd,*.pyw,*.vbs | Select-Object -ExpandProperty FullNamepara 5s
+
+
+Executado Get-ChildItem -Path C:\Users\User\Documents\jarvis_core -Recurse -File -Include *.json | Where-Object { $_.FullName -notmatch '\\.git\\' } | Select-Object -ExpandProperty FullNamepara 4s
+
+
+Executado Get-ChildItem -Path C:\Users\User\Documents\jarvis_core\data -Force | Select-Object Name,Length,LastWriteTimepara 3s
+
+
+Executado Get-ChildItem -Path C:\Users\User\Documents\jarvis_core\coordination -Force | Select-Object Name,Length,LastWriteTimepara 2s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\runtime\vital_organs\structural_integrity_monitor.py -TotalCount 260para 5s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\runtime\vital_organs\self_optimization_core.py -TotalCount 220para 3s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\runtime\vital_organs\runtime_hygiene_engine.py -TotalCount 220para 4s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\learning\self_improvement.py -TotalCount 220para 3s
+
+
+Executado Get-ChildItem -Path C:\Users\User\Documents\jarvis_core -Recurse -File -Include *.py | Select-String -Pattern 'LEGACY_|DEFAULT_.*STORE|DEFAULT_.*PATH|status_validation_|zero_partials_' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 6s
+
+
+Executado Get-ChildItem -Path C:\Users\User\Documents\jarvis_core -Recurse -File -Include *.py | Select-String -Pattern 'interface/native_app|brain_avatar|brain_scene|NativeBrainWidget|createEvolutionMap|jarvis_run.cmd|jarvis_native.vbs|jarvis_native.pyw' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 5s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\interface\native_app\brain_widget.py -TotalCount 260para 3s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\interface\api\app.py | Select-Object -Skip 740 -First 220para 1s
+
+
+Executado Test-Path C:\Users\User\Documents\jarvis_core\executive_planner\task_queue_store.json; Test-Path C:\Users\User\Documents\jarvis_core\memory_system\semantic_memory_store.json; Test-Path C:\Users\User\Documents\jarvis_core\intent_layer\goals.jsonpara 7s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\interface\native_app\api_client.py -TotalCount 220para 6s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\runtime\vital_organs\autonomous_sync_engine.py -TotalCount 220para 4s
+
+
+Falta só uma última camada: observabilidade e relatórios internos. Ela costuma parecer “rica”, mas às vezes está dividida demais entre audit log, service log, vital organs e relatórios de runtime. Vou fechar isso porque é uma fonte clássica de sobreposição funcional.
+
+Executado Get-ChildItem -Path C:\Users\User\Documents\jarvis_core\development -Force | Select-Object Name,Length,LastWriteTimepara 11s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\executive_planner\audit.py -TotalCount 260para 9s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\executive_planner\audit.py,C:\Users\User\Documents\jarvis_core\runtime\server.py,C:\Users\User\Documents\jarvis_core\service\jarvis_windows_service.py -Pattern 'log|audit|storage_path|jarvis.log|runtime_audit_store|RotatingFileHandler|report' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 8s
+
+
+Executado Get-ChildItem -Path C:\Users\User\Documents\jarvis_core\reports -Force | Select-Object Name,Length,LastWriteTimepara 7s
+
+
+Já apareceu outra área clássica de sobreposição: saúde/relatórios na API. Vou só confirmar rapidamente o que cada rota retorna para não chamar de duplicado algo que é apenas uma versão pública versus autenticada.
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\interface\api\app.py | Select-Object -Skip 280 -First 460para 3s
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\runtime\internal_agent_runtime.py -Pattern 'def build_system_report|def build_queue_report|def build_goal_report|def build_memory_report|def build_audit_report|def build_report' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 2s
+
+
+Executado Get-Content C:\Users\User\Documents\jarvis_core\runtime\vital_organs\failure_prevention_engine.py -TotalCount 220para 1s
+
+
+Já tenho o mapa das duplicações reais e das sobreposições relevantes. Vou só capturar o estado Git atual de novo para contextualizar quais sombras estão ainda vivas no workspace e então fecho o relatório em texto simples, sem alterar o sistema.
+
+Executado git -C C:\Users\User\Documents\jarvis_core status --short
+
+
+Executado Select-String -Path C:\Users\User\Documents\jarvis_core\runtime\system_config.py -Pattern 'log_file_path|startup_report_path|shutdown_report_path|jarvis.log' | ForEach-Object { "{0}:{1}: {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }para 1s
+
+
+Vou consolidar agora os achados em um arquivo .txt com classificação dura por tipo de sobreposição e com as fontes de verdade atuais de cada área. Não vou tocar na arquitetura; só registrar onde o Jarvis ainda está dividido contra si mesmo.
+
+Criado
+JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt
++628
+-0
+Trabalhou por 7m 57s
+A auditoria foi concluida e o relatorio completo esta em JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt.
+
+Principais achados:
+
+Ha duplicacao real em /api/relatorio e /api/relatorio/sistema, que expõem o mesmo relatorio.
+Ha sobreposicao forte de launchers e entrypoints: main.py, server.py, jarvis.cmd, jarvis_run.cmd, jarvis_native.pyw, jarvis_native.vbs, jarvis_windows_service.py e o bootstrap do app nativo.
+O cerebro/avatar esta dividido em duas stacks ativas: interface/brain_avatar no dashboard web e interface/native_app no app nativo.
+A autodiagnose interna esta fragmentada entre self_defense.py e os orgaos em runtime/vital_organs.
+Os stores vivos principais hoje estao mais unificados em data, mas o codigo ainda carrega legado monitorado em queue.py, semantic_memory.py e goal_manager.py.
+Ha muitos artefatos historicos e de validacao em data, reports e tests que nao sao stores vivos principais, mas competem visualmente com eles.
+Conclusao curta:
+
+O maior problema de duplicacao hoje nao esta mais nos stores vivos centrais.
+O maior problema esta em inicializacao, clientes paralelos, cerebro visual duplicado e diagnostico interno fragmentado.
+Se quiser, o proximo passo mais util e eu transformar esse relatorio em uma lista objetiva de limpeza, item por item, na ordem mais segura de unificacao.
+
+
+1 arquivo alterado
+Desfazer
+JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt

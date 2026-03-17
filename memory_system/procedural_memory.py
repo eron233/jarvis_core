@@ -18,6 +18,7 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional
@@ -334,7 +335,9 @@ class ProceduralMemory:
             return
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         payload = snapshot or self._build_snapshot()
-        self.storage_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
+        temp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temp_path, self.storage_path)
 
     def _next_entry_id(self) -> str:
         """

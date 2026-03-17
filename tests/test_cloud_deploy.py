@@ -38,7 +38,7 @@ class CloudPreparationTests(unittest.TestCase):
     """Valida configuracao, recuperacao e contexto de servidor para deploy."""
 
     def test_environment_config_loads_defaults(self) -> None:
-        """Confirma que a configuracao padrao de ambiente e carregada."""
+        """Confirma que a configuracao padrao carrega stores oficiais e bootstrap seguro."""
 
         config = JarvisEnvironmentConfig.from_env(environ={}, project_root=PROJECT_ROOT)
 
@@ -51,18 +51,21 @@ class CloudPreparationTests(unittest.TestCase):
         self.assertEqual(config.semantic_storage_path, PROJECT_ROOT / "data" / "semantic_memory_store.json")
         self.assertEqual(config.procedural_storage_path, PROJECT_ROOT / "data" / "procedural_memory_store.json")
         self.assertEqual(config.goals_storage_path, PROJECT_ROOT / "data" / "goals.json")
+        self.assertFalse(config.token == "jarvis-local-dev-token")
+        self.assertFalse(config.trusted_device_id == "jarvis-dispositivo-local")
+        self.assertTrue(config.access_bootstrap_path.exists())
+        self.assertTrue(config.admin_bootstrap_report_path.exists())
 
-    def test_environment_config_rejects_production_without_secrets(self) -> None:
-        """Garante que producao sem segredos seja rejeitada."""
+    def test_environment_config_rejects_weak_admin_password_from_env(self) -> None:
+        """Garante que a credencial admin legada nao seja mais aceita como valor efetivo."""
 
         with self.assertRaises(ValueError) as context:
             JarvisEnvironmentConfig.from_env(
-                environ={"JARVIS_ENV": "production"},
+                environ={"JARVIS_ADMIN_PASSWORD": "alter ego"},
                 project_root=PROJECT_ROOT,
             )
 
-        self.assertIn("JARVIS_TOKEN", str(context.exception))
-        self.assertIn("JARVIS_TRUSTED_DEVICE_ID", str(context.exception))
+        self.assertIn("JARVIS_ADMIN_PASSWORD", str(context.exception))
 
     def test_bootstrap_runtime_recovers_corrupted_storage(self) -> None:
         """Verifica recuperacao segura quando os arquivos persistidos estao corrompidos."""
@@ -163,7 +166,15 @@ class CloudPreparationTests(unittest.TestCase):
             device_registry_path=device_registry_path,
             self_defense_report_path=self_defense_report_path,
         )
-        with patch.dict("os.environ", {"JARVIS_ADMIN_PASSWORD": "senha-deploy-segura"}, clear=False):
+        with patch.dict(
+            "os.environ",
+            {
+                "JARVIS_ADMIN_PASSWORD": "senha-deploy-segura-2026",
+                "JARVIS_TOKEN": "token-deploy-seguro",
+                "JARVIS_TRUSTED_DEVICE_ID": "eron-celular-principal",
+            },
+            clear=False,
+        ):
             config.validate()
 
             context = JarvisServerContext(config=config)

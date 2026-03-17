@@ -24,6 +24,8 @@ import threading
 import time
 from typing import Any, Dict, List
 
+from runtime.system_config import DEFAULT_TRUSTED_DEVICE_ID
+
 
 # JARVIS_CORE_COMPONENT
 # ==================================================
@@ -32,6 +34,7 @@ from typing import Any, Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY_PATH = PROJECT_ROOT / "data" / "device_registry.json"
+WEAK_DEVICE_IDS = {"", DEFAULT_TRUSTED_DEVICE_ID}
 DEFAULT_DEVICES: List[Dict[str, Any]] = [
     {
         "device_id": "celular",
@@ -87,10 +90,15 @@ class DeviceRegistry:
 
             data = json.loads(self.storage_path.read_text(encoding="utf-8"))
             persisted_devices = data.get("devices", [])
+            sanitized = False
             if isinstance(persisted_devices, list) and persisted_devices:
-                self.devices = [self._normalize_device(device) for device in persisted_devices]
+                self.devices, sanitized = self._sanitize_devices(persisted_devices)
             else:
                 self.devices = [self._normalize_device(device) for device in deepcopy(DEFAULT_DEVICES)]
+                sanitized = True
+
+            if sanitized:
+                return self.save()
             return self.snapshot()
 
     def save(self) -> Dict[str, Any]:
@@ -154,6 +162,8 @@ class DeviceRegistry:
             normalized_id = str(device_id).strip()
             if not normalized_id:
                 raise ValueError("device_id nao pode ficar vazio.")
+            if normalized_id in WEAK_DEVICE_IDS:
+                raise ValueError("device_id legado fraco nao pode ser usado como dispositivo confiavel.")
 
             for device in self.devices:
                 if device["device_id"] != normalized_id:
@@ -208,6 +218,8 @@ class DeviceRegistry:
             if not device_id:
                 return False
             normalized = str(device_id).strip()
+            if normalized in WEAK_DEVICE_IDS:
+                return False
             return any(
                 device["device_id"] == normalized and bool(device.get("trusted"))
                 for device in self.devices
@@ -243,6 +255,27 @@ class DeviceRegistry:
         normalized_device["registered_at"] = str(normalized_device.get("registered_at") or now)
         normalized_device["updated_at"] = str(normalized_device.get("updated_at") or now)
         return normalized_device
+
+    def _sanitize_devices(self, devices: List[Dict[str, Any]]) -> tuple[List[Dict[str, Any]], bool]:
+        """Remove ids legados fracos e deduplica o registro persistido."""
+
+        sanitized = False
+        unique_devices: dict[str, Dict[str, Any]] = {}
+        for raw_device in devices:
+            normalized_device = self._normalize_device(raw_device)
+            device_id = normalized_device["device_id"]
+            if device_id in WEAK_DEVICE_IDS:
+                sanitized = True
+                continue
+            if device_id in unique_devices:
+                sanitized = True
+            unique_devices[device_id] = normalized_device
+
+        if not unique_devices:
+            sanitized = True
+            return [self._normalize_device(device) for device in deepcopy(DEFAULT_DEVICES)], sanitized
+
+        return list(unique_devices.values()), sanitized
 
     @staticmethod
     def _utc_now() -> str:

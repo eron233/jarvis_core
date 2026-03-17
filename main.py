@@ -1,4 +1,4 @@
-"""Entrypoint do processo continuo inicial do JARVIS."""
+"""Entrypoint oficial do loop puro standalone do JARVIS."""
 
 from __future__ import annotations
 
@@ -20,14 +20,18 @@ from startup_bootstrap import ensure_project_root_on_path
 
 ensure_project_root_on_path(__file__)
 
+from executive_planner.queue import LEGACY_STORAGE_PATH as LEGACY_QUEUE_STORAGE_PATH
 from executive_planner.queue import TaskQueue
 from executive_planner.audit import AuditLogger, traduzir_motivo, traduzir_status
+from intent_layer.goal_manager import LEGACY_GOALS_PATH
 from memory_system.episodic_memory import EpisodicMemory
 from memory_system.procedural_memory import ProceduralMemory
+from memory_system.semantic_memory import LEGACY_STORAGE_PATH as LEGACY_SEMANTIC_STORAGE_PATH
 from memory_system.semantic_memory import SemanticMemory
 from device.device_registry import DeviceRegistry
 from runtime.cognitive_evolution import CognitiveEvolutionTracker
 from runtime.internal_agent_runtime import InternalAgentRuntime
+from runtime.system_config import JarvisEnvironmentConfig
 from security.self_defense import SelfDefenseMonitor
 
 MOTIVOS_ENCERRAMENTO_PTBR = {
@@ -56,6 +60,7 @@ class SystemLoopConfig:
     audit_storage_path: Optional[Path] = None
     device_registry_path: Optional[Path] = None
     self_defense_report_path: Optional[Path] = None
+    enable_vital_organs_background: bool = False
 
 
 def bootstrap_runtime(
@@ -66,29 +71,49 @@ def bootstrap_runtime(
     """Prepara o runtime com os caminhos de persistencia desejados."""
 
     runtime = runtime or InternalAgentRuntime()
-    config = config or SystemLoopConfig()
+    original_config = config or SystemLoopConfig()
+    deployment_config = JarvisEnvironmentConfig.from_env()
 
-    if config.queue_storage_path is not None:
+    config = SystemLoopConfig(
+        cycle_sleep_seconds=original_config.cycle_sleep_seconds,
+        idle_sleep_seconds=original_config.idle_sleep_seconds,
+        max_cycles=original_config.max_cycles,
+        stop_when_idle=original_config.stop_when_idle,
+        install_signal_handlers=original_config.install_signal_handlers,
+        queue_storage_path=original_config.queue_storage_path or deployment_config.queue_storage_path,
+        semantic_storage_path=original_config.semantic_storage_path or deployment_config.semantic_storage_path,
+        procedural_storage_path=original_config.procedural_storage_path or deployment_config.procedural_storage_path,
+        goal_storage_path=original_config.goal_storage_path or deployment_config.goals_storage_path,
+        cognitive_evolution_storage_path=(
+            original_config.cognitive_evolution_storage_path or deployment_config.cognitive_evolution_storage_path
+        ),
+        audit_storage_path=original_config.audit_storage_path or deployment_config.audit_storage_path,
+        device_registry_path=original_config.device_registry_path or deployment_config.device_registry_path,
+        self_defense_report_path=original_config.self_defense_report_path or deployment_config.self_defense_report_path,
+        enable_vital_organs_background=original_config.enable_vital_organs_background,
+    )
+
+    if original_config.queue_storage_path is not None or runtime.task_queue is None:
         runtime.task_queue = TaskQueue(storage_path=config.queue_storage_path)
         _load_queue_storage(runtime.task_queue, logger)
 
-    if config.goal_storage_path is not None:
+    if original_config.goal_storage_path is not None or runtime.goal_manager is None:
         runtime.goal_manager = _load_goal_manager(config.goal_storage_path, logger)
 
-    if config.device_registry_path is not None:
+    if original_config.device_registry_path is not None or runtime.device_registry is None:
         runtime.device_registry = _load_device_registry(config.device_registry_path, logger)
 
-    if config.cognitive_evolution_storage_path is not None:
+    if original_config.cognitive_evolution_storage_path is not None or runtime.cognitive_evolution_tracker is None:
         runtime.cognitive_evolution_tracker = CognitiveEvolutionTracker(
             storage_path=config.cognitive_evolution_storage_path
         )
         _load_cognitive_evolution_storage(runtime.cognitive_evolution_tracker, logger)
 
-    if config.audit_storage_path is not None:
+    if original_config.audit_storage_path is not None or runtime.audit_logger is None:
         runtime.audit_logger = AuditLogger(storage_path=config.audit_storage_path)
         _load_audit_storage(runtime.audit_logger, logger)
 
-    if config.self_defense_report_path is not None:
+    if original_config.self_defense_report_path is not None or runtime.self_defense_monitor is None:
         runtime.self_defense_monitor = SelfDefenseMonitor(report_path=config.self_defense_report_path)
 
     episodic_memory = runtime.memory.get("episodic") if runtime.memory else None
@@ -98,12 +123,12 @@ def bootstrap_runtime(
     if episodic_memory is None:
         episodic_memory = EpisodicMemory()
 
-    if procedural_memory is None or config.procedural_storage_path is not None:
+    if procedural_memory is None or original_config.procedural_storage_path is not None:
         procedural_path = config.procedural_storage_path or getattr(procedural_memory, "storage_path", None)
         procedural_memory = ProceduralMemory(storage_path=procedural_path)
         _load_procedural_storage(procedural_memory, logger)
 
-    if semantic_memory is None or config.semantic_storage_path is not None:
+    if semantic_memory is None or original_config.semantic_storage_path is not None:
         semantic_path = config.semantic_storage_path or getattr(semantic_memory, "storage_path", None)
         semantic_memory = SemanticMemory(storage_path=semantic_path) if semantic_path else SemanticMemory()
         _load_semantic_storage(semantic_memory, logger)
@@ -115,6 +140,20 @@ def bootstrap_runtime(
     }
 
     state = runtime.bootstrap()
+    runtime.configure_vital_organs(
+        project_root=PROJECT_ROOT,
+        report_path=_resolve_vital_organs_report_path(config),
+        official_paths=_build_vital_organs_official_paths(config),
+        legacy_paths=_build_vital_organs_legacy_paths(),
+        official_data_dir=_resolve_vital_organs_data_dir(config, deployment_config),
+        official_reports_dir=config.self_defense_report_path.parent,
+        cycle_interval_seconds=config.cycle_sleep_seconds,
+        idle_sleep_seconds=config.idle_sleep_seconds,
+        background_enabled=config.enable_vital_organs_background,
+    )
+    if config.enable_vital_organs_background:
+        runtime.run_vital_organs_cycle_once()
+        runtime.start_vital_organs()
     _log_message(
         logger,
         "[bootstrap] runtime={status} fila={queue_depth} memoria_semantica={memory_entries}".format(
@@ -366,27 +405,82 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     parser = build_arg_parser()
     args = parser.parse_args(argv)
+    deployment_config = JarvisEnvironmentConfig.from_env()
 
     config = SystemLoopConfig(
         cycle_sleep_seconds=args.sleep_seconds,
         idle_sleep_seconds=args.idle_sleep_seconds,
         max_cycles=args.max_cycles,
         stop_when_idle=args.stop_when_idle,
-        queue_storage_path=args.queue_storage_path,
-        semantic_storage_path=args.semantic_storage_path,
-        procedural_storage_path=args.procedural_storage_path,
-        goal_storage_path=args.goal_storage_path,
+        queue_storage_path=args.queue_storage_path or deployment_config.queue_storage_path,
+        semantic_storage_path=args.semantic_storage_path or deployment_config.semantic_storage_path,
+        procedural_storage_path=args.procedural_storage_path or deployment_config.procedural_storage_path,
+        goal_storage_path=args.goal_storage_path or deployment_config.goals_storage_path,
         cognitive_evolution_storage_path=(
-            args.cognitive_evolution_storage_path
-            or PROJECT_ROOT / "data" / "cognitive_evolution_history.json"
+            args.cognitive_evolution_storage_path or deployment_config.cognitive_evolution_storage_path
         ),
-        audit_storage_path=args.audit_storage_path or PROJECT_ROOT / "data" / "runtime_audit_store.json",
-        device_registry_path=args.device_registry_path or PROJECT_ROOT / "data" / "device_registry.json",
-        self_defense_report_path=args.self_defense_report_path or PROJECT_ROOT / "reports" / "self_defense_latest.json",
+        audit_storage_path=args.audit_storage_path or deployment_config.audit_storage_path,
+        device_registry_path=args.device_registry_path or deployment_config.device_registry_path,
+        self_defense_report_path=args.self_defense_report_path or deployment_config.self_defense_report_path,
+        enable_vital_organs_background=True,
     )
     loop = JarvisSystemLoop(config=config)
-    loop.run()
+    try:
+        loop.run()
+    finally:
+        loop.runtime.shutdown_vital_organs(reason="process_exit")
     return 0
+
+
+def _build_vital_organs_official_paths(config: SystemLoopConfig) -> Dict[str, Path]:
+    """Monta o mapa oficial de stores monitorados pelos orgaos vitais."""
+
+    return {
+        "queue_storage_path": Path(config.queue_storage_path),
+        "semantic_storage_path": Path(config.semantic_storage_path),
+        "procedural_storage_path": Path(config.procedural_storage_path),
+        "goals_storage_path": Path(config.goal_storage_path),
+        "device_registry_path": Path(config.device_registry_path),
+        "cognitive_evolution_storage_path": Path(config.cognitive_evolution_storage_path),
+        "audit_storage_path": Path(config.audit_storage_path),
+        "self_defense_report_path": Path(config.self_defense_report_path),
+    }
+
+
+def _build_vital_organs_legacy_paths() -> Dict[str, Path]:
+    """Retorna os stores legados ainda relevantes para vigilancia estrutural."""
+
+    return {
+        "queue_storage_path": LEGACY_QUEUE_STORAGE_PATH,
+        "semantic_storage_path": LEGACY_SEMANTIC_STORAGE_PATH,
+        "goals_storage_path": LEGACY_GOALS_PATH,
+    }
+
+
+def _resolve_vital_organs_data_dir(
+    config: SystemLoopConfig,
+    deployment_config: JarvisEnvironmentConfig,
+) -> Path:
+    """Resolve o diretorio oficial de dados observado pelos orgaos vitais."""
+
+    candidate_parents = {
+        Path(config.queue_storage_path).parent.resolve(),
+        Path(config.semantic_storage_path).parent.resolve(),
+        Path(config.procedural_storage_path).parent.resolve(),
+        Path(config.goal_storage_path).parent.resolve(),
+        Path(config.device_registry_path).parent.resolve(),
+        Path(config.cognitive_evolution_storage_path).parent.resolve(),
+        Path(config.audit_storage_path).parent.resolve(),
+    }
+    if len(candidate_parents) == 1:
+        return next(iter(candidate_parents))
+    return deployment_config.data_dir
+
+
+def _resolve_vital_organs_report_path(config: SystemLoopConfig) -> Path:
+    """Define o relatorio interno persistente dos orgaos vitais."""
+
+    return Path(config.self_defense_report_path).parent / "vital_organs_status.json"
 
 
 def _load_queue_storage(task_queue: TaskQueue, logger: Callable[[str], None] | None) -> None:

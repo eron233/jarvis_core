@@ -46,12 +46,18 @@ tests/_procedural_artifacts/
 tests/_worker_artifacts/
 tests/_cognitive_evolution_artifacts/
 tests/_audit_artifacts/
+tests/_native_app_validation/
+tests/_native_app_window_validation/
+tests/_vital_organs_smoke/
 data/*
 !data/.gitkeep
 logs/*
 !logs/.gitkeep
 reports/*
 !reports/.gitkeep
+executive_planner/task_queue_store.json
+memory_system/semantic_memory_store.json
+intent_layer/goals.json
 security/twin_state/*.json
 jarvis_run.cmd
 CODE_ANNOTATION_REPORT_PTBR.md
@@ -62,3 +68,6 @@ JARVIS_STATUS_REPORT_PTBR.txt
 JARVIS_PENDINGS_ELIMINATION_REPORT_PTBR.txt
 REMOTE_CONTINUITY_STATUS_PTBR.txt
 JARVIS_REMOTE_DEVELOPMENT_REPORT_PTBR.txt
+VITAL_ORGANS_STABILITY_REPORT_PTBR.txt
+development/AUTONOMOUS_SYNC_LOG.txt
+AUTONOMOUS_SYNC_IMPLEMENTATION_REPORT_PTBR.txt

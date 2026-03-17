@@ -1,0 +1,628 @@
+JARVIS - AUDITORIA DE DUPLICACAO E SOBREPOSICAO
+Data: 2026-03-16
+Projeto: C:\Users\User\Documents\jarvis_core
+
+Base da auditoria:
+- leitura estrutural do repositorio via git ls-files e inventario do filesystem
+- leitura dirigida dos arquivos pedidos e dos entrypoints relacionados
+- varredura de rotas da API, launchers, stores, interfaces, coordenacao e orgaos vitais
+- checagem do estado Git atual do workspace
+
+Importante:
+- esta auditoria NAO expandiu o sistema
+- esta auditoria NAO executou uma rodada nova de testes funcionais completos
+- o foco aqui foi detectar duplicacao, sobreposicao, legado ativo e sombra arquitetural
+- onde eu usar "fonte de verdade", significa "caminho que hoje parece ser o oficial no codigo atual"
+
+==================================================
+1. DUPLICACOES REAIS ENCONTRADAS
+==================================================
+
+1.1 Relatorio geral da API exposto duas vezes com a mesma construcao
+Classificacao: DUPLICADO REAL
+Arquivos:
+- interface/api/app.py
+- runtime/internal_agent_runtime.py
+Evidencia:
+- /api/relatorio chama runtime.build_system_report(...)
+- /api/relatorio/sistema chama runtime.build_system_report(...)
+- ambos ainda anexam ambiente e retornam essencialmente o mesmo payload
+Diagnostico:
+- sao duas rotas para a mesma responsabilidade
+- isso nao e "flexibilidade"; e alias funcional sem necessidade forte
+Risco:
+- documentacao, clientes e testes podem divergir sobre qual rota e a oficial
+
+1.2 Multiplicacao de launchers para o app nativo
+Classificacao: DUPLICADO REAL
+Arquivos:
+- jarvis.cmd
+- jarvis_native.pyw
+- jarvis_native.vbs
+Evidencia:
+- jarvis.cmd no modo native-app chama jarvis_native.pyw
+- jarvis_native.vbs tambem chama jarvis_native.pyw
+- os dois entregam a mesma acao final para o usuario: abrir o app nativo
+Diagnostico:
+- ha pelo menos tres pontos de entrada para a mesma UI nativa: cmd, pyw e vbs
+- pyw e o entrypoint tecnico; cmd e vbs viraram wrappers paralelos
+Risco:
+- suporte e troubleshooting ficam confusos
+- um launcher pode ser corrigido e outro continuar obsoleto
+
+1.3 Fluxo de bootstrap do relatorio geral duplicado entre API e runtime
+Classificacao: DUPLICADO REAL
+Arquivos:
+- interface/api/app.py
+- runtime/internal_agent_runtime.py
+Evidencia:
+- a API monta relatorios de sistema chamando metodos dedicados do runtime
+- mas ainda carrega aliases de apresentacao praticamente identicos para a mesma informacao
+Diagnostico:
+- nao e um bug grave, mas e duplicacao de contrato externo
+- o usuario externo ganha dois nomes para a mesma coisa
+
+==================================================
+2. SOBREPOSICOES FUNCIONAIS ENCONTRADAS
+==================================================
+
+2.1 main.py e runtime/server.py dividem a responsabilidade de "subir o Jarvis vivo"
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- main.py
+- runtime/server.py
+Evidencia:
+- main.py contem bootstrap_runtime, JarvisSystemLoop e o loop continuo autonomo
+- runtime/server.py importa bootstrap_runtime e JarvisSystemLoop de main.py
+- runtime/server.py tambem pode iniciar o loop continuo em background via RuntimeLoopWorker
+Diagnostico:
+- main.py e o entrypoint do loop puro
+- runtime/server.py e o entrypoint do servidor HTTP que tambem pode hospedar o loop
+- os dois disputam a mesma responsabilidade de "processo vivo principal", ainda que em formatos diferentes
+Risco:
+- um operador pode subir o loop puro e achar que subiu o sistema completo
+- outro pode subir o servidor com loop e criar a falsa impressao de que main.py nao e mais necessario
+
+2.2 jarvis.cmd possui dois caminhos para API/servidor que nao passam pelo mesmo bootstrap
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- jarvis.cmd
+- runtime/server.py
+- interface/api/app.py
+Evidencia:
+- modo server executa runtime/server.py
+- modo api-direct executa uvicorn interface.api.app:app diretamente
+- create_app consegue bootstrapar o runtime por conta propria em _ensure_runtime_initialized
+Diagnostico:
+- o modo server usa JarvisServerContext, logging, startup report e configuracao mais completa
+- o modo api-direct bypassa esse contexto e vai direto para create_app
+- isso cria dois caminhos para a mesma API com niveis diferentes de orquestracao
+Risco:
+- comportamento operacional diferente para a mesma porta e a mesma API
+- identidade de runtime, loop em background, logs e startup report podem divergir
+
+2.3 jarvis_run.cmd sobrepoe o papel de jarvis.cmd server
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- jarvis.cmd
+- jarvis_run.cmd
+Evidencia:
+- jarvis_run.cmd prepara variaveis, abre navegador e no fim chama jarvis.cmd server
+Diagnostico:
+- ele nao e um novo servidor; e um launcher amigavel por cima do launcher tecnico
+- ainda assim, no dia a dia ele compete como "forma principal de iniciar o Jarvis"
+Risco:
+- duas instrucoes oficiais para a mesma operacao local
+
+2.4 Tres clientes reais para o mesmo backend
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- interface/dashboard/index.html
+- interface/native_client/jarvis_client.py
+- interface/native_app/api_client.py
+- interface/native_app/main_window.py
+Evidencia:
+- dashboard consome /api/health, /api/relatorio/*, /api/comando
+- native_client envia comandos para /api/comando
+- native_app/api_client consome status, relatorios, cognicao e comando
+Diagnostico:
+- existe um cliente web mobile, um cliente CLI leve e um app nativo Qt
+- isso e legitimo como portfolio de clientes, mas eles disputam a mesma responsabilidade de "cliente principal"
+Risco:
+- manutencao paralela de contratos
+- endpoints mudam e um cliente quebra enquanto outro continua
+
+2.5 Duas implementacoes do cerebro visual/cognitivo
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- interface/brain_avatar/*
+- interface/native_app/brain_scene.html
+- interface/native_app/brain_scene.js
+- interface/native_app/brain_widget.py
+Evidencia:
+- dashboard usa createEvolutionMap de interface/brain_avatar/evolution_map.js
+- native app usa NativeBrainWidget, que por sua vez usa brain_scene.html/js ou fallback painter
+- ambas as pilhas consomem a mesma familia de endpoints /api/cognicao/evolucao e /api/cognicao/evolucao/analise
+Diagnostico:
+- ha dois renderizadores cognitivos independentes: um web modular e outro nativo local
+- eles nao compartilham o mesmo codigo de renderizacao
+- isso nao e so "tema diferente"; e duas engines para o mesmo cerebro
+Risco:
+- divergencia visual e semantica do mapa cognitivo
+- custo alto de manutencao
+- bug corrigido em uma stack pode continuar na outra
+
+2.6 Duas implementacoes internas do cerebro nativo
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- interface/native_app/brain_widget.py
+- interface/native_app/brain_scene.html
+- interface/native_app/brain_scene.js
+Evidencia:
+- NativeBrainWidget pode usar _WebBrainCanvas com QWebEngine
+- ou cair no _FallbackBrainWidget desenhado em QPainter
+Diagnostico:
+- a mesma responsabilidade de renderizacao existe em duas implementacoes dentro do app nativo
+- aqui a sobreposicao e intencional como fallback, mas continua sendo manutencao dupla
+Risco:
+- comportamento diferente entre ambientes com e sem WebEngine
+
+2.7 Camada de diagnostico interno esta fragmentada
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- security/self_defense.py
+- runtime/vital_organs/structural_integrity_monitor.py
+- runtime/vital_organs/runtime_hygiene_engine.py
+- runtime/vital_organs/failure_prevention_engine.py
+- runtime/vital_organs/self_optimization_core.py
+Evidencia:
+- self_defense avalia configuracao, portas, risco, twin, validacao e remediacao
+- structural_integrity_monitor detecta stores legados, caminhos duplicados e mismatch de runtime
+- runtime_hygiene_engine detecta sujeira de Git e stores fora do lugar
+- failure_prevention_engine detecta risco de degradacao e recria stores ausentes
+- self_optimization_core detecta desperdicio, polling e trim de nonce cache
+Diagnostico:
+- nao sao identicos, mas a fronteira entre "integridade", "higiene", "prevencao", "autodefesa" e "auto-otimizacao" ja esta borrada
+- varias pecas vigiam saude estrutural ao mesmo tempo
+Risco:
+- relatorios internos parcialmente redundantes
+- dificuldade de saber qual orgao e o dono final do diagnostico
+
+2.8 Mecanismos de auto-melhoria e auto-correcao competem narrativamente
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- learning/self_improvement.py
+- runtime/vital_organs/self_optimization_core.py
+- security/remediation_engine.py
+Diagnostico:
+- self_improvement gera sugestoes estruturais futuras
+- self_optimization_core aplica pequenos ajustes locais no runtime
+- remediation_engine gera e pode aplicar correcoes seguras de seguranca
+- os tres orbitam "auto-organizacao" e "melhoria do sistema", mas com fronteiras difusas
+Risco:
+- o projeto parece ter um unico mecanismo de melhoria, mas na pratica tem tres camadas com escopos proximos
+
+2.9 Logs operacionais e de auditoria espalhados
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- executive_planner/audit.py
+- runtime/server.py
+- service/jarvis_windows_service.py
+- development/AUTONOMOUS_SYNC_LOG.txt
+- reports/vital_organs_status.json
+Diagnostico:
+- auditoria JSON persistente
+- log rotativo do servidor
+- log do servico Windows no mesmo jarvis.log
+- log proprio do sync autonomo
+- relatorio proprio dos orgaos vitais
+- o sistema tem rastreabilidade rica, mas nao centralizada
+Risco:
+- investigacao de incidentes exige olhar multiplos artefatos para entender uma mesma ocorrencia
+
+2.10 Autenticacao relevante existe em mais de uma camada
+Classificacao: SOBREPOSICAO FUNCIONAL
+Arquivos:
+- interface/api/app.py
+- security/access_control.py
+- interface/dashboard/access_gate.html
+Evidencia:
+- API protegida por token + device id + nonce/timestamp
+- painel protegido por sessao HTTP derivada do token/device
+- /api/comando ainda aplica AccessControl para decidir privilegio admin por senha e contexto de voz
+Diagnostico:
+- nao e uma duplicacao literal; e uma autenticacao/autoridade fragmentada em tres niveis
+- transporte, sessao de painel e privilegio administrativo de comando vivem em lugares diferentes
+Risco:
+- facil confundir "acesso a API" com "permissao de comando sensivel"
+
+==================================================
+3. CAMINHOS LEGADOS AINDA ATIVOS
+==================================================
+
+3.1 Stores legados ainda existem no codigo, mesmo com migracao para data/
+Classificacao: LEGADO NAO DESATIVADO
+Arquivos:
+- executive_planner/queue.py
+- memory_system/semantic_memory.py
+- intent_layer/goal_manager.py
+- main.py
+Evidencia:
+- LEGACY_STORAGE_PATH em queue.py
+- LEGACY_STORAGE_PATH em semantic_memory.py
+- LEGACY_GOALS_PATH em goal_manager.py
+- main.py ainda importa esses caminhos para monitoramento dos orgaos vitais
+Diagnostico:
+- no disco, os stores legados principais ja nao existem
+- mas o runtime ainda carrega a nocao de legado dentro do caminho principal
+Risco:
+- o legado continua semanticamente vivo no codigo
+- qualquer regressao ou script antigo pode reanimar esses caminhos
+
+3.2 api-direct continua exposto como modo valido
+Classificacao: LEGADO NAO DESATIVADO
+Arquivos:
+- jarvis.cmd
+- interface/api/app.py
+- runtime/server.py
+Diagnostico:
+- o proprio launcher oficial ainda oferece um caminho paralelo que bypassa o servidor oficial
+- isso mantem um modo antigo de operacao vivo e facil de usar por engano
+
+3.3 jarvis_native.vbs continua vivo apesar de ser um wrapper antigo e fragil
+Classificacao: LEGADO NAO DESATIVADO
+Arquivos:
+- jarvis_native.vbs
+Evidencia:
+- contem fallback para pythonw.exe em C:\Users\mingual\AppData\Local\Programs\Python\Python312\pythonw.exe
+Diagnostico:
+- esse caminho e especifico de outra maquina/usuario
+- o arquivo ainda existe e ainda pode ser chamado
+Risco:
+- launcher aparentemente oficial mas preso a fallback historico e nao generico
+
+3.4 Historicos de validacao continuam morando dentro de data/ e reports/
+Classificacao: LEGADO NAO DESATIVADO
+Arquivos:
+- data/status_validation_*
+- data/zero_partials_*
+- reports/status_validation_*
+- reports/zero_partials_*
+Diagnostico:
+- nao sao stores vivos principais
+- mas continuam no mesmo espaco dos dados operacionais oficiais
+Risco:
+- poluem a percepcao de qual store e "o verdadeiro"
+- misturam estado vivo com historico de auditorias antigas
+
+==================================================
+4. SOMBRAS ARQUITETURAIS
+==================================================
+
+4.1 create_app ainda consegue bootstrapar runtime por conta propria
+Classificacao: SOMBRA ARQUITETURAL
+Arquivos:
+- interface/api/app.py
+- runtime/server.py
+- main.py
+Evidencia:
+- create_app aceita runtime None
+- _ensure_runtime_initialized chama bootstrap_runtime na primeira requisicao
+- runtime/server.py tambem faz bootstrap antes de subir uvicorn
+Diagnostico:
+- o servidor oficial existe, mas a API ainda sabe se auto-erguer
+- isso e uma sombra do caminho antigo/alternativo de operacao direta
+Risco:
+- duas topologias de bootstrap para a mesma API
+
+4.2 jarvis_run.cmd faz sombra ao launcher tecnico oficial
+Classificacao: SOMBRA ARQUITETURAL
+Arquivos:
+- jarvis.cmd
+- jarvis_run.cmd
+Diagnostico:
+- jarvis.cmd e o launcher tecnico consolidado
+- jarvis_run.cmd continua ocupando o papel de "atalho principal" para o usuario
+- o sistema tem um launcher oficial e um launcher de conveniencia quase-oficial
+
+4.3 O cerebro web modular e o cerebro nativo 3D contam duas historias diferentes do mesmo dominio
+Classificacao: SOMBRA ARQUITETURAL
+Arquivos:
+- interface/brain_avatar/*
+- interface/native_app/brain_scene.js
+- interface/native_app/brain_widget.py
+Diagnostico:
+- o modulo novo modular web nao aposentou a implementacao nativa propria
+- a stack antiga/local continua relevante
+Risco:
+- nao existe uma unica biblioteca de visualizacao cognitiva
+
+4.4 SelfImprovementAdvisor virou sombra conceitual do bloco de otimização real
+Classificacao: SOMBRA ARQUITETURAL
+Arquivos:
+- learning/self_improvement.py
+- runtime/vital_organs/self_optimization_core.py
+Diagnostico:
+- self_improvement fala em analisar o proprio codigo e sugerir melhorias
+- quem hoje atua continuamente no runtime e self_optimization_core
+- o primeiro ficou com cara de orgao cognitivo, mas o segundo e o orgao operativo real
+
+==================================================
+5. CONFLITOS POTENCIAIS ENTRE MODULOS
+==================================================
+
+5.1 Dois processos podem subir a mesma API por caminhos diferentes
+Caminhos em conflito:
+- runtime/server.py
+- jarvis.cmd api-direct
+- interface/native_app/runtime_bootstrap.py
+- service/jarvis_windows_service.py
+Risco:
+- disputa de porta
+- dois runtimes separados contra os mesmos stores
+- diferenca de logging e bootstrap
+
+5.2 O app nativo pode iniciar runtime proprio enquanto outro launcher ja o faria
+Arquivos:
+- interface/native_app/runtime_bootstrap.py
+- jarvis_run.cmd
+- jarvis.cmd
+- service/jarvis_windows_service.py
+Risco:
+- concorrencia de ownership do servidor local
+- experiencia opaca para o usuario
+
+5.3 Logs de servico Windows e logs do servidor convergem para o mesmo jarvis.log
+Arquivos:
+- runtime/system_config.py
+- runtime/server.py
+- service/jarvis_windows_service.py
+Diagnostico:
+- service/jarvis_windows_service.py usa logs/jarvis.log
+- runtime/server.py tambem usa logs/jarvis.log como log_file_path
+Risco:
+- mensagens de duas camadas diferentes no mesmo arquivo sem separacao forte de origem
+
+5.4 Vital organs e self_defense podem reportar problemas semelhantes por fontes diferentes
+Arquivos:
+- security/self_defense.py
+- runtime/vital_organs/*
+Risco:
+- mesmo problema aparece em relatorios diferentes com formatos diferentes
+
+5.5 Sync autonomo e higiene Git orbitam o mesmo dominio operacional
+Arquivos:
+- runtime/vital_organs/autonomous_sync_engine.py
+- runtime/vital_organs/runtime_hygiene_engine.py
+- coordination/TASK_LOCKS.json
+Diagnostico:
+- nao fazem a mesma coisa, mas ambos dependem de Git, locks e estado do workspace
+Risco:
+- quando a escrita Git autonoma for ligada, diagnostico e mutacao passarao a coexistir no mesmo orgao vital
+
+==================================================
+6. O QUE HOJE E A FONTE DE VERDADE DE CADA PARTE
+==================================================
+
+Runtime bootstrap oficial:
+- main.py -> bootstrap_runtime
+Status: UNICO E CORRETO
+Observacao:
+- runtime/server.py reaproveita esse bootstrap
+
+Servidor HTTP oficial:
+- runtime/server.py
+Status: UNICO E CORRETO
+Observacao:
+- jarvis.cmd server aponta para ele
+- jarvis.cmd api-direct NAO deveria disputar esse papel
+
+Loop puro sem API:
+- main.py
+Status: UNICO E CORRETO
+Observacao:
+- e o dono do loop standalone
+- mas sua responsabilidade se sobrepoe parcialmente ao loop embutido do servidor
+
+Configuracao de ambiente:
+- runtime/system_config.py -> JarvisEnvironmentConfig
+Status: UNICO E CORRETO
+
+Fila viva:
+- data/task_queue_store.json via executive_planner/queue.py
+Status: UNICO E CORRETO
+Observacao:
+- legado ainda existe so em constantes/codigo de migracao
+
+Memoria semantica viva:
+- data/semantic_memory_store.json via memory_system/semantic_memory.py
+Status: UNICO E CORRETO
+
+Objetivos vivos:
+- data/goals.json via intent_layer/goal_manager.py
+Status: UNICO E CORRETO
+
+Auditoria viva:
+- data/runtime_audit_store.json via executive_planner/audit.py
+Status: UNICO E CORRETO
+
+Registro de dispositivos confiaveis:
+- data/device_registry.json via device/device_registry.py
+Status: UNICO E CORRETO
+
+Autenticacao HTTP de dispositivo:
+- interface/api/app.py
+Status: UNICO E CORRETO
+
+Privilegio admin para comando:
+- security/access_control.py
+Status: UNICO E CORRETO
+Observacao:
+- correto, mas separado da autenticacao HTTP
+
+Painel web:
+- interface/dashboard/index.html servido por interface/api/app.py
+Status: UNICO E CORRETO
+
+Cliente CLI leve:
+- interface/native_client/jarvis_client.py
+Status: UNICO E CORRETO
+
+App nativo:
+- interface/native_app/main.py
+Status: UNICO E CORRETO
+Observacao:
+- os launchers em torno dele e que estao duplicados
+
+Coordenacao de sync entre dispositivos:
+- runtime/vital_organs/autonomous_sync_engine.py + coordination/TASK_LOCKS.json
+Status: UNICO E CORRETO
+Observacao:
+- device_registry nao e o coordenador de desenvolvimento; e so o registro de clientes confiaveis
+
+Cerebro visual no painel web:
+- interface/brain_avatar/*
+Status: UNICO E CORRETO dentro do cliente web
+
+Cerebro visual no app nativo:
+- interface/native_app/brain_widget.py + brain_scene.html/js
+Status: UNICO E CORRETO dentro do cliente nativo
+
+Diagnostico sincero sobre cerebro/avatar:
+- por cliente, cada um tem sua propria fonte de verdade
+- no sistema inteiro, NAO existe uma unica fonte de verdade visual para o cerebro
+
+==================================================
+7. O QUE DEVERIA SER REMOVIDO, UNIFICADO OU APOSENTADO
+==================================================
+
+Alta prioridade:
+- aposentar jarvis.cmd api-direct como caminho de operacao normal
+- escolher entre jarvis.cmd server e jarvis_run.cmd como launcher principal de usuario
+- aposentar jarvis_native.vbs ou alinhá-lo totalmente ao launcher oficial
+- reduzir /api/relatorio e /api/relatorio/sistema para uma unica rota oficial
+
+Media prioridade:
+- definir se o cerebro visual oficial sera o web modular ou o nativo 3D local
+- se ambos permanecerem, documentar explicitamente que sao clientes diferentes com renderizadores diferentes
+- separar historicos de validacao de data/ e reports/ oficiais
+
+Baixa prioridade:
+- remover constantes e monitoramento de stores legados quando a migracao estiver definitivamente encerrada
+- revisar se SelfImprovementAdvisor continua necessario no caminho principal
+
+==================================================
+8. RISCO DE MANTER AS DUPLICACOES
+==================================================
+
+Risco operacional:
+- subir o processo errado
+- subir dois processos para a mesma API
+- gerar divergencia de bootstrap, logging e ownership do runtime
+
+Risco de manutencao:
+- corrigir um cliente e esquecer outro
+- corrigir um cerebro visual e deixar o outro divergir
+- documentar um launcher e o usuario usar outro
+
+Risco de arquitetura:
+- nao saber qual rota e a oficial
+- nao saber qual launcher e o recomendado
+- nao saber qual modulo realmente "manda" em auto-otimizacao, autodefesa e melhoria estrutural
+
+Risco de auditoria:
+- stores historicos e de teste misturados com stores vivos em data/ e reports/
+- multiplos logs e relatorios internos para o mesmo dominio de saude estrutural
+
+==================================================
+9. RECOMENDACAO DE ORDEM DE LIMPEZA
+==================================================
+
+1. ENTRYPOINTS E LAUNCHERS
+- retirar api-direct do caminho principal
+- escolher launcher oficial unico para servidor local
+- escolher launcher oficial unico para app nativo
+
+2. CONTRATOS EXTERNOS DA API
+- unificar /api/relatorio e /api/relatorio/sistema
+- revisar se /api/saude precisa coexistir com /health e /api/health
+
+3. CAMADA DE CEREBRO VISUAL
+- decidir se o renderer compartilhado deve ser web-first ou native-first
+- parar de manter duas engines cognitivas sem uma fronteira muito clara
+
+4. DIAGNOSTICO INTERNO
+- separar melhor:
+  - seguranca defensiva
+  - higiene Git/stores
+  - prevencao de falha
+  - otimizacao leve
+  - melhoria estrutural futura
+
+5. HIGIENE DE ARTEFATOS
+- tirar historicos de validacao de dentro de data/ e reports/ principais
+- manter testes e snapshots em area de artefatos mais claramente segregada
+
+==================================================
+RESPOSTAS DIRETAS AS PERGUNTAS OBRIGATORIAS
+==================================================
+
+Existe mais de uma forma de iniciar a mesma parte do Jarvis?
+- Sim.
+- Servidor/API: runtime/server.py, jarvis.cmd server, jarvis_run.cmd, service/jarvis_windows_service.py, interface/native_app/runtime_bootstrap.py e ainda jarvis.cmd api-direct.
+- App nativo: jarvis.cmd native-app, jarvis_native.pyw e jarvis_native.vbs.
+
+Existe mais de um store "verdadeiro" para a mesma informacao?
+- Para fila, memoria semantica, objetivos, auditoria e device registry vivos: hoje nao. A fonte viva oficial esta em data/.
+- Mas ainda ha sombra de legado no codigo e muitos clones historicos/teste em data/, reports/ e tests/.
+
+Existe mais de um modulo tentando coordenar dispositivos?
+- Para desenvolvimento remoto: nao. O coordenador real e autonomous_sync_engine com TASK_LOCKS.json.
+- Para acesso de clientes: ha device_registry, mas ele trata confianca de dispositivo, nao coordenacao de trabalho entre PCs.
+
+Existe mais de um cerebro/avatar ativo ou parcialmente ativo?
+- Sim.
+- Um cerebro web em interface/brain_avatar para o dashboard.
+- Um cerebro nativo proprio em interface/native_app/brain_widget.py + brain_scene.html/js.
+
+Existe mais de um caminho de autenticacao relevante?
+- Sim.
+- Gate HTTP por token/device/nonce.
+- Sessao de painel por cookie derivado.
+- Privilegio admin por AccessControl dentro do comando.
+
+Existe mais de um fluxo de cliente/app?
+- Sim.
+- Dashboard web.
+- Cliente CLI leve.
+- App nativo Qt.
+
+Existe mais de um mecanismo de otimizacao/auto-organizacao competindo?
+- Sim.
+- SelfOptimizationCore.
+- SelfImprovementAdvisor.
+- RemediationEngine dentro de self_defense.
+- Em paralelo, varios orgaos vitais tambem sinalizam problemas estruturais correlatos.
+
+==================================================
+CONCLUSAO BRUTAL
+==================================================
+
+O Jarvis atual nao esta "duplicado por inteiro", mas esta claramente dividido contra si mesmo em quatro frentes:
+
+1. entrypoints e launchers
+2. contratos externos da API
+3. renderizacao do cerebro/avatar
+4. auto-diagnostico/auto-melhoria interna
+
+Os stores vivos principais ja estao muito mais unificados do que antes. O maior problema de duplicacao hoje nao esta mais em fila/memoria/objetivos; esta em como o sistema sobe, como ele se apresenta por clientes diferentes e como varias camadas internas vigiam ou "melhoram" o mesmo organismo por caminhos paralelos.
+
+Em resumo:
+- persistencia viva principal: relativamente unificada
+- inicializacao e launchers: ambigua
+- clientes: multiplos e sobrepostos
+- cerebro visual: dividido em duas stacks
+- diagnostico interno: fragmentado
+
+Arquivo gerado para esta auditoria:
+- JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt

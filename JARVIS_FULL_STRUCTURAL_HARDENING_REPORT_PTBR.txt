@@ -1,0 +1,209 @@
+JARVIS - FULL STRUCTURAL HARDENING REPORT PT-BR
+Gerado em: 2026-03-16 00:00:36 -03:00
+Projeto: C:\Users\User\Documents\jarvis_core
+
+1. PROBLEMAS ENCONTRADOS
+
+- A credencial administrativa legada "alter ego" ainda era tratada como fallback historico em partes do bootstrap e da documentacao.
+- O bootstrap do runtime ainda podia sobrescrever componentes explicitamente injetados com paths vindos do ambiente, causando deriva silenciosa entre runtime de teste e runtime efetivo.
+- Fila, memoria semantica e objetivos ainda tinham defaults legados fora de data/, criando ambiguidade operacional.
+- Stores vivos historicos continuavam rastreados no Git, o que sujava o repositorio durante uso real.
+- O registro de dispositivos vivo ainda podia carregar o device id legado fraco "jarvis-dispositivo-local" a partir de stores antigos.
+- Havia residuos antigos de validacao nativa e stores historicos fora do caminho oficial.
+- Permaneceram diretorios presos em tests/_tmp com "Access denied", fora do fluxo normal, mas ainda presentes no host.
+
+2. O QUE FOI CORRIGIDO
+
+- Autenticacao forte por padrao:
+  - runtime/system_config.py agora resolve token, device confiavel e senha admin por ambiente ou bootstrap seguro.
+  - Valores fracos legados nao sao mais aceitos como configuracao efetiva.
+  - security/access_control.py passou a validar senha por hash PBKDF2, sem depender de senha previsivel embutida.
+  - interface/api/app.py deixou de usar fallback operacional silencioso para token/device fracos.
+  - interface/native_client/jarvis_client.py e interface/native_app/config.py passaram a consumir o bootstrap/config efetivo.
+
+- Bootstrap coerente:
+  - main.py::bootstrap_runtime() foi corrigido para nao sobrescrever GoalManager, fila, auditoria e outros componentes quando eles ja chegam explicitamente configurados.
+  - Isso eliminou a regressao que derrubava os testes de integracao da API e dos relatorios.
+
+- Persistencia unificada:
+  - executive_planner/queue.py, memory_system/semantic_memory.py e intent_layer/goal_manager.py passaram a usar data/ como store oficial.
+  - Foi adicionada migracao automatica de arquivos legados quando o store oficial ainda nao existe.
+  - Escrita atomica com arquivo temporario + replace foi aplicada a stores centrais para reduzir corrupcao parcial.
+
+- Separacao entre codigo e estado vivo:
+  - Stores operacionais vivos passaram a ficar em data/, logs/ e reports/, todos ignorados no Git quando apropriado.
+  - Arquivos rastreados antigos de estado vivo foram removidos do caminho principal de versionamento.
+  - O uso normal do runtime nao adicionou novas diferencas ao git status durante o smoke real deste ciclo.
+
+- Registro de dispositivos endurecido:
+  - device/device_registry.py agora remove automaticamente o id legado fraco "jarvis-dispositivo-local" ao carregar stores antigos.
+  - O mesmo valor passou a ser rejeitado em novas gravacoes.
+  - O store vivo atual foi saneado e esse id nao ficou mais confiavel.
+
+- Higiene documental:
+  - README.md, CHANGELOG.md, DEPLOY_PTBR.md, API_PTBR.md, ARCHITECTURE.md, system_capabilities_index.md, SYSTEM_MATURITY_REPORT_PTBR.md, NEXT_STEPS.md, .env.example e relatorios correlatos foram alinhados com o comportamento real.
+
+3. O QUE FOI MIGRADO
+
+- Fila persistente:
+  - de C:\Users\User\Documents\jarvis_core\executive_planner\task_queue_store.json
+  - para C:\Users\User\Documents\jarvis_core\data\task_queue_store.json
+
+- Memoria semantica:
+  - de C:\Users\User\Documents\jarvis_core\memory_system\semantic_memory_store.json
+  - para C:\Users\User\Documents\jarvis_core\data\semantic_memory_store.json
+
+- Objetivos:
+  - de C:\Users\User\Documents\jarvis_core\intent_layer\goals.json
+  - para C:\Users\User\Documents\jarvis_core\data\goals.json
+
+- Bootstrap de acesso seguro:
+  - consolidado em C:\Users\User\Documents\jarvis_core\data\jarvis_access_bootstrap.json
+  - com orientacao operacional em C:\Users\User\Documents\jarvis_core\reports\JARVIS_ADMIN_BOOTSTRAP_CREDENTIAL_PTBR.txt
+
+4. STORES ANTIGOS ELIMINADOS OU DESCONTINUADOS
+
+- Eliminados do caminho principal:
+  - executive_planner/task_queue_store.json
+  - memory_system/semantic_memory_store.json
+  - intent_layer/goals.json
+
+- Descontinuados como origem oficial:
+  - quaisquer defaults silenciosos fora de data/ para fila, memoria semantica e objetivos
+
+- Sanitizados:
+  - data/device_registry.json deixou de aceitar/confiar no id legado fraco "jarvis-dispositivo-local"
+
+5. NOVO MODELO DE AUTENTICACAO
+
+- Token e device id:
+  - resolvidos por ambiente ou bootstrap seguro persistido
+  - nao operam mais com defaults fracos previsiveis como estado efetivo
+
+- Senha administrativa:
+  - validada por hash PBKDF2
+  - pode vir do ambiente com valor forte
+  - se nao vier, o sistema gera bootstrap seguro local e registra a instrucao correspondente
+  - o valor legado "alter ego" e explicitamente rejeitado
+
+- Voz:
+  - continua sendo apenas contexto especial para a wake phrase
+  - nao conta como autenticacao administrativa real para comandos sensiveis
+
+- Anti-replay:
+  - cliente leve e API continuam usando nonce + timestamp para mutacoes
+
+6. NOVO MODELO DE PERSISTENCIA
+
+- Diretorio oficial de estado vivo:
+  - C:\Users\User\Documents\jarvis_core\data
+
+- Arquivos oficiais validados:
+  - data\task_queue_store.json
+  - data\semantic_memory_store.json
+  - data\procedural_memory_store.json
+  - data\goals.json
+  - data\device_registry.json
+  - data\runtime_audit_store.json
+  - data\cognitive_evolution_history.json
+  - data\jarvis_access_bootstrap.json
+
+- Relatorios e observabilidade:
+  - reports\self_defense_latest.json
+  - reports\JARVIS_ADMIN_BOOTSTRAP_CREDENTIAL_PTBR.txt
+
+- Logs:
+  - logs\jarvis.log
+
+7. IMPACTO NO GIT
+
+- Antes do ciclo, o uso real ainda podia sujar a arvore por stores historicos rastreados.
+- Depois da unificacao e do ajuste de .gitignore:
+  - o smoke real do servidor nao adicionou novas diferencas ao git status
+  - o baseline antes do smoke e o baseline depois do smoke ficaram identicos
+  - o Git voltou a refletir alteracoes de codigo/docs, nao estado vivo transitório
+
+- Observacao importante:
+  - o workspace ainda permanece com modificacoes deste proprio ciclo ate novo commit
+  - isso e diferente de "sujar o Git por operacao normal"; durante o uso vivo validado, nao surgiram diffs novos
+
+8. IMPACTO NOS TESTES
+
+- A regressao causada pelo bootstrap que sobrescrevia GoalManager configurado foi corrigida.
+- Foram adicionados testes de sanitizacao do registro de dispositivos:
+  - remocao do id legado fraco em load
+  - rejeicao do id legado fraco em ensure_device
+
+- Suite final:
+  - 97 testes executados
+  - 97 testes aprovados
+  - 0 falhas
+  - 0 erros
+
+9. VALIDACAO REAL EXECUTADA
+
+- Validacao de configuracao:
+  - .\jarvis.cmd check-config -> OK
+  - Paths oficiais apontando para data/, logs/ e reports/
+
+- Validacao de rejeicao da senha fraca:
+  - cmd /c "set JARVIS_ADMIN_PASSWORD=alter ego && jarvis.cmd check-config" -> FALHA ESPERADA
+  - Mensagem: "JARVIS_ADMIN_PASSWORD precisa ter pelo menos 12 caracteres e nao pode reutilizar a credencial fraca legada."
+
+- Validacao do app nativo:
+  - jarvis.cmd native-app --offscreen --auto-close-ms 1000 -> OK
+
+- Smoke real do servidor:
+  - /health -> 200
+  - /docs -> 200
+  - /painel -> 200
+  - /api/auth/device-session -> 200
+  - /api/status -> 200
+  - /api/runtime/identidade -> 200
+  - /api/health -> 200
+  - /api/comando com guest -> negado corretamente
+  - /api/comando com wake phrase -> "Sim, Sr. Maciel."
+  - /api/comando com senha fraca legada -> negado corretamente em chamada isolada
+  - /api/tarefas -> 200
+
+- Validacao de stores:
+  - stores oficiais em data/ existem e foram usados em runtime real
+  - caminhos legados nao existem mais como store vivo principal
+
+- Validacao do registro de dispositivos:
+  - o id legado "jarvis-dispositivo-local" nao ficou mais confiavel no store atual
+
+10. O QUE AINDA RESTOU E POR QUÊ
+
+- tests/_tmp:
+  - permanecem subdiretorios antigos presos pelo Windows com "Access denied"
+  - eles estao fora do caminho principal, ignorados pelo Git e nao impediram a reexecucao completa da suite
+  - neste host, nao foi possivel remove-los sem privilegio/controle extra do sistema de arquivos
+  - isso e uma pendencia de higiene do host, nao do fluxo principal do Jarvis
+
+- Relatorios historicos antigos:
+  - alguns relatorios arquivados do projeto ainda citam caminhos legados por refletirem o estado da epoca
+  - eles nao governam a operacao atual
+
+- Persistencia:
+  - continua em JSON
+  - estruturalmente coerente e unificada agora, mas ainda nao transacional como SQLite
+  - isso nao bloqueia o hardening pedido deste ciclo, mas segue como proximo endurecimento natural
+
+11. CONCLUSAO HONESTA
+
+- O hardening estrutural principal foi concluido com sucesso.
+- A autenticacao fraca deixou de existir como padrao efetivo.
+- A persistencia viva passou a ter um unico diretorio oficial: data/.
+- O runtime, a API, o launcher e o cliente passaram a operar sobre os mesmos caminhos reais.
+- O Git deixou de ganhar ruido novo por operacao normal do sistema durante a validacao viva.
+- O registro de dispositivos nao aceita mais o identificador legado fraco no caminho principal.
+
+- O que ainda nao ficou "perfeito":
+  - residuos antigos em tests/_tmp continuam presos pelo Windows neste host
+  - a persistencia ainda usa JSON, embora agora esteja unificada e mais segura
+
+- Parecer final:
+  - o objetivo deste ciclo foi atingido
+  - a base operacional do Jarvis ficou mais limpa, coerente e sustentavel
+  - o proximo endurecimento recomendado e migrar fila/auditoria/stores criticos para persistencia transacional simples

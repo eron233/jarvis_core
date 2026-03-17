@@ -60,7 +60,8 @@ Variaveis principais:
 - `JARVIS_ADMIN_VOICE`
   Voz reconhecida que concede nivel administrativo.
 - `JARVIS_ADMIN_PASSWORD`
-  Senha que concede nivel administrativo.
+  Senha administrativa forte. Se ficar vazia, o Jarvis gera bootstrap seguro local e registra a orientacao inicial em `reports/JARVIS_ADMIN_BOOTSTRAP_CREDENTIAL_PTBR.txt`.
+  O valor legado `alter ego` nao e mais aceito como credencial administrativa valida.
 
 Variaveis de caminho fino:
 
@@ -73,7 +74,7 @@ Variaveis de caminho fino:
 1. Copie o projeto para a VPS.
 2. Entre no diretorio `jarvis_core`.
 3. Gere o arquivo `.env` a partir de `.env.example`.
-4. Defina `JARVIS_TOKEN` e `JARVIS_TRUSTED_DEVICE_ID` com valores reais.
+4. Defina `JARVIS_TOKEN`, `JARVIS_TRUSTED_DEVICE_ID` e `JARVIS_ADMIN_PASSWORD` com valores fortes ou deixe o bootstrap seguro gerar o conjunto inicial.
 5. Suba o servico:
 
 ```bash
@@ -108,6 +109,7 @@ Arquivos principais:
 - evolucao cognitiva: `data/cognitive_evolution_history.json`
 - objetivos: `data/goals.json`
 - logs: `logs/jarvis.log`
+- bootstrap de acesso: `data/jarvis_access_bootstrap.json`
 - relatorio de ambiente: `reports/environment_report.json`
 - relatorio de encerramento: `reports/shutdown_report.json`
 
@@ -169,11 +171,20 @@ docker compose logs -f jarvis_app
 
 - revise `JARVIS_TOKEN` no `.env`
 - reinicie o servico apos alterar o arquivo
+- se o `.env` estiver vazio, confira `data/jarvis_access_bootstrap.json`
 
 ### Device id ausente ou invalido
 
 - revise `JARVIS_TRUSTED_DEVICE_ID`
 - confirme que o painel ou cliente esta enviando `X-Jarvis-Device-Id`
+- se o `.env` estiver vazio, confira `data/jarvis_access_bootstrap.json`
+- o valor legado `jarvis-dispositivo-local` e rejeitado e removido do registro persistente quando encontrado
+
+### Senha administrativa ausente ou fraca
+
+- defina `JARVIS_ADMIN_PASSWORD` com pelo menos 12 caracteres
+- ou consulte `reports/JARVIS_ADMIN_BOOTSTRAP_CREDENTIAL_PTBR.txt` para a senha inicial gerada
+- o valor legado `alter ego` e recusado no bootstrap e no `check-config`
 
 ### Memoria nao carrega
 
@@ -209,6 +220,12 @@ Esse runner:
 - sobe a API
 - inicia o loop continuo em background, se habilitado
 - persiste estado no shutdown
+
+Fonte de verdade operacional:
+
+- `runtime/server.py` e o entrypoint oficial do servidor
+- `.\jarvis.cmd server` e apenas o wrapper tecnico equivalente no Windows atual
+- `jarvis_run.cmd` existe somente como wrapper UX local para iniciar esse mesmo servidor oficial
 
 ## Operacao Local Portavel
 

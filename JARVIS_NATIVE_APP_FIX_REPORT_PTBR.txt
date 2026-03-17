@@ -5,7 +5,7 @@ Data: 2026-03-15
 - O app nativo fazia multiplas consultas autenticadas em paralelo e disparava gravacoes repetidas no registro de dispositivos.
 - No Windows, isso gerava disputa de escrita em `device_registry.json` e respostas HTTP 500 na API local.
 - Quando isso acontecia, o chat do app ficava preso em "Processando..." ou voltava com mensagens tecnicas demais.
-- A frase especial `Jarvis ta ai` no app nativo nao aceitava a chave admin `alter ego`, entao o fluxo parecia quebrado para o usuario.
+- A frase especial `Jarvis ta ai` no app nativo nao aceitava a senha administrativa segura em uso, entao o fluxo parecia quebrado para o usuario.
 - A tela principal mostrava textos de estado e elementos tecnicos que nao ajudavam a operacao real.
 - O cerebro/avatar nativo anterior parecia uma malha abstrata de bolinhas, sem leitura util do estado cognitivo.
 
@@ -14,7 +14,7 @@ Data: 2026-03-15
 - A persistencia de auditoria do planner recebeu a mesma protecao para evitar falhas semelhantes no Windows.
 - O fluxo async do app nativo foi estabilizado com `Future` + polling leve via `QTimer`, garantindo liberacao do botao e fim real do estado de processamento.
 - O tratamento de erro do chat foi simplificado para mensagens curtas e operacionais, sem despejar traceback bruto na interface.
-- A frase especial `Jarvis ta ai` agora aceita a chave admin `alter ego` e responde corretamente no app.
+- A frase especial `Jarvis ta ai` agora aceita a senha administrativa segura configurada e responde corretamente no app.
 - O resumo visual do runtime e da sessao foi alinhado ao estado real da API local.
 
 3. O que foi removido da interface
@@ -29,7 +29,7 @@ Data: 2026-03-15
 - Conectar o app a API local real.
 - Enviar comandos reais pelo chat.
 - Receber resposta real do Jarvis no chat.
-- Validar `Jarvis ta ai` com `alter ego` dentro da propria janela nativa.
+- Validar `Jarvis ta ai` com a senha administrativa segura dentro da propria janela nativa.
 - Atualizar status do runtime sem prender a interface em "Processando...".
 - Exibir um cerebro/avatar nativo mais honesto e util, destacando foco e atividade cognitiva.
 
@@ -41,14 +41,14 @@ Data: 2026-03-15
 1. Abra `C:\jarvis\jarvis_core\jarvis_native.vbs`.
 2. Aguarde a janela `JARVIS` abrir.
 3. No chat, envie `status do sistema`.
-4. Depois envie `Jarvis ta ai` com a chave admin `alter ego`.
+4. Depois envie `Jarvis ta ai` com a senha administrativa segura ativa no ambiente.
 5. Confirme que o app responde no chat, atualiza o status e nao fica preso em "Processando...".
 
 7. Validacao realizada
 - Suite completa executada com sucesso: `95 tests`, `OK`.
 - Validacao real ja executada no app nativo com janela aberta no Windows.
 - Comando real validado na UI: `status do sistema`.
-- Frase especial validada na UI: `Jarvis ta ai` com `alter ego`.
+- Frase especial validada na UI: `Jarvis ta ai` com senha administrativa segura.
 - O botao `Enviar` voltou a ficar habilitado apos as respostas.
 
 8. Proximo passo recomendado
