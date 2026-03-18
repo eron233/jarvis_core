@@ -244,16 +244,16 @@
       </div>
     </section>
 
-    <section class="token-box">
+    <section class="token-box" id="credentialsBox">
       <label for="tokenInput">Token de acesso</label>
       <input id="tokenInput" type="password" placeholder="Informe o token da API" />
-      <label for="deviceInput">Identificador do dispositivo confiável</label>
+      <label for="deviceInput">Identificador do dispositivo confiavel</label>
       <input id="deviceInput" type="text" placeholder="Informe o device id autorizado" />
       <div class="actions">
         <button type="button" onclick="salvarCredenciais()">Salvar credenciais</button>
         <button type="button" class="secondary" onclick="atualizarResumo()">Atualizar resumo</button>
       </div>
-      <p class="hint">O painel e os endpoints protegidos exigem token e identificador do dispositivo confiável.</p>
+      <p class="hint" id="credentialsHint">O painel e os endpoints protegidos exigem token e identificador do dispositivo confiavel.</p>
     </section>
 
     <section class="grid">
@@ -335,6 +335,8 @@
   </main>
 
   <script>
+    const DASHBOARD_CONFIG = __JARVIS_DASHBOARD_CONFIG__;
+    const SIMPLE_WEB_LOGIN = Boolean(DASHBOARD_CONFIG.simple_web_login);
     const TOKEN_KEY = "jarvis_api_token";
     const DEVICE_KEY = "jarvis_device_id";
 
@@ -346,7 +348,31 @@
       return localStorage.getItem(DEVICE_KEY) || "";
     }
 
+    function hasStoredTrustedCredentials() {
+      return Boolean(getToken() && getDeviceId());
+    }
+
+    function configureDashboardMode() {
+      const credentialsBox = document.getElementById("credentialsBox");
+      const credentialsHint = document.getElementById("credentialsHint");
+      if (!SIMPLE_WEB_LOGIN) {
+        if (getDeviceId()) {
+          document.getElementById("deviceStatus").textContent = "Dispositivo " + getDeviceId();
+        }
+        return;
+      }
+
+      credentialsBox.hidden = true;
+      credentialsHint.textContent = "Sessao web simples ativa por senha administrativa.";
+      document.getElementById("deviceStatus").textContent = "Sessao web simples ativa";
+    }
+
     function salvarCredenciais() {
+      if (SIMPLE_WEB_LOGIN) {
+        escreverResposta("As credenciais de token e dispositivo ficam desabilitadas neste modo.");
+        return;
+      }
+
       const token = document.getElementById("tokenInput").value.trim();
       const deviceId = document.getElementById("deviceInput").value.trim();
       if (!token || !deviceId) {
@@ -373,19 +399,28 @@
         "Content-Type": "application/json",
         ...(options.headers || {}),
       };
-      const token = getToken();
-      const deviceId = getDeviceId();
-      if (!token || !deviceId) {
-        throw new Error("Token e identificador do dispositivo sao obrigatorios.");
+      const method = (options.method || "GET").toUpperCase();
+
+      if (!SIMPLE_WEB_LOGIN) {
+        const token = getToken();
+        const deviceId = getDeviceId();
+        if (!token || !deviceId) {
+          throw new Error("Token e identificador do dispositivo sao obrigatorios.");
+        }
+        headers["X-Jarvis-Token"] = token;
+        headers["X-Jarvis-Device-Id"] = deviceId;
       }
-      headers["X-Jarvis-Token"] = token;
-      headers["X-Jarvis-Device-Id"] = deviceId;
-      if (["POST", "PUT", "PATCH", "DELETE"].includes((options.method || "GET").toUpperCase())) {
+
+      if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
         headers["X-Jarvis-Nonce"] = crypto.randomUUID();
         headers["X-Jarvis-Timestamp"] = new Date().toISOString();
       }
 
-      const response = await fetch(path, { ...options, headers });
+      const response = await fetch(path, {
+        ...options,
+        headers,
+        credentials: "same-origin",
+      });
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
@@ -408,14 +443,16 @@
 
         document.getElementById("healthStatus").textContent = "Saude " + health.status_ptbr;
         document.getElementById("runtimeStatus").textContent = "Runtime " + systemReport.status_runtime.status_ptbr;
-        document.getElementById("deviceStatus").textContent = "Dispositivo " + getDeviceId();
+        document.getElementById("deviceStatus").textContent = SIMPLE_WEB_LOGIN
+          ? "Sessao web simples ativa"
+          : "Dispositivo " + getDeviceId();
         renderJson("stateBox", systemReport);
         renderJson("goalsBox", goalsReport);
         renderJson("tasksBox", queueReport);
         renderJson("memoryBox", memoryReport);
         renderJson("healthBox", health);
         renderJson("auditBox", auditReport);
-        if (window.jarvisEvolutionMap && getToken() && getDeviceId()) {
+        if (window.jarvisEvolutionMap) {
           await window.jarvisEvolutionMap.refresh();
         }
         escreverResposta("Resumo atualizado com sucesso.");
@@ -496,10 +533,8 @@
     window.addEventListener("load", () => {
       document.getElementById("tokenInput").value = getToken();
       document.getElementById("deviceInput").value = getDeviceId();
-      if (getDeviceId()) {
-        document.getElementById("deviceStatus").textContent = "Dispositivo " + getDeviceId();
-      }
-      if (getToken() && getDeviceId()) {
+      configureDashboardMode();
+      if (SIMPLE_WEB_LOGIN || hasStoredTrustedCredentials()) {
         atualizarResumo();
       }
     });

@@ -66,13 +66,14 @@ class SystemLoopConfig:
 def bootstrap_runtime(
     runtime: Optional[InternalAgentRuntime] = None,
     config: Optional[SystemLoopConfig] = None,
+    deployment_config: Optional[JarvisEnvironmentConfig] = None,
     logger: Callable[[str], None] | None = None,
 ) -> tuple[InternalAgentRuntime, Dict[str, Any]]:
     """Prepara o runtime com os caminhos de persistencia desejados."""
 
     runtime = runtime or InternalAgentRuntime()
     original_config = config or SystemLoopConfig()
-    deployment_config = JarvisEnvironmentConfig.from_env()
+    deployment_config = deployment_config or JarvisEnvironmentConfig.from_env()
 
     config = SystemLoopConfig(
         cycle_sleep_seconds=original_config.cycle_sleep_seconds,

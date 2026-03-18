@@ -153,6 +153,7 @@ class JarvisEnvironmentConfig:
     log_level: str = DEFAULT_LOG_LEVEL
     enable_runtime_loop: bool = True
     enable_dashboard: bool = True
+    enable_simple_web_login: bool = False
     data_dir: Path = PROJECT_ROOT / "data"
     logs_dir: Path = PROJECT_ROOT / "logs"
     reports_dir: Path = PROJECT_ROOT / "reports"
@@ -278,6 +279,10 @@ class JarvisEnvironmentConfig:
                 env_map.get("JARVIS_ENABLE_DASHBOARD"),
                 True,
             ),
+            enable_simple_web_login=_parse_bool(
+                env_map.get("JARVIS_SIMPLE_WEB_LOGIN"),
+                False,
+            ),
             data_dir=data_dir,
             logs_dir=logs_dir,
             reports_dir=reports_dir,
@@ -383,6 +388,7 @@ class JarvisEnvironmentConfig:
             "porta_api": self.api_port,
             "loop_runtime_ativo": self.enable_runtime_loop,
             "painel_ativo": self.enable_dashboard,
+            "login_web_simples_ativo": self.enable_simple_web_login,
             "nivel_log": self.log_level,
             "paths_persistentes": {
                 "data_dir": str(self.data_dir),

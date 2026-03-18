@@ -1,0 +1,98 @@
+JARVIS - RELATORIO DE RECUPERACAO EMERGENCIAL DE ACESSO WEB
+
+Data:
+2026-03-17
+
+1. Problema real
+
+- O deploy online abria corretamente, mas o fluxo de acesso por token + device id estava bloqueando o uso real do painel.
+- Mesmo quando a tela inicial validava o usuario, o dashboard principal continuava exigindo token + device id em todas as chamadas da API.
+- Isso impedia um modo de recuperacao simples para acesso rapido pelo celular.
+
+2. Mudanca aplicada
+
+- Foi criado um modo de recuperacao controlado por flag:
+  JARVIS_SIMPLE_WEB_LOGIN=true
+- Quando essa flag esta ativa:
+  - a tela inicial pede apenas a senha administrativa
+  - a API ignora a validacao por trusted device para a sessao web autenticada
+  - o painel passa a usar cookie de sessao do navegador em vez de exigir token + device id
+  - as rotas protegidas continuam exigindo autenticacao valida, agora por cookie de sessao web
+
+3. Arquivos alterados
+
+- runtime/system_config.py
+- interface/api/app.py
+- interface/dashboard/access_gate.html
+- interface/dashboard/index.html
+- main.py
+- runtime/server.py
+- .env.example
+- tests/test_dashboard.py
+- tests/test_api.py
+- tests/test_cloud_deploy.py
+
+4. Novo comportamento
+
+- Modo padrao:
+  - permanece o fluxo anterior com token + device id
+- Modo emergencial:
+  - ativa apenas com JARVIS_SIMPLE_WEB_LOGIN=true
+  - exige senha administrativa valida
+  - cria cookie HTTP de sessao
+  - libera /painel e endpoints protegidos para o navegador autenticado
+
+5. Validacao executada
+
+- Suite automatizada:
+  - 108/108 testes OK
+- Testes novos:
+  - painel aceita login simples por senha admin
+  - senha errada falha com 401
+  - sessao simples acessa /painel
+  - sessao simples acessa /api/status sem token/device
+  - flag JARVIS_SIMPLE_WEB_LOGIN e lida corretamente da configuracao
+- Smoke real local com servidor HTTP:
+  - /health respondeu OK
+  - /painel abriu em modo bloqueado simplificado
+  - senha errada falhou com 401
+  - senha correta entrou com modo simple_web_login
+  - /painel abriu apos autenticacao
+  - /api/status respondeu com cookie de sessao
+
+6. Ponto de integracao no deploy
+
+Para o Railway usar o fluxo novo, o ambiente precisa conter:
+
+- JARVIS_SIMPLE_WEB_LOGIN=true
+- JARVIS_ADMIN_PASSWORD=<defina_uma_senha_forte_com_12_ou_mais_caracteres>
+
+Tambem permanecem necessarios os segredos normais do deploy:
+
+- JARVIS_TOKEN=<token_do_deploy>
+- JARVIS_TRUSTED_DEVICE_ID=<device_principal_do_deploy>
+
+Observacao:
+- No modo emergencial, o site passa a usar apenas a senha admin para entrar no painel.
+- Os valores de token/device continuam existindo no backend, mas deixam de ser exigidos na autenticacao web enquanto a flag estiver ativa.
+
+7. O que ja ficou funcional
+
+- Recuperacao web simples por senha administrativa
+- Registro de tentativas de acesso no backend
+- Painel usando sessao autenticada do navegador
+- Compatibilidade com o fluxo antigo quando a flag nao estiver ativa
+
+8. O que ainda depende de outro ambiente
+
+- Eu nao consigo alterar as variaveis do Railway daqui.
+- Portanto, o codigo ficou pronto e validado localmente, mas o deploy online so mudara de comportamento quando:
+  - esta versao estiver publicada no deploy
+  - JARVIS_SIMPLE_WEB_LOGIN=true estiver configurado
+  - JARVIS_ADMIN_PASSWORD estiver definida no Railway
+
+9. Conclusao honesta
+
+- O problema do fluxo web foi corrigido no codigo.
+- O modo de recuperacao simples esta funcional e validado localmente de ponta a ponta.
+- A parte que ainda separa isso do site online ativo nao e mais de implementacao: e de publicacao/configuracao do ambiente Railway.

@@ -1,6 +1,7 @@
 """Testes unitarios para a preparacao do JARVIS para nuvem."""
 
 from pathlib import Path
+import shutil
 import sys
 import unittest
 from unittest.mock import patch
@@ -40,21 +41,39 @@ class CloudPreparationTests(unittest.TestCase):
     def test_environment_config_loads_defaults(self) -> None:
         """Confirma que a configuracao padrao carrega stores oficiais e bootstrap seguro."""
 
-        config = JarvisEnvironmentConfig.from_env(environ={}, project_root=PROJECT_ROOT)
+        scenario_root = make_cloud_artifact_path("defaults", "workspace")
+        if scenario_root.exists():
+            shutil.rmtree(scenario_root)
+
+        config = JarvisEnvironmentConfig.from_env(environ={}, project_root=scenario_root)
 
         self.assertEqual(config.env, "development")
         self.assertEqual(config.api_host, "0.0.0.0")
         self.assertEqual(config.api_port, 8000)
         self.assertTrue(config.enable_runtime_loop)
         self.assertTrue(config.enable_dashboard)
-        self.assertEqual(config.queue_storage_path, PROJECT_ROOT / "data" / "task_queue_store.json")
-        self.assertEqual(config.semantic_storage_path, PROJECT_ROOT / "data" / "semantic_memory_store.json")
-        self.assertEqual(config.procedural_storage_path, PROJECT_ROOT / "data" / "procedural_memory_store.json")
-        self.assertEqual(config.goals_storage_path, PROJECT_ROOT / "data" / "goals.json")
+        self.assertEqual(config.queue_storage_path, scenario_root / "data" / "task_queue_store.json")
+        self.assertEqual(config.semantic_storage_path, scenario_root / "data" / "semantic_memory_store.json")
+        self.assertEqual(config.procedural_storage_path, scenario_root / "data" / "procedural_memory_store.json")
+        self.assertEqual(config.goals_storage_path, scenario_root / "data" / "goals.json")
         self.assertFalse(config.token == "jarvis-local-dev-token")
         self.assertFalse(config.trusted_device_id == "jarvis-dispositivo-local")
+        self.assertFalse(config.enable_simple_web_login)
         self.assertTrue(config.access_bootstrap_path.exists())
         self.assertTrue(config.admin_bootstrap_report_path.exists())
+
+    def test_environment_config_habilita_login_web_simples_por_env(self) -> None:
+        """Confirma a leitura explicita da flag de recuperacao web."""
+
+        config = JarvisEnvironmentConfig.from_env(
+            environ={
+                "JARVIS_ADMIN_PASSWORD": "senha-web-segura-2026",
+                "JARVIS_SIMPLE_WEB_LOGIN": "true",
+            },
+            project_root=PROJECT_ROOT,
+        )
+
+        self.assertTrue(config.enable_simple_web_login)
 
     def test_environment_config_rejects_weak_admin_password_from_env(self) -> None:
         """Garante que a credencial admin legada nao seja mais aceita como valor efetivo."""

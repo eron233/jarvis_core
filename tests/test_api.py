@@ -22,6 +22,8 @@ from memory_system.procedural_memory import ProceduralMemory
 from memory_system.semantic_memory import SemanticMemory
 from runtime.cognitive_evolution import CognitiveEvolutionTracker
 from runtime.internal_agent_runtime import InternalAgentRuntime
+from runtime.system_config import JarvisEnvironmentConfig
+from security.access_control import AccessControl
 
 
 def make_api_artifact_path(name: str, suffix: str) -> Path:
@@ -72,6 +74,7 @@ class JarvisApiTests(unittest.TestCase):
         runtime.device_registry = DeviceRegistry(storage_path=device_path)
         runtime.cognitive_evolution_tracker = CognitiveEvolutionTracker(storage_path=cognitive_path)
         runtime.audit_logger = AuditLogger(storage_path=audit_path)
+        runtime.access_control = AccessControl.from_plaintext("senha-admin-segura-2026")
         runtime.memory = {
             "episodic": EpisodicMemory(),
             "semantic": SemanticMemory(storage_path=semantic_path),
@@ -94,6 +97,30 @@ class JarvisApiTests(unittest.TestCase):
             "X-Jarvis-Token": "token-teste",
             "X-Jarvis-Device-Id": "eron-celular-principal",
         }
+
+    def build_simple_web_client(self, name: str = "api_simple_web") -> TestClient:
+        """Monta um cliente com o modo emergencial de login web habilitado."""
+
+        scenario_dir = PROJECT_ROOT / "tests" / "_api_artifacts" / name
+        data_dir = scenario_dir / "data"
+        logs_dir = scenario_dir / "logs"
+        reports_dir = scenario_dir / "reports"
+        env = {
+            "JARVIS_ENV": "test",
+            "JARVIS_TOKEN": "token-teste",
+            "JARVIS_TRUSTED_DEVICE_ID": "eron-celular-principal",
+            "JARVIS_ADMIN_PASSWORD": "senha-admin-segura-2026",
+            "JARVIS_ENABLE_DASHBOARD": "true",
+            "JARVIS_SIMPLE_WEB_LOGIN": "true",
+            "JARVIS_DATA_DIR": str(data_dir),
+            "JARVIS_LOGS_DIR": str(logs_dir),
+            "JARVIS_REPORTS_DIR": str(reports_dir),
+        }
+        config = JarvisEnvironmentConfig.from_env(environ=env, project_root=PROJECT_ROOT)
+        runtime = InternalAgentRuntime()
+        runtime.access_control = AccessControl.from_plaintext("senha-admin-segura-2026")
+        app = create_app(runtime=runtime, deployment_config=config)
+        return TestClient(app)
 
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
         """Confirma que o healthcheck simples responde com a API ativa."""
@@ -321,6 +348,38 @@ class JarvisApiTests(unittest.TestCase):
         self.assertIn("commit", payload)
         self.assertIn("boot_timestamp", payload)
         self.assertIn("entrypoint", payload)
+
+    def test_api_permite_endpoints_protegidos_com_sessao_web_simples(self) -> None:
+        """Confirma que a sessao web simples substitui token e device no painel."""
+
+        client = self.build_simple_web_client("runtime_identity_simple")
+
+        denied_response = client.post(
+            "/api/auth/device-session",
+            headers=self.mutation_headers({}, nonce="simple-auth-invalid"),
+            json={"admin_password": "senha-errada"},
+        )
+        self.assertEqual(denied_response.status_code, 401)
+        self.assertEqual(denied_response.json()["detail"], "Senha administrativa invalida.")
+
+        session_response = client.post(
+            "/api/auth/device-session",
+            headers=self.mutation_headers({}, nonce="simple-auth-valid"),
+            json={"admin_password": "senha-admin-segura-2026"},
+        )
+        self.assertEqual(session_response.status_code, 200)
+        self.assertEqual(session_response.json()["modo"], "simple_web_login")
+
+        status_response = client.get("/api/status")
+        self.assertEqual(status_response.status_code, 200)
+        self.assertEqual(status_response.json()["dados"]["status"], "initialized")
+
+        health_response = client.get("/api/health")
+        self.assertEqual(health_response.status_code, 200)
+        self.assertTrue(health_response.json()["configuracao_minima_valida"])
+
+        last_access = client.app.state.runtime.get_access_events(limit=1)[0]
+        self.assertEqual(last_access["payload"]["device_id"], "web-access-recovery")
 
     def test_api_persiste_tarefa_no_store_configurado_apos_enfileiramento(self) -> None:
         """Garante que a rota real de tarefas grave no store persistente configurado."""

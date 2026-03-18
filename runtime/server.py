@@ -205,6 +205,7 @@ class JarvisServerContext:
         self.bootstrap_state = bootstrap_runtime(
             runtime=self.runtime,
             config=self.build_loop_config(install_signal_handlers=False),
+            deployment_config=self.config,
             logger=self.logger.info,
         )[1]
         self._write_report(

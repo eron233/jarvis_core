@@ -90,21 +90,30 @@
 </head>
 <body>
   <main class="gate">
-    <h1>Acesso restrito por dispositivo confiável</h1>
-    <p>Informe o token secreto e o identificador do dispositivo principal autorizado para liberar o painel do JARVIS neste aparelho.</p>
+    <h1 id="gateTitle">Acesso restrito por dispositivo confiavel</h1>
+    <p id="gateDescription">Informe o token secreto e o identificador do dispositivo principal autorizado para liberar o painel do JARVIS neste aparelho.</p>
 
-    <label for="tokenInput">Token do JARVIS</label>
-    <input id="tokenInput" type="password" placeholder="Token secreto" />
+    <div id="trustedDeviceFields">
+      <label for="tokenInput">Token do JARVIS</label>
+      <input id="tokenInput" type="password" placeholder="Token secreto" />
 
-    <label for="deviceInput">Identificador do dispositivo</label>
-    <input id="deviceInput" type="text" placeholder="Exemplo: eron-celular-principal" />
+      <label for="deviceInput">Identificador do dispositivo</label>
+      <input id="deviceInput" type="text" placeholder="Exemplo: eron-celular-principal" />
+    </div>
 
-    <button type="button" onclick="validarDispositivo()">Liberar acesso</button>
+    <div id="simpleLoginFields" hidden>
+      <label for="adminPasswordInput">Senha administrativa</label>
+      <input id="adminPasswordInput" type="password" placeholder="Senha administrativa do deploy" />
+    </div>
 
-    <div class="status" id="statusBox">Aguardando validacao do dispositivo.</div>
+    <button type="button" id="submitButton" onclick="validarDispositivo()">Liberar acesso</button>
+
+    <div class="status" id="statusBox">Aguardando validacao do acesso.</div>
   </main>
 
   <script>
+    const GATE_CONFIG = __JARVIS_GATE_CONFIG__;
+    const SIMPLE_WEB_LOGIN = Boolean(GATE_CONFIG.simple_web_login);
     const TOKEN_KEY = "jarvis_api_token";
     const DEVICE_KEY = "jarvis_device_id";
 
@@ -120,32 +129,76 @@
       };
     }
 
-    async function validarDispositivo() {
-      const token = document.getElementById("tokenInput").value.trim();
-      const deviceId = document.getElementById("deviceInput").value.trim();
-      const statusBox = document.getElementById("statusBox");
-
-      if (!token || !deviceId) {
-        statusBox.textContent = "Informe o token e o identificador do dispositivo.";
+    function configurarModoGate() {
+      if (!SIMPLE_WEB_LOGIN) {
         return;
       }
 
+      document.getElementById("gateTitle").textContent = "Recuperacao de acesso ao JARVIS";
+      document.getElementById("gateDescription").textContent =
+        "Informe apenas a senha administrativa configurada no deploy para liberar o painel temporariamente.";
+      document.getElementById("trustedDeviceFields").hidden = true;
+      document.getElementById("simpleLoginFields").hidden = false;
+      document.getElementById("submitButton").textContent = "Entrar com senha admin";
+    }
+
+    async function validarDispositivo() {
+      const statusBox = document.getElementById("statusBox");
+
       try {
-        const response = await fetch("/api/auth/device-session", {
-          method: "POST",
-          headers: {
-            "X-Jarvis-Token": token,
-            "X-Jarvis-Device-Id": deviceId,
-            ...criarHeadersDeProtecao(),
-          },
-        });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.detail || payload.mensagem || "Falha na validacao do dispositivo.");
+        let response;
+
+        if (SIMPLE_WEB_LOGIN) {
+          const adminPassword = document.getElementById("adminPasswordInput").value.trim();
+          if (!adminPassword) {
+            statusBox.textContent = "Informe a senha administrativa.";
+            return;
+          }
+
+          response = await fetch("/api/auth/device-session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...criarHeadersDeProtecao(),
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({
+              admin_password: adminPassword,
+            }),
+          });
+        } else {
+          const token = document.getElementById("tokenInput").value.trim();
+          const deviceId = document.getElementById("deviceInput").value.trim();
+
+          if (!token || !deviceId) {
+            statusBox.textContent = "Informe o token e o identificador do dispositivo.";
+            return;
+          }
+
+          response = await fetch("/api/auth/device-session", {
+            method: "POST",
+            headers: {
+              "X-Jarvis-Token": token,
+              "X-Jarvis-Device-Id": deviceId,
+              ...criarHeadersDeProtecao(),
+            },
+            credentials: "same-origin",
+          });
         }
 
-        persistirCredenciais(token, deviceId);
-        statusBox.textContent = "Dispositivo validado. Redirecionando para o painel.";
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.detail || payload.mensagem || "Falha na validacao do acesso.");
+        }
+
+        if (!SIMPLE_WEB_LOGIN) {
+          persistirCredenciais(
+            document.getElementById("tokenInput").value.trim(),
+            document.getElementById("deviceInput").value.trim(),
+          );
+        }
+
+        statusBox.textContent = "Acesso liberado. Redirecionando para o painel.";
         window.location.href = "/painel";
       } catch (error) {
         statusBox.textContent = error.message;
@@ -153,10 +206,13 @@
     }
 
     window.addEventListener("load", () => {
-      const token = localStorage.getItem(TOKEN_KEY) || "";
-      const deviceId = localStorage.getItem(DEVICE_KEY) || "";
-      document.getElementById("tokenInput").value = token;
-      document.getElementById("deviceInput").value = deviceId;
+      configurarModoGate();
+      if (!SIMPLE_WEB_LOGIN) {
+        const token = localStorage.getItem(TOKEN_KEY) || "";
+        const deviceId = localStorage.getItem(DEVICE_KEY) || "";
+        document.getElementById("tokenInput").value = token;
+        document.getElementById("deviceInput").value = deviceId;
+      }
     });
   </script>
 </body>

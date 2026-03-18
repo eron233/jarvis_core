@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import json
 from pathlib import Path
 from typing import Annotated, Any, Dict, Optional
 
@@ -32,6 +33,7 @@ from runtime.system_config import (
     DEFAULT_TRUSTED_DEVICE_ID,
     JarvisEnvironmentConfig,
 )
+from security.access_control import AccessControl
 
 #
 # JARVIS_API_LAYER
@@ -45,6 +47,7 @@ DEVICE_HEADER = "X-Jarvis-Device-Id"
 NONCE_HEADER = "X-Jarvis-Nonce"
 TIMESTAMP_HEADER = "X-Jarvis-Timestamp"
 SESSION_COOKIE = "jarvis_trusted_device"
+SIMPLE_WEB_LOGIN_DEVICE_ID = "web-access-recovery"
 SAFE_WORKER_IDS = {"runtime", "finance", "study", "studio"}
 DASHBOARD_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "index.html"
 ACCESS_GATE_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "access_gate.html"
@@ -77,6 +80,12 @@ class CommandRequest(BaseModel):
     voz_identificada: Optional[str] = None
     senha: Optional[str] = None
     modo_resposta: str = Field(default="conversacional")
+
+
+class SimpleWebLoginRequest(BaseModel):
+    """Payload minimo do modo de recuperacao de acesso web por senha."""
+
+    admin_password: str = Field(min_length=1)
 
 
 def create_app(
@@ -131,6 +140,16 @@ def create_app(
         raise ValueError(
             "A API do JARVIS precisa de token e device id confiavel resolvidos pelo ambiente ou bootstrap seguro."
         )
+    access_bootstrap = effective_deployment_config.get_access_bootstrap()
+    app.state.simple_web_login = bool(
+        getattr(effective_deployment_config, "enable_simple_web_login", False)
+    )
+    app.state.access_control = AccessControl(
+        admin_password_hash=access_bootstrap.admin_password_hash,
+        admin_password_salt=access_bootstrap.admin_password_salt,
+        admin_password_iterations=access_bootstrap.admin_password_iterations,
+        admin_password_source=access_bootstrap.admin_password_source,
+    )
     app.state.enable_dashboard = (
         True if effective_deployment_config is None else effective_deployment_config.enable_dashboard
     )
@@ -174,6 +193,12 @@ def create_app(
         Efeitos no sistema:
         - registra acessos autorizados e negados na auditoria do runtime.
         """
+
+        if request.app.state.simple_web_login and _has_valid_dashboard_session(request):
+            return {
+                "device_id": SIMPLE_WEB_LOGIN_DEVICE_ID,
+                "access_mode": "simple_web_login",
+            }
 
         return _validate_trusted_access(
             request=request,
@@ -221,12 +246,13 @@ def create_app(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         if _has_valid_dashboard_session(request):
-            return HTMLResponse(DASHBOARD_PATH.read_text(encoding="utf-8"))
-        return HTMLResponse(ACCESS_GATE_PATH.read_text(encoding="utf-8"))
+            return HTMLResponse(_render_dashboard(request.app))
+        return HTMLResponse(_render_access_gate(request.app))
 
     @app.post("/api/auth/device-session")
     def create_device_session(
         request: Request,
+        payload: SimpleWebLoginRequest | None = None,
         x_jarvis_token: Annotated[str | None, Header(alias=TOKEN_HEADER)] = None,
         x_jarvis_device_id: Annotated[str | None, Header(alias=DEVICE_HEADER)] = None,
         x_jarvis_nonce: Annotated[str | None, Header(alias=NONCE_HEADER)] = None,
@@ -247,22 +273,36 @@ def create_app(
         - grava a validacao do acesso e prepara o painel autenticado.
         """
 
-        access_context = _validate_trusted_access(
-            request=request,
-            token=x_jarvis_token,
-            device_id=x_jarvis_device_id,
-            request_nonce=x_jarvis_nonce,
-            request_timestamp=x_jarvis_timestamp,
-        )
+        if request.app.state.simple_web_login:
+            access_context = _validate_simple_web_access(
+                request=request,
+                admin_password=payload.admin_password if payload is not None else None,
+            )
+            session_cookie_value = _build_simple_web_session_value(
+                request.app.state.access_control.admin_password_hash
+            )
+        else:
+            access_context = _validate_trusted_access(
+                request=request,
+                token=x_jarvis_token,
+                device_id=x_jarvis_device_id,
+                request_nonce=x_jarvis_nonce,
+                request_timestamp=x_jarvis_timestamp,
+            )
+            session_cookie_value = _build_trusted_session_value(
+                request.app.state.api_token,
+                access_context["device_id"],
+            )
         response = JSONResponse(
             {
-                "mensagem": "Dispositivo confiavel validado com sucesso.",
+                "mensagem": "Acesso ao painel validado com sucesso.",
                 "device_id": access_context["device_id"],
+                "modo": access_context.get("access_mode", "trusted_device"),
             }
         )
         response.set_cookie(
             key=SESSION_COOKIE,
-            value=_build_trusted_session_value(request.app.state.api_token, access_context["device_id"]),
+            value=session_cookie_value,
             httponly=True,
             samesite="lax",
             secure=request.url.scheme == "https",
@@ -770,6 +810,7 @@ def _ensure_runtime_initialized(request: Request) -> InternalAgentRuntime:
     runtime, bootstrap_state = bootstrap_runtime(
         runtime=request.app.state.runtime,
         config=request.app.state.system_config,
+        deployment_config=request.app.state.deployment_config,
     )
     request.app.state.runtime = runtime
     request.app.state.bootstrap_state = bootstrap_state
@@ -873,6 +914,63 @@ def _validate_trusted_access(
     return {"device_id": device_id}
 
 
+def _validate_simple_web_access(
+    request: Request,
+    admin_password: str | None,
+) -> Dict[str, str]:
+    """
+    Valida o modo emergencial de acesso web por senha administrativa.
+
+    Parametros:
+    - request: requisicao HTTP atual.
+    - admin_password: senha informada no formulario simplificado.
+
+    Retorno:
+    - contexto sintetico de acesso ao painel.
+
+    Efeitos no sistema:
+    - registra tentativas de recuperacao de acesso no backend.
+    """
+
+    runtime = _ensure_runtime_initialized(request)
+    client_host = request.client.host if request.client is not None else None
+
+    if not admin_password:
+        _record_access_attempt(
+            runtime,
+            request,
+            SIMPLE_WEB_LOGIN_DEVICE_ID,
+            False,
+            "simple_web_login_missing_password",
+            client_host,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Senha administrativa ausente.",
+        )
+
+    access_context = request.app.state.access_control.evaluate(password=admin_password)
+    if not access_context.get("admin_access"):
+        _record_access_attempt(
+            runtime,
+            request,
+            SIMPLE_WEB_LOGIN_DEVICE_ID,
+            False,
+            "simple_web_login_invalid_password",
+            client_host,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Senha administrativa invalida.",
+        )
+
+    _record_access_attempt(runtime, request, SIMPLE_WEB_LOGIN_DEVICE_ID, True, None, client_host)
+    return {
+        "device_id": SIMPLE_WEB_LOGIN_DEVICE_ID,
+        "access_mode": "simple_web_login",
+    }
+
+
 def _record_access_attempt(
     runtime: InternalAgentRuntime,
     request: Request,
@@ -927,10 +1025,15 @@ def _has_valid_dashboard_session(request: Request) -> bool:
     if not session_value:
         return False
 
-    expected_value = _build_trusted_session_value(
-        request.app.state.api_token,
-        request.app.state.trusted_device_id,
-    )
+    if request.app.state.simple_web_login:
+        expected_value = _build_simple_web_session_value(
+            request.app.state.access_control.admin_password_hash
+        )
+    else:
+        expected_value = _build_trusted_session_value(
+            request.app.state.api_token,
+            request.app.state.trusted_device_id,
+        )
     return session_value == expected_value
 
 
@@ -950,6 +1053,56 @@ def _build_trusted_session_value(api_token: str, device_id: str) -> str:
     """
 
     return hashlib.sha256(f"{api_token}:{device_id}".encode("utf-8")).hexdigest()
+
+
+def _build_simple_web_session_value(admin_password_hash: str) -> str:
+    """
+    Gera o valor do cookie do modo emergencial de acesso web.
+
+    Parametros:
+    - admin_password_hash: hash PBKDF2 da senha administrativa efetiva.
+
+    Retorno:
+    - valor estavel e nao reversivel para a sessao do painel.
+    """
+
+    return hashlib.sha256(f"simple-web:{admin_password_hash}".encode("utf-8")).hexdigest()
+
+
+def _render_access_gate(app: FastAPI) -> str:
+    """
+    Renderiza a tela de acesso com o modo efetivo de autenticacao.
+
+    Parametros:
+    - app: instancia atual da API.
+
+    Retorno:
+    - HTML final da tela de acesso.
+    """
+
+    gate_config = {"simple_web_login": bool(app.state.simple_web_login)}
+    return ACCESS_GATE_PATH.read_text(encoding="utf-8").replace(
+        "__JARVIS_GATE_CONFIG__",
+        json.dumps(gate_config, ensure_ascii=False),
+    )
+
+
+def _render_dashboard(app: FastAPI) -> str:
+    """
+    Renderiza o painel com a configuracao de login ativa no navegador.
+
+    Parametros:
+    - app: instancia atual da API.
+
+    Retorno:
+    - HTML final do painel.
+    """
+
+    dashboard_config = {"simple_web_login": bool(app.state.simple_web_login)}
+    return DASHBOARD_PATH.read_text(encoding="utf-8").replace(
+        "__JARVIS_DASHBOARD_CONFIG__",
+        json.dumps(dashboard_config, ensure_ascii=False),
+    )
 
 
 def _requires_replay_protection(request: Request) -> bool:
