@@ -90,6 +90,11 @@ Observacao:
   - esta versao estiver publicada no deploy
   - JARVIS_SIMPLE_WEB_LOGIN=true estiver configurado
   - JARVIS_ADMIN_PASSWORD estiver definida no Railway
+- Verificacao objetiva feita apos o push:
+  - o repositorio remoto recebeu o commit df103b0
+  - o site publico ainda estava servindo a versao antiga da tela de acesso
+  - o HTML online nao continha o modo simple_web_login nem o campo adminPasswordInput
+  - conclusao: o Railway ainda nao havia promovido este commit para o deploy ativo no momento da checagem, ou continua sem a flag de recuperacao habilitada
 
 9. Conclusao honesta
 
