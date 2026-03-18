@@ -30,7 +30,6 @@ from typing import Any, Dict, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GOALS_PATH = PROJECT_ROOT / "data" / "goals.json"
-LEGACY_GOALS_PATH = Path(__file__).with_name("goals.json")
 
 GOAL_STATE_PTBR = {
     "draft": "rascunho",
@@ -69,7 +68,6 @@ class GoalManager:
         """
 
         self.storage_path = Path(self.storage_path)
-        self._migrate_legacy_storage_if_needed()
         self.load()
 
     def load(self) -> Dict[str, Any]:
@@ -262,30 +260,6 @@ class GoalManager:
 
         if self.auto_persist:
             self.save()
-
-    def _migrate_legacy_storage_if_needed(self) -> None:
-        """
-        Migra automaticamente o arquivo legado de objetivos para `data/`.
-
-        Parametros:
-        - nenhum.
-
-        Retorno:
-        - nenhum.
-
-        Efeitos no sistema:
-        - move o store antigo quando a camada de objetivos ainda nao foi migrada.
-        """
-
-        if self.storage_path != DEFAULT_GOALS_PATH:
-            return
-        if self.storage_path.exists():
-            return
-        if not LEGACY_GOALS_PATH.exists() or LEGACY_GOALS_PATH == self.storage_path:
-            return
-
-        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        os.replace(LEGACY_GOALS_PATH, self.storage_path)
 
     def _build_goal(
         self,

@@ -99,7 +99,7 @@ No Windows, o atalho de uso rapido pode ser disparado pelo Menu Iniciar digitand
 
 ## Leitura recomendada para futuras IAs
 
-1. Leia primeiro [JARVIS_CODE_GUIDE_PTBR.md](/C:/Users/User/Documents/jarvis_core/JARVIS_CODE_GUIDE_PTBR.md).
+1. Leia primeiro [docs/guias/JARVIS_CODE_GUIDE_PTBR.md](/C:/Users/User/Documents/jarvis_core/docs/guias/JARVIS_CODE_GUIDE_PTBR.md).
 2. Depois leia [runtime/internal_agent_runtime.py](/C:/Users/User/Documents/jarvis_core/runtime/internal_agent_runtime.py).
 3. Siga para [executive_planner/planner.py](/C:/Users/User/Documents/jarvis_core/executive_planner/planner.py) e [executive_planner/validator.py](/C:/Users/User/Documents/jarvis_core/executive_planner/validator.py).
 4. Termine em [interface/api/app.py](/C:/Users/User/Documents/jarvis_core/interface/api/app.py) para entender a camada externa.

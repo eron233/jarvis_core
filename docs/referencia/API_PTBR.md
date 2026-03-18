@@ -31,7 +31,6 @@ Observacao operacional:
 
 - `runtime/server.py` e o unico entrypoint oficial do servidor HTTP/API
 - `.\jarvis.cmd server` e o wrapper tecnico oficial desse mesmo entrypoint no Windows atual
-- o modo `api-direct` do launcher sobrevive apenas como shim legado e redireciona para `server`
 - nao use `python -m uvicorn ...` nem `--reload` como caminho operacional oficial do projeto
 
 ## Autenticacao
@@ -83,12 +82,10 @@ Camada adicional de comando:
   Analise interna das regioes e trilhas cognitivas
 - `GET /api/runtime/identidade`
   Identidade do runtime em execucao com commit, boot, entrypoint, PID e configuracao relevante
-- `GET /api/relatorio`
-  Relatorio operacional geral
 - `GET /api/health`
   Healthcheck rico protegido
 - `GET /api/relatorio/sistema`
-  Relatorio geral do sistema
+  Relatorio operacional geral oficial do sistema
 - `GET /api/relatorio/fila`
   Relatorio detalhado da fila
 - `GET /api/relatorio/objetivos`

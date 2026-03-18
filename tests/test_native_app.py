@@ -34,10 +34,12 @@ class _FakeProcess:
     """Processo minimo para simular o runtime em bootstrap."""
 
     def __init__(self, pid: int = 4321, return_code: int | None = None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         self.pid = pid
         self._return_code = return_code
 
     def poll(self) -> int | None:
+        """Consulta o resultado assincrono ate a conclusao do cenario."""
         return self._return_code
 
 
@@ -63,6 +65,7 @@ class NativeAppBootstrapTests(unittest.TestCase):
     """Valida o bootstrap automatico do runtime para o app nativo."""
 
     def test_bootstrap_reaproveita_runtime_quando_healthcheck_ja_responde(self) -> None:
+        """Valida o cenario de bootstrap reaproveita runtime quando healthcheck ja responde."""
         client = MagicMock()
         client.public_healthcheck.return_value = {"mensagem": "API do JARVIS ativa.", "status": "ok"}
         bootstrapper = JarvisRuntimeBootstrapper(config=build_native_app_config(), api_client=client)
@@ -76,6 +79,7 @@ class NativeAppBootstrapTests(unittest.TestCase):
         start_mock.assert_not_called()
 
     def test_bootstrap_sobe_runtime_quando_healthcheck_inicial_falha(self) -> None:
+        """Valida o cenario de bootstrap sobe runtime quando healthcheck inicial falha."""
         bootstrapper = JarvisRuntimeBootstrapper(
             config=build_native_app_config(),
             api_client=MagicMock(),
@@ -105,9 +109,11 @@ class NativeAppWindowSmokeTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        """Executa a rotina interna de setUpClass."""
         cls.qt_app = QApplication.instance() or QApplication([])
 
     def build_bundle(self) -> dict:
+        """Executa a rotina interna de build bundle."""
         return {
             "health": {
                 "status": "ok",
@@ -158,6 +164,7 @@ class NativeAppWindowSmokeTests(unittest.TestCase):
         }
 
     def build_brain_bundle(self) -> dict:
+        """Executa a rotina interna de build brain bundle."""
         return {
             "level": "semanal",
             "evolution": {
@@ -212,6 +219,7 @@ class NativeAppWindowSmokeTests(unittest.TestCase):
         }
 
     def test_janela_nativa_renderiza_chat_sidebar_e_cerebro_sem_navegador(self) -> None:
+        """Valida o cenario de janela nativa renderiza chat sidebar e cerebro sem navegador."""
         config = build_native_app_config()
         client = MagicMock()
         bootstrap_result = RuntimeBootstrapResult(
@@ -234,6 +242,7 @@ class NativeAppWindowSmokeTests(unittest.TestCase):
         window.close()
 
     def test_erro_de_comando_nao_deixa_chat_presente_em_processando(self) -> None:
+        """Valida o cenario de erro de comando nao deixa chat presente em processando."""
         config = build_native_app_config()
         client = MagicMock()
         client.send_command.side_effect = ApiClientError("Falha HTTP 500: Internal Server Error")

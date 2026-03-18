@@ -44,6 +44,7 @@ class AutonomousSyncEngineTests(unittest.TestCase):
         commands: list[list[str]] = []
 
         def runner(command):
+            """Simula a execucao de comando usada por este cenario de teste."""
             commands.append(list(command))
             if command[:3] == ["git", "fetch", "origin"]:
                 return CommandResult(list(command), 0, "", "")
@@ -69,6 +70,7 @@ class AutonomousSyncEngineTests(unittest.TestCase):
         commands: list[list[str]] = []
 
         def runner(command):
+            """Simula a execucao de comando usada por este cenario de teste."""
             commands.append(list(command))
             if command[:3] == ["git", "fetch", "origin"]:
                 return CommandResult(list(command), 0, "", "")
@@ -110,6 +112,7 @@ class AutonomousSyncEngineTests(unittest.TestCase):
         commands: list[list[str]] = []
 
         def runner(command):
+            """Simula a execucao de comando usada por este cenario de teste."""
             commands.append(list(command))
             if command[:3] == ["git", "fetch", "origin"]:
                 return CommandResult(list(command), 0, "", "")
@@ -138,6 +141,7 @@ class AutonomousSyncEngineTests(unittest.TestCase):
         commands: list[list[str]] = []
 
         def runner(command):
+            """Simula a execucao de comando usada por este cenario de teste."""
             commands.append(list(command))
             if command[:3] == ["git", "fetch", "origin"]:
                 return CommandResult(list(command), 0, "", "")

@@ -15,9 +15,9 @@ Esta etapa combinou:
 
 - `.gitignore`
 - `README.md`
-- `ARCHITECTURE.md`
-- `CHANGELOG.md`
-- `DEV_SESSION_CONTINUE.md`
+- `docs/referencia/ARCHITECTURE.md`
+- `docs/referencia/CHANGELOG.md`
+- `docs/guias/DEV_SESSION_CONTINUE.md`
 - `constitutional_core/identity.json`
 - `constitutional_core/principles.json`
 - `executive_planner/audit.py`

@@ -184,10 +184,13 @@ class TaskQueuePersistenceTests(unittest.TestCase):
         """Garante que a fila preserve a tarefa se o ciclo falhar antes do commit final."""
 
         class CrashingRuntime(InternalAgentRuntime):
+            """Runtime de teste que simula falha antes do commit final da fila."""
             def can_execute(self, task: dict[str, object]) -> bool:
+                """Indica se a tarefa de teste pode ser executada."""
                 return True
 
             def dispatch_task(self, task: dict[str, object]) -> dict[str, object]:
+                """Executa o dispatch de teste da tarefa informada."""
                 raise RuntimeError("falha_antes_do_commit")
 
         storage_path = make_storage_path("no_loss_on_failure")

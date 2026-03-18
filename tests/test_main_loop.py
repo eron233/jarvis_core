@@ -184,11 +184,14 @@ class MainLoopTests(unittest.TestCase):
         """Garante que o loop continue rodando mesmo apos uma excecao em um ciclo."""
 
         class FlakyRuntime(InternalAgentRuntime):
+            """Runtime de teste que falha de forma controlada para exercitar o watchdog."""
             def __init__(self) -> None:
+                """Inicializa a instancia e prepara o estado interno do componente."""
                 super().__init__()
                 self.calls = 0
 
             def run_planner_cycle(self) -> dict[str, str]:
+                """Executa a rotina interna de run planner cycle."""
                 self.calls += 1
                 if self.calls == 1:
                     raise RuntimeError("falha_controlada")

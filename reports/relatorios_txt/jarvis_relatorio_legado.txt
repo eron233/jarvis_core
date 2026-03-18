@@ -150,11 +150,11 @@ Executado Select-String -Path C:\Users\User\Documents\jarvis_core\runtime\system
 Vou consolidar agora os achados em um arquivo .txt com classificação dura por tipo de sobreposição e com as fontes de verdade atuais de cada área. Não vou tocar na arquitetura; só registrar onde o Jarvis ainda está dividido contra si mesmo.
 
 Criado
-JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt
+reports/relatorios_txt/JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt
 +628
 -0
 Trabalhou por 7m 57s
-A auditoria foi concluida e o relatorio completo esta em JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt.
+A auditoria foi concluida e o relatorio completo esta em reports/relatorios_txt/JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt.
 
 Principais achados:
 
@@ -173,4 +173,4 @@ Se quiser, o proximo passo mais util e eu transformar esse relatorio em uma list
 
 1 arquivo alterado
 Desfazer
-JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt
+reports/relatorios_txt/JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt

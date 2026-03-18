@@ -112,6 +112,7 @@ if win32serviceutil is not None:
         _exe_name_ = str(resolve_python_service_host()) if resolve_python_service_host() is not None else None
 
         def __init__(self, args) -> None:
+            """Inicializa a instancia e prepara o estado interno do componente."""
             super().__init__(args)
             self.h_wait_stop = win32event.CreateEvent(None, 0, 0, None)
             self.process: subprocess.Popen[str] | None = None
@@ -153,6 +154,7 @@ if win32serviceutil is not None:
             self._log("Servico do Jarvis encerrado.")
 
         def _start_runtime_process(self) -> None:
+            """Executa a rotina interna de start runtime process."""
             self._stop_runtime_process()
             env = dict(os.environ)
             env.setdefault("PYTHONUNBUFFERED", "1")
@@ -164,6 +166,7 @@ if win32serviceutil is not None:
             )
 
         def _stop_runtime_process(self) -> None:
+            """Executa a rotina interna de stop runtime process."""
             if self.process is None:
                 return
             if self.process.poll() is None:
@@ -178,6 +181,7 @@ if win32serviceutil is not None:
             self.process = None
 
         def _log(self, message: str) -> None:
+            """Executa a rotina interna de log."""
             _append_service_log(message)
             if servicemanager is not None:
                 servicemanager.LogInfoMsg(message)

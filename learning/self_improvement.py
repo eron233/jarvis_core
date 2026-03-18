@@ -9,7 +9,7 @@ Responsavel por:
 Integracoes principais:
 - runtime.internal_agent_runtime
 - security.self_defense
-- FULL_STRUCTURAL_ANALYSIS_REPORT_PTBR.md
+- reports/relatorios_txt/FULL_STRUCTURAL_ANALYSIS_REPORT_PTBR.txt
 """
 
 from __future__ import annotations
@@ -39,6 +39,7 @@ class SelfImprovementAdvisor:
     learnings: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
+        """Finaliza a normalizacao inicial deste dataclass."""
         self.storage_path = Path(self.storage_path)
         self.load_snapshot()
 
@@ -121,4 +122,5 @@ class SelfImprovementAdvisor:
 
     @staticmethod
     def _utc_now() -> str:
+        """Retorna o timestamp UTC atual em formato ISO 8601."""
         return datetime.now(timezone.utc).isoformat()

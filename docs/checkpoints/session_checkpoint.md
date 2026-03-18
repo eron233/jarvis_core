@@ -16,7 +16,7 @@
 - mitigacao inicial anti-replay para chamadas mutantes da API por `nonce` e `timestamp`
 - serializacao local das rotinas centrais do runtime com `RLock`
 - voz tratada apenas como sinal informativo; acesso administrativo depende de senha
-- novo relatorio tecnico do ciclo em `CYCLE_26_5_INTEGRIDADE_OPERACIONAL_REPORT_PTBR.md`
+- novo relatorio tecnico do ciclo em `reports/relatorios_txt/reports/relatorios_txt/CYCLE_26_5_INTEGRIDADE_OPERACIONAL_REPORT_PTBR.txt`
 - cliente nativo corrigido para enviar `nonce` e `timestamp` automaticamente
 - bootstrap do runtime ajustado para respeitar `device_registry_path` e `self_defense_report_path`
 - validacao viva da rota `/api/tarefas` com persistencia real em disco no store configurado

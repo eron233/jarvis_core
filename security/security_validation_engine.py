@@ -116,6 +116,7 @@ class SecurityValidationEngine:
         self,
         snapshot: Dict[str, Any],
     ) -> tuple[Dict[str, Any], Dict[str, Any] | None]:
+        """Executa a rotina interna de validate authentication and identity."""
         auth_config = snapshot.get("api_security_metadata", {}).get("autenticacao_configurada", {})
         evidencias: List[str] = []
 
@@ -157,6 +158,7 @@ class SecurityValidationEngine:
         self,
         snapshot: Dict[str, Any],
     ) -> tuple[Dict[str, Any], Dict[str, Any] | None]:
+        """Executa a rotina interna de validate configuration and startup."""
         configuration = snapshot.get("configuration_snapshot", {})
         health = snapshot.get("operational_state_snapshot", {}).get("health_report", {})
         paths = configuration.get("paths_persistentes", {})
@@ -207,6 +209,7 @@ class SecurityValidationEngine:
         self,
         snapshot: Dict[str, Any],
     ) -> tuple[Dict[str, Any], Dict[str, Any] | None]:
+        """Executa a rotina interna de validate persistence."""
         queue_snapshot = snapshot.get("task_queue_snapshot", {})
         memory_snapshot = snapshot.get("semantic_memory_snapshot", {})
         goal_snapshot = snapshot.get("goal_snapshot", {})
@@ -258,6 +261,7 @@ class SecurityValidationEngine:
         self,
         snapshot: Dict[str, Any],
     ) -> tuple[Dict[str, Any], Dict[str, Any] | None]:
+        """Executa a rotina interna de validate observability."""
         operational = snapshot.get("operational_state_snapshot", {})
         audit_summary = operational.get("audit_summary", {})
         planner_summary = operational.get("planner_summary", {})
@@ -304,6 +308,7 @@ class SecurityValidationEngine:
         self,
         snapshot: Dict[str, Any],
     ) -> tuple[Dict[str, Any], Dict[str, Any] | None]:
+        """Executa a rotina interna de validate continuity."""
         health = snapshot.get("operational_state_snapshot", {}).get("health_report", {})
         evidencias: List[str] = []
 
@@ -353,6 +358,7 @@ class SecurityValidationEngine:
         self,
         snapshot: Dict[str, Any],
     ) -> tuple[Dict[str, Any], Dict[str, Any] | None]:
+        """Executa a rotina interna de validate operational integrity."""
         queue_snapshot = snapshot.get("task_queue_snapshot", {})
         goal_snapshot = snapshot.get("goal_snapshot", {})
         planner_summary = snapshot.get("operational_state_snapshot", {}).get("planner_summary", {})
@@ -422,6 +428,7 @@ class SecurityValidationEngine:
         descricao: str,
         weakness: Dict[str, Any] | None,
     ) -> Dict[str, Any]:
+        """Monta scenario result para o fluxo atual."""
         if weakness is None:
             return {
                 "scenario_id": scenario_id,
@@ -448,6 +455,7 @@ class SecurityValidationEngine:
         weaknesses: List[Dict[str, Any]],
         scenario_results: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
+        """Monta summary para o fluxo atual."""
         severity_counts = {nivel: 0 for nivel in SEVERITY_POINTS}
         for weakness in weaknesses:
             severity_counts[weakness["gravidade"]] += 1
@@ -482,6 +490,7 @@ class SecurityValidationEngine:
         evidencias: Iterable[str],
         cenarios_afetados: Iterable[str],
     ) -> Dict[str, Any]:
+        """Monta weakness para o fluxo atual."""
         score_risco = (
             SEVERITY_POINTS[gravidade] * 10
             + impacto_estimado * 3
@@ -508,4 +517,5 @@ class SecurityValidationEngine:
 
     @staticmethod
     def _utc_now() -> str:
+        """Retorna o timestamp UTC atual em formato ISO 8601."""
         return datetime.now(timezone.utc).isoformat()

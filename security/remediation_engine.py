@@ -102,6 +102,7 @@ class RemediationEngine:
         }
 
     def _build_solution_set(self, weakness: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Monta solution set para o fluxo atual."""
         weak_id = weakness["weakness_id"]
         immediate = self._build_immediate_solution(weak_id)
         structural = self._build_structural_solution(weak_id)
@@ -109,6 +110,7 @@ class RemediationEngine:
         return [immediate, structural, mitigation]
 
     def _build_immediate_solution(self, weakness_id: str) -> Dict[str, Any]:
+        """Monta immediate solution para o fluxo atual."""
         solutions = {
             "auth_identity_guard_missing": {
                 "descricao": "Revalidar token e dispositivo confiavel configurados antes de liberar qualquer acesso protegido.",
@@ -183,6 +185,7 @@ class RemediationEngine:
         }
 
     def _build_structural_solution(self, weakness_id: str) -> Dict[str, Any]:
+        """Monta structural solution para o fluxo atual."""
         descriptions = {
             "auth_identity_guard_missing": "Consolidar a politica de acesso confiavel em um registro versionado de dispositivos e rotacao planejada de segredos.",
             "configuration_startup_degraded": "Fortalecer a validacao de configuracao com regras declarativas e checagens de startup mais granulares.",
@@ -206,6 +209,7 @@ class RemediationEngine:
         }
 
     def _build_operational_mitigation(self, weakness_id: str) -> Dict[str, Any]:
+        """Monta operational mitigation para o fluxo atual."""
         descriptions = {
             "auth_identity_guard_missing": "Manter a API restrita, revisar negacoes recentes e monitorar qualquer tentativa de acesso fora do dispositivo confiavel.",
             "configuration_startup_degraded": "Executar checklist de deploy e startup antes de cada reinicio planejado.",
@@ -237,6 +241,7 @@ class RemediationEngine:
         environment_report: Dict[str, Any] | None,
         health_report: Dict[str, Any] | None,
     ) -> Dict[str, Any] | None:
+        """Executa a rotina interna de select safe strategy."""
         weakness_id = weakness["weakness_id"]
         evidencias = weakness.get("evidencias", [])
 
@@ -268,6 +273,7 @@ class RemediationEngine:
         environment_report: Dict[str, Any] | None,
         health_report: Dict[str, Any] | None,
     ) -> Dict[str, Any]:
+        """Aplica safe strategy ao estado atual."""
         strategy_id = strategy["strategy_id"]
 
         if strategy_id == "ensure_environment_directories":
@@ -348,6 +354,7 @@ class RemediationEngine:
         return self._build_skipped_action(weakness, strategy_id, "safe_correction_not_available")
 
     def _record_automatic_action(self, runtime: Any | None, action: Dict[str, Any]) -> None:
+        """Registra automatic action no contexto atual."""
         if runtime is None:
             return
         runtime.bootstrap()
@@ -381,6 +388,7 @@ class RemediationEngine:
         after: Dict[str, Any],
         rollback_disponivel: bool,
     ) -> Dict[str, Any]:
+        """Monta applied action para o fluxo atual."""
         return {
             "action_id": f"remediation-{weakness['weakness_id']}-{strategy_id}",
             "weakness_id": weakness["weakness_id"],
@@ -399,6 +407,7 @@ class RemediationEngine:
         strategy_id: str,
         reason: str,
     ) -> Dict[str, Any]:
+        """Monta skipped action para o fluxo atual."""
         reason_ptbr = {
             "missing_runtime_context": "contexto_de_runtime_ausente",
             "missing_environment_context": "contexto_de_ambiente_ausente",
@@ -418,4 +427,5 @@ class RemediationEngine:
 
     @staticmethod
     def _utc_now() -> str:
+        """Retorna o timestamp UTC atual em formato ISO 8601."""
         return datetime.now(timezone.utc).isoformat()

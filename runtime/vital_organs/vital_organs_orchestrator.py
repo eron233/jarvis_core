@@ -41,7 +41,6 @@ class VitalOrgansOrchestrator:
     project_root: Path
     report_path: Path
     official_paths: Dict[str, Path]
-    legacy_paths: Dict[str, Path]
     official_data_dir: Path
     official_reports_dir: Path
     cycle_interval_seconds: float
@@ -55,16 +54,15 @@ class VitalOrgansOrchestrator:
     _last_report: Dict[str, Any] | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
+        """Finaliza a normalizacao inicial deste dataclass."""
         self.project_root = Path(self.project_root)
         self.report_path = Path(self.report_path)
         self.official_data_dir = Path(self.official_data_dir)
         self.official_reports_dir = Path(self.official_reports_dir)
         self.official_paths = {label: Path(path) for label, path in self.official_paths.items()}
-        self.legacy_paths = {label: Path(path) for label, path in self.legacy_paths.items()}
         self.structural_integrity_monitor = StructuralIntegrityMonitor(
             project_root=self.project_root,
             official_paths=self.official_paths,
-            legacy_paths=self.legacy_paths,
         )
         self.self_optimization_core = SelfOptimizationCore(
             cycle_sleep_seconds=self.cycle_interval_seconds,
@@ -169,6 +167,7 @@ class VitalOrgansOrchestrator:
         return deepcopy(self._last_report)
 
     def _run_forever(self, runtime: Any) -> None:
+        """Executa forever no contexto atual."""
         while not self._stop_event.is_set():
             try:
                 self.run_cycle(runtime)
@@ -177,6 +176,7 @@ class VitalOrgansOrchestrator:
             self._stop_event.wait(self._effective_interval_seconds())
 
     def _persist_report_if_changed(self, report: Dict[str, Any]) -> None:
+        """Executa a rotina interna de persist report if changed."""
         payload = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True)
         if payload == self._last_report_signature:
             return
@@ -199,6 +199,7 @@ class VitalOrgansOrchestrator:
         prevention_report: Dict[str, Any],
         sync_report: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """Monta summary para o fluxo atual."""
         reports = [
             structural_report,
             optimization_report,
@@ -230,4 +231,5 @@ class VitalOrgansOrchestrator:
         }
 
     def _effective_interval_seconds(self) -> float:
+        """Executa a rotina interna de effective interval seconds."""
         return max(self.cycle_interval_seconds, self.idle_sleep_seconds, 15.0)

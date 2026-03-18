@@ -1,0 +1,309 @@
+JARVIS - RELATORIO DE ELIMINACAO DE PENDENCIAS REAIS
+Data e hora: 2026-03-15T10:12:08.7346487-03:00
+Repositorio analisado: C:\Users\User\Documents\jarvis_core
+Objetivo desta etapa: eliminar pendencias reais do caminho principal do sistema, finalizar integracoes rasas, retirar do caminho principal o que ainda dependesse de ambiente externo e validar o nucleo utilizavel com testes e smoke real.
+
+1. RESUMO EXECUTIVO
+
+Esta etapa nao foi tratada como expansao do JARVIS. O foco foi fechamento real do que ainda aparentava estar pronto sem estar completamente fechado no uso vivo.
+
+Pendencias reais confirmadas antes da correcao:
+- cliente nativo quebrado contra a API endurecida, por nao enviar nonce e timestamp
+- bootstrap do runtime ignorando os paths configurados do registro de dispositivos e do relatorio de autodefesa
+- documentacao ainda dando aparencia excessiva de prontidao para servico Windows e Docker, embora a validacao operacional real ainda dependesse do host alvo
+- necessidade de prova adicional de persistencia real da rota /api/tarefas no caminho vivo, e nao apenas por teste indireto
+
+Resultado final desta etapa:
+- o cliente nativo agora funciona de verdade contra /api/comando
+- o runtime passou a respeitar os paths configurados de device_registry e self_defense
+- a rota /api/tarefas foi revalidada com persistencia real em disco no store configurado
+- servico Windows e Docker foram explicitamente reclassificados como trilhas auxiliares fora do nucleo local validado
+- o nucleo local utilizavel ficou alinhado entre codigo, testes e smoke real
+
+Estado final do nucleo utilizavel:
+- funcional de verdade para runtime local, API local, painel, autenticacao, fila, objetivos, memoria, comando textual, cliente leve, workers, autodefesa e observabilidade
+
+2. LISTA DE TUDO QUE ESTAVA PARCIAL, ENGANOSO OU INCOMPLETO
+
+2.1 Cliente nativo leve
+Status anterior: PARCIAL / ENGANOSO
+Arquivo: interface/native_client/jarvis_client.py
+Problema real:
+- o cliente anunciava ser uma interface leve para a API, mas falhava no uso real porque nao mandava X-Jarvis-Nonce e X-Jarvis-Timestamp
+- resultado observado anteriormente: HTTP 403 com mensagem de nonce ausente
+
+2.2 Registro de dispositivos no bootstrap do runtime
+Status anterior: PARCIAL
+Arquivos envolvidos:
+- main.py
+- runtime/system_config.py
+- runtime/server.py
+- runtime/internal_agent_runtime.py
+Problema real:
+- o sistema aceitava configuracao de device_registry_path
+- mas o runtime vivo podia cair de volta no path padrao data/device_registry.json
+- isso criava deriva entre ambiente configurado e estado operacional real
+
+2.3 Relatorio de autodefesa no bootstrap do runtime
+Status anterior: PARCIAL
+Arquivos envolvidos:
+- main.py
+- runtime/system_config.py
+- runtime/server.py
+- security/self_defense.py
+- runtime/internal_agent_runtime.py
+Problema real:
+- o relatorio de autodefesa podia ser gravado no path padrao reports/self_defense_latest.json
+- isso ignorava o reports_dir configurado em execucao isolada ou por ambiente
+
+2.4 Persistencia viva da rota /api/tarefas
+Status anterior: PARCIAL ate prova adicional
+Arquivos envolvidos:
+- interface/api/app.py
+- runtime/internal_agent_runtime.py
+- executive_planner/queue.py
+Problema real:
+- a fila ja tinha endurecimento estrutural e testes
+- faltava prova mais direta de que a rota real de enfileiramento gravava no store configurado no caminho vivo
+
+2.5 Servico Windows
+Status anterior: PARCIAL
+Arquivo: service/jarvis_windows_service.py
+Problema real:
+- o modulo existe, importa e tem teste de launcher
+- mas a instalacao/start real continua dependente de privilegio administrativo no host
+- neste ambiente isso nao foi validado operacionalmente
+
+2.6 Docker / deploy em container
+Status anterior: PARCIAL no sentido operacional
+Arquivos:
+- Dockerfile
+- docker-compose.yml
+- .dockerignore
+Problema real:
+- a preparacao existe
+- mas nao houve prova operacional real neste host por ausencia de docker
+
+2.7 Aprendizado estrutural futuro
+Status anterior: ENGANOSO na documentacao
+Arquivo: learning/self_improvement.py
+Problema real:
+- o modulo funciona como registro e sugestao observacional
+- nao atua como nucleo decisorio nem autoevolucao autonoma real
+- a documentacao anterior podia passar impressao mais forte do que o valor real do modulo
+
+3. O QUE FOI REALMENTE FINALIZADO
+
+3.1 Cliente nativo leve concluido
+Arquivo principal: interface/native_client/jarvis_client.py
+Fechamento realizado:
+- adicionado gerador automatico de X-Jarvis-Nonce
+- adicionado gerador automatico de X-Jarvis-Timestamp
+- mantidos token e device id
+Resultado:
+- o cliente deixou de quebrar na API atual
+
+3.2 Bootstrap do runtime alinhado aos paths configurados
+Arquivos principais:
+- main.py
+- runtime/system_config.py
+- runtime/server.py
+- interface/api/app.py
+Fechamento realizado:
+- SystemLoopConfig passou a carregar device_registry_path
+- SystemLoopConfig passou a carregar self_defense_report_path
+- o bootstrap injeta DeviceRegistry com o path configurado
+- o bootstrap injeta SelfDefenseMonitor com o path configurado
+- a API e o servidor passaram a propagar esses paths corretamente
+Resultado:
+- o runtime vivo passou a refletir o ambiente configurado, sem cair em defaults escondidos
+
+3.3 Persistencia da rota /api/tarefas concluida com prova real adicional
+Arquivos principais:
+- runtime/internal_agent_runtime.py
+- tests/test_api.py
+Fechamento realizado:
+- enqueue_task agora faz flush explicito do store da fila apos enfileiramento
+- quando ha vinculo com objetivo, o save do GoalManager tambem fica explicito
+- adicionada prova automatizada direta de persistencia da rota /api/tarefas
+Resultado:
+- a rota real de enfileiramento passou a ter validacao automatizada e smoke real coerente
+
+3.4 Escrita atomica estendida aos artefatos auxiliares vivos
+Arquivos principais:
+- device/device_registry.py
+- security/self_defense.py
+Fechamento realizado:
+- gravacao via arquivo temporario + os.replace
+Resultado:
+- reducao de risco de arquivo parcialmente escrito em registro de dispositivos e autodefesa
+
+4. O QUE FOI INTEGRADO DE VERDADE
+
+- cliente leve integrado ao contrato atual da API
+- device registry integrado ao bootstrap real do loop e do servidor
+- self defense integrado ao reports_dir configurado do ambiente
+- rota /api/tarefas integrada a persistencia observavel em disco
+- documentacao alinhada para nao tratar servico Windows e Docker como parte do nucleo local ja validado
+
+5. O QUE FOI CORRIGIDO
+
+- envio ausente de nonce/timestamp pelo cliente leve
+- deriva de path do device registry
+- deriva de path do relatorio de autodefesa
+- fragilidade documental sobre o grau real de prontidao de servico Windows e Docker
+- falta de cobertura direta da persistencia real da rota /api/tarefas
+
+6. O QUE FOI REMOVIDO DO CAMINHO PRINCIPAL
+
+Observacao importante:
+Nao houve remocao destrutiva de modulos do repositorio. O que foi removido foi a APARENCIA de que certas trilhas auxiliares ja fazem parte do nucleo local plenamente validado.
+
+Itens reclassificados para fora do nucleo local validado:
+- service/jarvis_windows_service.py
+  Motivo: depende de validacao administrativa no host alvo
+- Dockerfile / docker-compose.yml
+  Motivo: dependem de host com Docker, inexistente neste ambiente
+- learning/self_improvement.py
+  Motivo: mantido como modulo auxiliar observacional, nao como modulo central de decisao
+
+7. O QUE AINDA NAO PODE SER CONSIDERADO FINALIZADO E POR QUE
+
+7.1 Servico Windows real
+Situacao:
+- estrutura pronta
+- imports validos
+- testes do launcher passando
+- instalacao/start real nao validada nesta sessao
+Motivo:
+- exige privilegio administrativo real no host
+
+7.2 Docker real
+Situacao:
+- arquivos de deploy presentes
+- configuracao coerente
+- testes de deploy logico passando
+- build/run real nao validado aqui
+Motivo:
+- host atual sem docker
+
+7.3 Persistencia transacional
+Situacao:
+- fila, auditoria, device registry e relatorio de autodefesa estao melhores
+- mas continuam em JSON
+Motivo:
+- JSON ainda e limitacao estrutural para concorrencia multi-processo e crescimento maior
+- isso nao invalida o nucleo local, mas continua sendo pendencia importante de robustez futura
+
+8. ESTADO ATUAL DO JARVIS APOS A LIMPEZA
+
+Nucleo local utilizavel:
+FUNCIONA DE VERDADE
+
+Trilhas auxiliares dependentes de host externo:
+ISOLADAS FORA DO NUCLEO LOCAL VALIDADO
+
+Resumo objetivo:
+- runtime: funcionando de verdade
+- planner: funcionando de verdade
+- queue: funcionando de verdade no caminho principal validado
+- goals: funcionando de verdade
+- semantic memory: funcionando de verdade
+- procedural memory: funcionando de verdade
+- API: funcionando de verdade
+- painel: funcionando de verdade
+- autenticacao token + device: funcionando de verdade
+- anti-replay basico: funcionando de verdade no escopo local
+- cliente nativo: funcionando de verdade
+- device registry: funcionando de verdade
+- self defense: funcionando de verdade
+- workers principais: funcionando de verdade
+- service Windows: isolado fora do nucleo local validado
+- Docker: isolado fora do nucleo local validado
+
+9. LISTA FINAL DO QUE AGORA ESTA REALMENTE FUNCIONAL
+
+- subida do loop local por main.py
+- subida do servidor por runtime/server.py
+- launcher oficial jarvis.cmd para check-config e server
+- endpoint /health
+- endpoint /painel
+- endpoint /api/status
+- endpoint /api/tarefas
+- endpoint /api/comando
+- endpoint /api/runtime/identidade
+- painel com sessao por dispositivo confiavel
+- comando especial "Jarvis ta ai" com resposta "Sim, Sr. Maciel."
+- cliente nativo leve contra a API endurecida
+- persistencia de fila em store configurado
+- persistencia de objetivos
+- persistencia de memoria semantica
+- persistencia de memoria procedural
+- persistencia de auditoria
+- persistencia do registro de dispositivos
+- persistencia do relatorio de autodefesa no reports_dir configurado
+- workers de runtime, estudo, studio e finance
+- autodefesa operacional integrada ao runtime
+- identidade de runtime por commit e entrypoint
+
+10. VALIDACAO HONESTA: AINDA RESTA ALGUMA PENDENCIA IMPORTANTE?
+
+Sim.
+Mas agora ela esta explicitamente fora do nucleo local utilizavel ou pertence a hardening estrutural futuro, e nao a modulos do caminho principal aparentando estar prontos sem estarem.
+
+Pendencias importantes restantes:
+- validacao administrativa real do servico Windows
+- validacao real de Docker em host com Docker
+- migracao futura das trilhas mais sensiveis de JSON para armazenamento transacional simples
+
+Essas pendencias continuam reais, mas nao impedem afirmar que o nucleo local utilizavel do Jarvis esta fechado de forma honesta para o que ele realmente entrega hoje.
+
+11. TESTES EXECUTADOS
+
+Suite automatizada:
+- 89/89 testes aprovados
+
+Evidencias novas desta etapa:
+- tests/test_native_client.py
+- tests/test_api.py com prova direta da persistencia de /api/tarefas
+- tests/test_cloud_deploy.py com verificacao dos paths reais de device_registry e self_defense
+
+12. SMOKE REAL EXECUTADO
+
+Servidor real validado em execucao controlada:
+- /health respondeu
+- /painel respondeu
+- /api/status respondeu
+- /api/runtime/identidade respondeu
+- /api/tarefas persistiu em disco no path configurado
+- /api/comando respondeu
+- frase especial retornou "Sim, Sr. Maciel."
+- autodefesa gerou relatorio no reports_dir configurado
+- cliente nativo funcionou contra /api/comando
+
+Provas observadas no smoke:
+- queue_store continha zp-task-1 no path configurado
+- reported_device_store bateu com o device_registry do ambiente isolado
+- reported_self_defense_report bateu com o reports_dir do ambiente isolado
+- runtime_entrypoint observado: runtime.server.run_server
+- runtime_commit observado: 1f43fd4
+
+13. CONCLUSAO FINAL
+
+O comando desta etapa foi atendido de forma honesta para o nucleo principal do sistema.
+
+O que foi eliminado de verdade:
+- pendencias reais do caminho principal
+- integracoes superficiais do cliente leve
+- deriva de paths configurados no bootstrap real
+- aparencia enganosa de prontidao total em modulos ainda dependentes do host
+
+O que NAO foi maquiado:
+- servico Windows real nao foi declarado como concluido
+- Docker real nao foi declarado como concluido
+- JSON nao foi fingido como persistencia definitiva de longo prazo
+
+Conclusao tecnica franca:
+- o nucleo local utilizavel do Jarvis agora esta funcional de verdade
+- o que ainda depende de host externo foi isolado do nucleo validado
+- ainda existem pendencias importantes, mas elas nao ficam mais disfarçadas como prontas dentro do caminho principal

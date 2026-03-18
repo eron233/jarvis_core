@@ -625,4 +625,4 @@ Em resumo:
 - diagnostico interno: fragmentado
 
 Arquivo gerado para esta auditoria:
-- JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt
+- reports/relatorios_txt/JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt

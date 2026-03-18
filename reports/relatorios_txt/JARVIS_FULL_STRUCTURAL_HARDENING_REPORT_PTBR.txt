@@ -41,7 +41,7 @@ Projeto: C:\Users\User\Documents\jarvis_core
   - O store vivo atual foi saneado e esse id nao ficou mais confiavel.
 
 - Higiene documental:
-  - README.md, CHANGELOG.md, DEPLOY_PTBR.md, API_PTBR.md, ARCHITECTURE.md, system_capabilities_index.md, SYSTEM_MATURITY_REPORT_PTBR.md, NEXT_STEPS.md, .env.example e relatorios correlatos foram alinhados com o comportamento real.
+  - README.md, docs/referencia/CHANGELOG.md, docs/referencia/DEPLOY_PTBR.md, docs/referencia/API_PTBR.md, docs/referencia/ARCHITECTURE.md, docs/referencia/system_capabilities_index.md, reports/relatorios_txt/reports/relatorios_txt/SYSTEM_MATURITY_REPORT_PTBR.txt, docs/planos/NEXT_STEPS.md, .env.example e relatorios correlatos foram alinhados com o comportamento real.
 
 3. O QUE FOI MIGRADO
 

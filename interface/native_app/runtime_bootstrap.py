@@ -31,6 +31,7 @@ class JarvisRuntimeBootstrapper:
     """Detecta um runtime existente ou sobe um novo processo oculto."""
 
     def __init__(self, config: NativeAppConfig, api_client: JarvisApiClient) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         self.config = config
         self.api_client = api_client
         self._last_process: subprocess.Popen[str] | None = None

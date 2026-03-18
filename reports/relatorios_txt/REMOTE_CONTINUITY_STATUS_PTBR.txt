@@ -1,0 +1,196 @@
+JARVIS - STATUS DE CONTINUIDADE REMOTA
+Data da auditoria: 2026-03-15
+
+1. IDENTIFICACAO DO PROJETO
+
+- Caminho atual do projeto: C:\Users\User\Documents\jarvis_core
+- Branch atual: master
+- Ultimo commit local: 1f43fd4 Cycle 26.5: corrigir entrypoint documentado
+- Repositorio Git detectado: sim
+- Remote configurado: nao
+- Upstream configurado para a branch atual: nao
+
+Classificacao atual:
+- pronto para sincronizacao remota: nao
+- pronto com ressalvas: sim
+- nao pronto: nao
+
+Motivo da classificacao:
+- a base Git existe e esta utilizavel
+- nao ha remote origin configurado
+- a arvore de trabalho esta com muitas mudancas ainda nao commitadas
+- ha arquivos novos importantes ainda sem rastreamento
+- o projeto ja pode ser preparado para outra maquina, mas ainda depende de checkpoint Git real e push para um remoto central
+
+2. INTEGRIDADE DO REPOSITORIO
+
+- Verificacao Git: git fsck --no-reflogs --full executado
+- Resultado: sem corrupcao fatal detectada
+- Observacao: foi encontrado um dangling blob antigo, o que nao bloqueia o uso normal do repositorio, mas indica sobras de objetos nao referenciados de operacoes passadas
+
+3. STATUS GIT ATUAL
+
+Arquivos modificados:
+- .env.example
+- .gitignore
+- docs/referencia/CHANGELOG.md
+- docs/planos/NEXT_STEPS.md
+- README.md
+- constitutional_core/policy.py
+- data/cognitive_evolution_history.json
+- device/device_registry.py
+- executive_planner/prioritizer.py
+- executive_planner/validator.py
+- intent_layer/goal_manager.py
+- interface/api/app.py
+- interface/native_client/jarvis_client.py
+- main.py
+- memory_system/episodic_memory.py
+- memory_system/procedural_memory.py
+- memory_system/semantic_memory.py
+- memory_system/semantic_memory_store.json
+- runtime/autonomy.py
+- runtime/internal_agent_runtime.py
+- runtime/server.py
+- runtime/system_config.py
+- security/self_defense.py
+- docs/checkpoints/session_checkpoint.md
+- docs/referencia/system_capabilities_index.md
+- tests/test_api.py
+- tests/test_cloud_deploy.py
+- tests/test_constitutional_policy.py
+- tests/test_goal_manager.py
+- tests/test_planner.py
+- tests/test_procedural_memory.py
+- tests/test_remediation_engine.py
+- tests/test_security_knowledge_core.py
+- tests/test_security_twin.py
+- tests/test_security_validation_engine.py
+- tests/test_semantic_memory.py
+- tests/test_startup_portability.py
+- tests/test_threat_model_engine.py
+- tests/test_workers.py
+- workers/worker_finance.py
+- workers/worker_runtime.py
+- workers/worker_studio.py
+- workers/worker_study.py
+- workers/worker_utils.py
+
+Arquivos nao rastreados:
+- .gitattributes
+- docs/guias/JARVIS_CODE_GUIDE_PTBR.md
+- tests/test_native_client.py
+
+Arquivos locais/transitorios agora ignorados pela higiene aplicada:
+- jarvis_run.cmd
+- reports/relatorios_txt/reports/relatorios_txt/CODE_ANNOTATION_REPORT_PTBR.txt
+- reports/relatorios_txt/reports/relatorios_txt/FULL_STRUCTURAL_ANALYSIS_REPORT_PTBR.txt
+- reports/relatorios_txt/reports/relatorios_txt/RELATORIO_TECNICO_GERAL_JARVIS_PTBR.txt
+- reports/relatorios_txt/reports/relatorios_txt/CYCLE_26_5_INTEGRIDADE_OPERACIONAL_REPORT_PTBR.txt
+- reports/relatorios_txt/JARVIS_STATUS_REPORT_PTBR.txt
+- reports/relatorios_txt/JARVIS_PENDINGS_ELIMINATION_REPORT_PTBR.txt
+- reports/relatorios_txt/REMOTE_CONTINUITY_STATUS_PTBR.txt
+- reports/relatorios_txt/JARVIS_REMOTE_DEVELOPMENT_REPORT_PTBR.txt
+- snapshots JSON em security/twin_state/
+
+4. MODULOS PRINCIPAIS EXISTENTES
+
+- constitutional_core/
+- device/
+- executive_planner/
+- intent_layer/
+- interface/api/
+- interface/dashboard/
+- interface/brain_avatar/
+- interface/native_client/
+- learning/
+- memory_system/
+- runtime/
+- security/
+- service/
+- workers/
+- tests/
+
+Entrypoints principais:
+- runtime principal: runtime/internal_agent_runtime.py
+- loop local: main.py
+- servidor HTTP: runtime/server.py
+- launcher Windows: jarvis.cmd
+
+5. FORMA ATUAL DE SUBIR O JARVIS
+
+Validacao de ambiente:
+- .\jarvis.cmd check-config
+
+Servidor principal:
+- .\jarvis.cmd server
+ou
+- python runtime\server.py
+
+Loop local:
+- .\jarvis.cmd loop --max-cycles 1 --stop-when-idle
+ou
+- python main.py --max-cycles 1 --stop-when-idle
+
+Testes:
+- python -m unittest discover -s tests -v
+
+6. DEPENDENCIAS PRINCIPAIS
+
+- Git
+- Python compativel com o projeto
+- fastapi
+- uvicorn
+- pywin32 apenas se for usar o servico Windows
+
+Arquivo de dependencias:
+- requirements.txt
+
+Observacao:
+- no PC atual existe um Python funcional em:
+  C:\Program Files\PostgreSQL\17\pgAdmin 4\python\python.exe
+- em outra maquina, pode ser usado um Python 3.x padrao, desde que consiga instalar requirements.txt e rodar os testes
+
+7. COMANDOS REAIS PARA VALIDAR EM OUTRA MAQUINA
+
+1. Instalar dependencias:
+   pip install -r requirements.txt
+
+2. Validar configuracao:
+   .\jarvis.cmd check-config
+
+3. Rodar a suite:
+   python -m unittest discover -s tests -v
+
+4. Subir API e painel:
+   .\jarvis.cmd server
+
+5. Validar endpoints:
+   http://127.0.0.1:8000/health
+   http://127.0.0.1:8000/painel
+
+8. RISCOS CONHECIDOS
+
+- alto risco de perda de progresso se a maquina atual falhar antes de commit + push
+- risco de conflito se duas maquinas editarem a mesma branch sem disciplina de checkpoint
+- risco medio de sujeira historica porque a arvore atual acumula muitas mudancas em lote
+- servico Windows e Docker ainda nao foram validados operacionalmente neste host atual
+- persistencia principal continua baseada em JSON, o que ainda e um gargalo estrutural futuro
+
+9. PENDENCIAS ATUAIS PARA CONTINUIDADE REMOTA
+
+- configurar um remote origin real
+- decidir como fazer o primeiro checkpoint remoto desse lote grande de mudancas
+- versionar os arquivos novos importantes:
+  - .gitattributes
+  - docs/guias/JARVIS_CODE_GUIDE_PTBR.md
+  - tests/test_native_client.py
+- revisar se o grande conjunto de mudancas modificadas entra em um unico commit ou em mais de um checkpoint
+
+10. PROXIMO PASSO RECOMENDADO
+
+- criar ou escolher o repositorio remoto central
+- adicionar origin
+- fazer um checkpoint Git real e descritivo
+- dar push da branch master
+- so depois abrir a mesma base em outra maquina pelo Codex

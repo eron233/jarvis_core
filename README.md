@@ -29,10 +29,9 @@ Idioma padrao da camada visivel: `pt-BR`
 - Loop continuo local e standalone: `main.py`
 - Servidor HTTP/API oficial para deploy e operacao local: `runtime/server.py`
 - Launcher tecnico oficial no Windows atual: `jarvis.cmd`
-- Wrapper UX local para subir o servidor oficial: `jarvis_run.cmd`
+- Atalho UX local para subir o servidor oficial: `jarvis_run.cmd`
 - App nativo real: `interface/native_app/main.py`
 - Wrapper tecnico sem console do app nativo: `jarvis_native.pyw`
-- Shim minima de compatibilidade para abrir o app nativo: `jarvis_native.vbs`
 - Cliente leve: `interface/native_client/jarvis_client.py`
 - Servico leve do Windows: `service/jarvis_windows_service.py`
 
@@ -156,8 +155,8 @@ python interface\native_client\jarvis_client.py --texto "status do sistema" --to
 Observacao:
 
 - o cliente nativo agora envia automaticamente `nonce` e `timestamp`, ficando compativel com a protecao anti-replay atual da API
-- `jarvis.cmd` e a unica fonte de verdade para launchers no Windows; `jarvis_run.cmd`, `jarvis_native.pyw` e `jarvis_native.vbs` sao apenas wrappers auxiliares
-- o modo `api-direct` de `jarvis.cmd` continua existindo apenas como shim legado e redireciona para `server`; ele nao e mais um caminho oficial distinto de operacao
+- `jarvis.cmd` e a unica fonte de verdade para launchers no Windows; `jarvis_run.cmd` e um atalho UX opcional e `jarvis_native.pyw` e apenas o wrapper tecnico do app nativo
+- o launcher nao expoe mais o modo legado `api-direct`
 
 Servico Windows leve:
 
@@ -302,8 +301,8 @@ Quando o risco e baixo e a correcao e reversivel, o proprio sistema pode aplicar
 
 1. Implementar apenas o delta faltante do bloco atual.
 2. Cobrir comportamento novo com testes em `tests/`.
-3. Atualizar `ARCHITECTURE.md`, `system_capabilities_index.md` e os relatorios obrigatorios.
-4. Registrar a mudanca em `CHANGELOG.md`.
+3. Atualizar `docs/referencia/ARCHITECTURE.md`, `docs/referencia/system_capabilities_index.md` e os relatorios obrigatorios.
+4. Registrar a mudanca em `docs/referencia/CHANGELOG.md`.
 5. Rodar `python -m unittest discover -s tests -v`.
 6. Criar checkpoint git ao final de cada ciclo.
 
@@ -324,8 +323,8 @@ Quando o risco e baixo e a correcao e reversivel, o proprio sistema pode aplicar
 
 ## Documentacao Relacionada
 
-- `ARCHITECTURE.md`
-- `API_PTBR.md`
-- `DEPLOY_PTBR.md`
-- `system_capabilities_index.md`
-- `SYSTEM_MATURITY_REPORT_PTBR.md`
+- `docs/referencia/ARCHITECTURE.md`
+- `docs/referencia/API_PTBR.md`
+- `docs/referencia/DEPLOY_PTBR.md`
+- `docs/referencia/system_capabilities_index.md`
+- `reports/relatorios_txt/SYSTEM_MATURITY_REPORT_PTBR.txt`

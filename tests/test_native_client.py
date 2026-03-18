@@ -17,15 +17,19 @@ class _FakeHttpResponse:
     """Resposta HTTP minima para simular a API do cliente nativo."""
 
     def __init__(self, payload: bytes) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         self._payload = BytesIO(payload)
 
     def read(self) -> bytes:
+        """Retorna o conteudo mantido por este helper de teste."""
         return self._payload.read()
 
     def __enter__(self) -> "_FakeHttpResponse":
+        """Entra no contexto e retorna a propria instancia."""
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
+        """Encerra o contexto sem alterar a propagacao de excecoes."""
         return None
 
 

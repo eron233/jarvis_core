@@ -35,7 +35,7 @@ Proxima tarefa sugerida:
    - `code .`
 4. Revise primeiro:
    - `README.md`
-   - `ARCHITECTURE.md`
+   - `docs/referencia/ARCHITECTURE.md`
    - `runtime/internal_agent_runtime.py`
    - `executive_planner/planner.py`
    - `memory_system/semantic_memory.py`

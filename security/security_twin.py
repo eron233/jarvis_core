@@ -22,10 +22,12 @@ class SecurityTwin:
     threat_model_engine: ThreatModelEngine = field(default_factory=ThreatModelEngine)
 
     def __post_init__(self) -> None:
+        """Finaliza a normalizacao inicial deste dataclass."""
         self.storage_dir = Path(self.storage_dir)
 
     @property
     def latest_snapshot_path(self) -> Path:
+        """Executa a rotina interna de latest snapshot path."""
         return self.storage_dir / "latest_twin_snapshot.json"
 
     def create_twin_snapshot(
@@ -201,6 +203,7 @@ class SecurityTwin:
         runtime_state: Dict[str, Any],
         environment_report: Dict[str, Any] | None,
     ) -> Dict[str, Any]:
+        """Monta environment snapshot para o fluxo atual."""
         if environment_report is not None:
             snapshot = deepcopy(environment_report)
             snapshot.setdefault("ambiente", "desconhecido")
@@ -250,6 +253,7 @@ class SecurityTwin:
         runtime_state: Dict[str, Any],
         health_report: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """Monta operational snapshot para o fluxo atual."""
         planner_report = runtime.build_planner_report()
         queue_report = runtime.build_queue_report()
         memory_report = runtime.build_memory_report()
@@ -279,6 +283,7 @@ class SecurityTwin:
         }
 
     def _sanitize_queue_snapshot(self, tasks: list[Dict[str, Any]]) -> Dict[str, Any]:
+        """Sanitiza queue snapshot antes de persistir ou expor."""
         sanitized_tasks = [
             {
                 "task_id": task.get("task_id"),
@@ -308,6 +313,7 @@ class SecurityTwin:
         }
 
     def _sanitize_semantic_memory_snapshot(self, semantic_memory: Any) -> Dict[str, Any]:
+        """Sanitiza semantic memory snapshot antes de persistir ou expor."""
         entries = [
             {
                 "id": entry.get("id"),
@@ -331,6 +337,7 @@ class SecurityTwin:
         }
 
     def _sanitize_goal_snapshot(self, goal_snapshot: Dict[str, Any]) -> Dict[str, Any]:
+        """Sanitiza goal snapshot antes de persistir ou expor."""
         strategic_goals = [
             self._sanitize_goal(goal)
             for goal in goal_snapshot.get("strategic_goals", [])
@@ -351,6 +358,7 @@ class SecurityTwin:
         }
 
     def _sanitize_goal(self, goal: Dict[str, Any]) -> Dict[str, Any]:
+        """Sanitiza goal antes de persistir ou expor."""
         return {
             "goal_id": goal.get("goal_id"),
             "kind": goal.get("kind"),
@@ -369,6 +377,7 @@ class SecurityTwin:
         }
 
     def _sanitize_free_text(self, value: Any) -> Any:
+        """Sanitiza free text antes de persistir ou expor."""
         if isinstance(value, dict):
             return {str(key): self._sanitize_free_text(item) for key, item in value.items()}
         if isinstance(value, list):
@@ -381,14 +390,17 @@ class SecurityTwin:
 
     @staticmethod
     def _write_snapshot(path: Path, snapshot: Dict[str, Any]) -> None:
+        """Grava snapshot no armazenamento correspondente."""
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")
 
     @staticmethod
     def _build_twin_id() -> str:
+        """Monta twin id para o fluxo atual."""
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
         return f"security-twin-{timestamp}"
 
     @staticmethod
     def _utc_now() -> str:
+        """Retorna o timestamp UTC atual em formato ISO 8601."""
         return datetime.now(timezone.utc).isoformat()

@@ -297,7 +297,7 @@ Locais principais:
 - `Dockerfile`
 - `docker-compose.yml`
 - `.env.example`
-- `DEPLOY_PTBR.md`
+- `docs/referencia/DEPLOY_PTBR.md`
 
 O bloco 6 adicionou a camada minima de operacao em servidor simples:
 

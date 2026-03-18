@@ -19,6 +19,7 @@ class JarvisApiClient:
     """Encapsula os endpoints reais usados pela interface nativa."""
 
     def __init__(self, config: NativeAppConfig) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         self.config = config
 
     def public_healthcheck(self) -> dict[str, Any]:

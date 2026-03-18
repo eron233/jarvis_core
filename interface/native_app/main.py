@@ -73,6 +73,7 @@ class StartupDialog(QDialog):
     """Tela de bootstrap que garante o runtime antes da janela principal."""
 
     def __init__(self, bootstrapper: JarvisRuntimeBootstrapper, parent=None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent)
         self.bootstrapper = bootstrapper
         self.thread_pool = QThreadPool.globalInstance()
@@ -81,6 +82,7 @@ class StartupDialog(QDialog):
         self._start_bootstrap()
 
     def _build_ui(self) -> None:
+        """Monta ui para o fluxo atual."""
         self.setWindowTitle("JARVIS")
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         self.setModal(True)
@@ -132,6 +134,7 @@ class StartupDialog(QDialog):
         )
 
     def _start_bootstrap(self) -> None:
+        """Executa a rotina interna de start bootstrap."""
         self.retry_button.setVisible(False)
         self.progress.setRange(0, 0)
         self.log_view.clear()
@@ -143,9 +146,11 @@ class StartupDialog(QDialog):
         self.thread_pool.start(task)
 
     def _run_bootstrap(self) -> RuntimeBootstrapResult:
+        """Executa bootstrap no contexto atual."""
         messages: list[str] = []
 
         def _collect(message: str) -> None:
+            """Executa a coleta de bootstrap em background."""
             messages.append(message)
 
         result = self.bootstrapper.ensure_runtime_available(progress_callback=_collect)
@@ -153,6 +158,7 @@ class StartupDialog(QDialog):
         return result
 
     def _on_success(self, result: RuntimeBootstrapResult) -> None:
+        """Executa a rotina interna de on success."""
         self.result_payload = result
         for message in result.health_payload.get("_native_bootstrap_messages", []):
             self._append_log(message)
@@ -161,6 +167,7 @@ class StartupDialog(QDialog):
         self.accept()
 
     def _on_error(self, _job_name: str, traceback_text: str) -> None:
+        """Executa a rotina interna de on error."""
         self.progress.setRange(0, 1)
         self.progress.setValue(0)
         self.status_label.setText("Falha ao preparar o runtime.")
@@ -168,6 +175,7 @@ class StartupDialog(QDialog):
         self.retry_button.setVisible(True)
 
     def _append_log(self, message: str) -> None:
+        """Acrescenta log ao registro correspondente."""
         self.log_view.appendPlainText(str(message))
 
 

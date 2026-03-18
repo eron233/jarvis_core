@@ -22,7 +22,6 @@ if errorlevel 1 exit /b 1
 if /I "%MODE%"=="loop" goto :loop
 if /I "%MODE%"=="server" goto :server
 if /I "%MODE%"=="native-app" goto :native_app
-if /I "%MODE%"=="api-direct" goto :api_direct
 if /I "%MODE%"=="check-config" goto :check_config
 
 echo Modo invalido: %MODE%
@@ -39,11 +38,6 @@ exit /b %errorlevel%
 :native_app
 "%PYTHON_BIN%" "%PROJECT_ROOT%jarvis_native.pyw" %FORWARDED_ARGS%
 exit /b %errorlevel%
-
-:api_direct
-echo [Jarvis] Aviso: o modo api-direct foi aposentado como caminho oficial.
-echo [Jarvis] Redirecionando para o servidor oficial em runtime\server.py.
-goto :server
 
 :check_config
 "%PYTHON_BIN%" "%PROJECT_ROOT%runtime\server.py" --check-config %FORWARDED_ARGS%
@@ -75,9 +69,6 @@ echo   loop        = loop puro standalone via main.py
 echo   server      = servidor HTTP/API oficial via runtime\server.py
 echo   native-app  = aplicativo nativo real via interface\native_app\main.py
 echo   check-config= validacao de ambiente do servidor oficial
-echo.
-echo Compatibilidade:
-echo   api-direct  = shim legado que redireciona para server
 echo.
 echo Uso: jarvis.cmd ^<loop^|server^|native-app^|check-config^> [argumentos]
 exit /b 1

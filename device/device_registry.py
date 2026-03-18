@@ -242,6 +242,7 @@ class DeviceRegistry:
         }
 
     def _normalize_device(self, device: Dict[str, Any]) -> Dict[str, Any]:
+        """Executa a rotina interna de normalize device."""
         normalized_device = deepcopy(device)
         now = self._utc_now()
         normalized_device["device_id"] = str(normalized_device.get("device_id", "")).strip()
@@ -279,4 +280,5 @@ class DeviceRegistry:
 
     @staticmethod
     def _utc_now() -> str:
+        """Retorna o timestamp UTC atual em formato ISO 8601."""
         return datetime.now(timezone.utc).isoformat()

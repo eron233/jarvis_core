@@ -32,7 +32,6 @@ from typing import Any, Dict, List, Optional
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_STORAGE_PATH = PROJECT_ROOT / "data" / "semantic_memory_store.json"
-LEGACY_STORAGE_PATH = Path(__file__).with_name("semantic_memory_store.json")
 
 
 @dataclass
@@ -89,7 +88,6 @@ class SemanticMemory:
         """
 
         self.storage_path = Path(self.storage_path)
-        self._migrate_legacy_storage_if_needed()
 
     def add_entry(
         self,
@@ -305,30 +303,6 @@ class SemanticMemory:
         temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
         temp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         os.replace(temp_path, self.storage_path)
-
-    def _migrate_legacy_storage_if_needed(self) -> None:
-        """
-        Migra automaticamente o store semantico legado para `data/`.
-
-        Parametros:
-        - nenhum.
-
-        Retorno:
-        - nenhum.
-
-        Efeitos no sistema:
-        - move o arquivo legado quando o armazenamento oficial ainda nao existe.
-        """
-
-        if self.storage_path != DEFAULT_STORAGE_PATH:
-            return
-        if self.storage_path.exists():
-            return
-        if not LEGACY_STORAGE_PATH.exists() or LEGACY_STORAGE_PATH == self.storage_path:
-            return
-
-        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        os.replace(LEGACY_STORAGE_PATH, self.storage_path)
 
     def _next_entry_id(self) -> str:
         """

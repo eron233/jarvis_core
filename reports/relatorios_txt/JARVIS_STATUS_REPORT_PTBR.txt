@@ -1,0 +1,616 @@
+==================================================
+1. CABECALHO
+==================================================
+
+Data e hora da auditoria: 2026-03-15 09:51:43 -03:00
+Projeto auditado: C:\Users\User\Documents\jarvis_core
+Branch atual: master
+HEAD atual: 1f43fd4
+Idioma visivel auditado: pt-BR
+Objetivo: verificar o estado estrutural, funcional e operacional real do JARVIS sem expandir arquitetura e sem maquiar fragilidades.
+
+Observacao importante:
+- nao houve alteracao de codigo funcional nesta auditoria
+- a unica entrega nova desta etapa e este relatorio em texto simples
+- a arvore git continua suja por alteracoes anteriores nao consolidadas
+
+==================================================
+2. RESUMO EXECUTIVO
+==================================================
+
+Visao geral honesta:
+- o JARVIS ja e um sistema local utilizavel, com runtime, API, painel, autenticacao basica, planner, memoria, workers e autodefesa funcionando de forma real em ambiente controlado
+- ele ainda nao e um agente persistente confiavel de nivel operacional pleno
+- a base esta melhor do que um prototipo, mas ainda abaixo do nivel de confiabilidade que justificaria chamar o sistema de servico persistente robusto
+
+Estado atual do sistema:
+- existe nucleo funcional real
+- existe uso humano real via API e painel
+- existe persistencia real de varios stores
+- existe autodiagnostico de seguranca
+- existe memoria semantica e procedural persistentes
+- existem workers uteis
+- existem fragilidades concretas de persistencia ao vivo, autenticacao, cliente leve, supervisao persistente e coerencia de caminhos configurados
+
+Contagem sintetica dos componentes auditados:
+- FUNCIONANDO: 20
+- PARCIAL: 12
+- NAO_FUNCIONANDO: 1
+- NAO_VERIFICADO: 4
+- SEM_EFEITO_REAL: 3
+- POSSIVEL_DUPLICADO: 2
+
+Nivel atual do Jarvis:
+- NIVEL 4 - sistema utilizavel
+
+Por que nivel 4:
+- sobe de verdade
+- responde API e painel
+- aceita autenticacao por token + device id
+- processa comando textual
+- persiste memoria e auditoria
+- restaura estado basico
+- roda testes com boa cobertura local
+
+Por que ainda nao e nivel 5:
+- o cliente leve esta quebrado contra a autenticacao endurecida atual
+- a fila persistente mostrou comportamento fragil em validacao real com parada forcada
+- o servico Windows nao foi validado instalado e iniciado como servico real
+- Docker existe como artefato, mas nao foi validado neste host
+- a autenticacao continua fraca do ponto de vista de seguranca real
+- ainda ha deriva entre caminhos configurados e caminhos realmente usados em alguns modulos
+
+==================================================
+3. INVENTARIO DO PROJETO
+==================================================
+
+BACKEND E RUNTIME
+
+- main.py - FUNCIONANDO
+  Entry point real do loop continuo. Validado com `--max-cycles 1 --stop-when-idle`.
+
+- runtime/server.py - FUNCIONANDO
+  Entry point real e confiavel do servidor neste ambiente. Subiu em execucao controlada e respondeu `/health`, `/docs`, `/painel` e endpoints protegidos.
+
+- runtime/internal_agent_runtime.py - FUNCIONANDO
+  Nucleo central vivo. Integra planner, memoria, workers, auditoria, goals, device registry, policy, self defense e identidade de runtime.
+
+- runtime/runtime_identity.py - FUNCIONANDO
+  Expos commit, boot, PID, entrypoint e configuracao relevante via API. Foi a principal prova de aderencia entre processo e codigo.
+
+- runtime/autonomy.py - PARCIAL
+  Existe e participa do gate constitucional, mas a autonomia do sistema continua supervisionada e pouco profunda.
+
+- runtime/cognitive_evolution.py - PARCIAL
+  Persiste eventos e gera payloads de visualizacao/analise. O valor e mais de observabilidade do que de inteligencia real.
+
+PLANNER E EXECUCAO
+
+- executive_planner/planner.py - FUNCIONANDO
+  Usa queue, prioritizer, validator e audit. Passou em testes e integra com runtime real.
+
+- executive_planner/queue.py - PARCIAL
+  Estruturalmente correta, com escrita atomica e testes verdes. Em smoke real, uma tarefa aceita pela API nao apareceu persistida em disco apos parada forcada, apesar de a intencao do design ser auto persistir.
+
+- executive_planner/prioritizer.py - FUNCIONANDO
+  Usa score deterministico. Cobertura indireta pelos testes do planner.
+
+- executive_planner/validator.py - FUNCIONANDO
+  Usa policy viva e bloqueia/escala tarefas em testes e runtime.
+
+- executive_planner/audit.py - FUNCIONANDO
+  Persistente, recarregavel e utilizada de forma real pelo runtime.
+
+OBJETIVOS E POLITICA
+
+- constitutional_core/policy.py - FUNCIONANDO
+  Nao e decorativo. Governa validator e runtime. Testado e refletido em relatorios.
+
+- intent_layer/goal_manager.py - PARCIAL
+  Funciona em testes e persiste goals. Em smoke real, o goal semeado foi carregado, mas o fluxo observado nao comprovou conclusao real vinculada a tarefa enfileirada.
+
+MEMORIA
+
+- memory_system/semantic_memory.py - FUNCIONANDO
+  Persiste, busca e integra com runtime de forma real.
+
+- memory_system/episodic_memory.py - PARCIAL
+  Funciona como trilha de eventos recente, mas e simples e com baixo grau de sofisticacao.
+
+- memory_system/procedural_memory.py - PARCIAL
+  Persiste e busca procedimentos. Em uso real observado, continuou concentrada em heuristica basal do planner e nao mostrou aprendizado operacional rico no smoke.
+
+WORKERS
+
+- workers/worker_runtime.py - FUNCIONANDO
+  Gera diagnostico operacional util.
+
+- workers/worker_study.py - FUNCIONANDO
+  Gera topicos e proximos passos. Integrado ao runtime.
+
+- workers/worker_studio.py - FUNCIONANDO
+  Gera briefing e checklist.
+
+- workers/worker_finance.py - FUNCIONANDO
+  Gera sintese analitica segura, sem automacao financeira real.
+
+- workers/worker_utils.py - FUNCIONANDO
+  Base compartilhada util e de efeito real.
+
+API E INTERFACE
+
+- interface/api/app.py - FUNCIONANDO
+  Camada HTTP viva. Rotas protegidas, identidade de runtime, relatorios, tarefas, objetivos, memoria e cognicao responderam de forma real.
+
+- interface/dashboard/access_gate.html + interface/dashboard/index.html - FUNCIONANDO
+  Painel real. Gate sem sessao funcionou; painel autenticado carregou e apontou para o brain avatar.
+
+- interface/brain_avatar/*.js - PARCIAL
+  Camada visual conectada a endpoints reais. Valor principal e visualizacao/telemetria. Nao caracteriza cognicao real.
+
+- interface/native_client/jarvis_client.py - NAO_FUNCIONANDO
+  Existe e importa, mas em validacao real falhou com `403 Nonce de requisicao ausente`, porque nao foi atualizado para o endurecimento anti-replay atual.
+
+SEGURANCA
+
+- security/access_control.py - PARCIAL
+  Funciona e nao trata mais voz como admin real. Ainda e seguranca fraca: token + device id + nonce/timestamp local, sem assinatura forte.
+
+- security/self_defense.py - PARCIAL
+  Executa autodiagnostico real e gera relatorio, mas ignora o diretorio de relatórios configurado e grava em caminho global fixo.
+
+- security/security_knowledge_core.py - PARCIAL
+  Tem efeito real no ecossistema defensivo, mas nao fortalece sozinho a operacao.
+
+- security/threat_model_engine.py - PARCIAL
+  Funciona e passou em testes, mas e motor de diagnostico, nao controle operacional direto.
+
+- security/security_twin.py - PARCIAL
+  Funciona e persiste snapshots do gemeo, mas serve a camada interna de validacao, nao o fluxo principal do usuario.
+
+- security/security_validation_engine.py - PARCIAL
+  Funciona em testes e em autodefesa, mas e mais laboratorio controlado do que defesa operacional de producao.
+
+- security/remediation_engine.py - PARCIAL
+  Funciona e autoaplica correcoes seguras em contexto controlado. Ainda e limitado a remediacoes de baixo risco.
+
+DEVICE E CLIENTES
+
+- device/device_registry.py - PARCIAL
+  Funciona e a autenticacao por device e real. Em smoke real, o runtime continuou usando o caminho global `data/device_registry.json` em vez do path isolado configurado.
+
+- service/jarvis_windows_service.py - PARCIAL
+  Importa, tem comando de runtime coerente e cobertura de teste. Nao houve validacao real de install/start como servico do Windows.
+
+- jarvis.cmd - FUNCIONANDO
+  Launcher oficial no Windows atual. `check-config` validou e o caminho para `server.py` e confiavel aqui.
+
+- jarvis_run.cmd - POSSIVEL_DUPLICADO
+  Existe localmente no workspace, nao esta versionado no repo e cria uma rota paralela ao launcher oficial.
+
+APRENDIZADO FUTURO E PLACEHOLDERS
+
+- learning/self_improvement.py - SEM_EFEITO_REAL
+  Importa e gera sugestoes, mas nao influencia decisoes nem promove autoevolucao real do sistema.
+
+- interface/cli/.gitkeep - SEM_EFEITO_REAL
+  Diretorio placeholder sem cliente CLI real.
+
+- infrastructure/docker/.gitkeep, infrastructure/persistence/.gitkeep, infrastructure/monitoring/.gitkeep - SEM_EFEITO_REAL
+  Estrutura placeholder; nao sao a parte viva do deploy.
+
+ARTEFATOS E DUPLICACOES CONFUSAS
+
+- executive_planner/task_queue_store.json, intent_layer/goals.json e memory_system/semantic_memory_store.json - POSSIVEL_DUPLICADO
+  Permanecem no projeto, mas a operacao atual usa prioritariamente os stores de `data/`. Sao fontes potenciais de confusao.
+
+==================================================
+4. TESTES AUTOMATIZADOS
+==================================================
+
+Comando executado:
+- `C:\Program Files\PostgreSQL\17\pgAdmin 4\python\python.exe -m unittest discover -s tests -v`
+
+Resultado:
+- total de testes executados: 86
+- passaram: 86
+- falharam: 0
+- quebraram por erro: 0
+- tempo observado: 23.513s
+
+Areas cobertas de verdade:
+- access control
+- API e autenticacao HTTP
+- auditoria persistente
+- preparacao para nuvem/configuracao
+- evolucao cognitiva
+- policy constitucional
+- dashboard
+- device registry
+- goal manager
+- main loop e watchdog
+- relatorios operacionais
+- planner
+- memoria procedural
+- remediation engine
+- runtime bootstrap
+- security knowledge core
+- security twin
+- security validation
+- self defense
+- memoria semantica
+- startup portability
+- fila persistente
+- threat model
+- windows service (somente construcao/comando)
+- workers
+
+Cobertura fraca ou inexistente:
+- cliente leve `jarvis_client.py` sem teste direto e sem adequacao ao anti-replay
+- instalacao real do servico Windows
+- build e subida real via Docker
+- robustez de longa duracao 24/7
+- concorrencia multi-processo
+- performance do brain avatar em browser real
+- launcher local nao versionado `jarvis_run.cmd`
+
+Qualidade da malha de testes:
+- boa para regressao local
+- boa para integracao de modulos centrais
+- insuficiente para operacao persistente real de producao
+
+Testes potencialmente enganosos ou superficiais:
+- `test_windows_service.py` valida montagem do comando do servico, nao a instalacao do servico no Windows
+- `test_startup_portability.py` cobre launchers e check-config, mas nao substitui um uso humano longo
+- boa parte dos testes cognitivos valida payload e persistencia, nao “inteligencia”
+
+==================================================
+5. TESTES REAIS DE EXECUCAO
+==================================================
+
+Smoke real executado em ambiente isolado:
+- workspace de dados: `data/status_validation_20260315094452`
+- logs: `reports/status_validation_logs_20260315094452`
+- relatorios: `reports/status_validation_reports_20260315094452`
+- commit observado pelo runtime: `1f43fd4`
+- runtime reportou corretamente `repositorio_sujo=true`
+
+O que subiu de verdade:
+- `runtime/server.py` subiu localmente em `127.0.0.1:8010`
+- `/health` respondeu `200`
+- `/docs` respondeu `200`
+- `/painel` respondeu `200`
+- `/api/runtime/identidade` respondeu e expôs PID, boot, commit, entrypoint e paths
+
+Autenticacao e painel:
+- `GET /painel` sem sessao retornou gate de dispositivo
+- `POST /api/auth/device-session` respondeu `200`
+- `GET /painel` autenticado retornou painel real com referencia a `/brain-avatar/evolution_map.js`
+
+Comando textual:
+- `POST /api/comando` com texto `Jarvis ta ai` e voz `eron` respondeu `Sim, Sr. Maciel.`
+- `POST /api/comando` com texto `executar autodefesa` e senha administrativa respondeu com autodiagnostico real
+
+Autodefesa:
+- executou
+- reportou `risco_geral=critico`
+- detectou 1 fraqueza
+- reportou 1 correcao automatica segura
+- gravou o relatorio em `reports/self_defense_latest.json`
+
+Logging:
+- log central foi criado em `reports/status_validation_logs_20260315094452/jarvis.log`
+- houve registro real de comandos `Jarvis ta ai` e `executar autodefesa`
+
+Cliente leve:
+- falhou em validacao real
+- retorno observado: `Falha HTTP 403: {"detail":"Nonce de requisicao ausente."}`
+- conclusao: o cliente leve ficou atras da API endurecida
+
+Main loop real:
+- `main.py --max-cycles 1 --stop-when-idle` executou
+- bootstrapou fila, objetivos, memorias, auditoria e evolucao cognitiva
+- encerrou de forma limpa com motivo `fila_vazia`
+
+Launcher oficial:
+- `jarvis.cmd check-config` executou e validou ambiente com sucesso
+
+O que falhou ou ficou comprometido:
+- o cliente leve nao acompanha o contrato atual da API
+- a persistencia real da fila em cenário de parada forcada ficou inconsistente no smoke
+- nao houve validacao real de servico Windows instalado
+- nao houve validacao real de Docker porque `docker` nao existe neste host
+
+==================================================
+6. INTEGRACAO ENTRE MODULOS
+==================================================
+
+O que esta realmente conectado:
+- API -> runtime real
+- runtime -> planner
+- planner -> queue / prioritizer / validator / audit
+- runtime -> semantic memory / procedural memory / episodic memory
+- runtime -> device registry
+- runtime -> self defense
+- runtime -> workers
+- dashboard -> endpoints reais da API
+- brain avatar -> endpoints cognitivos reais
+- policy constitutional -> validator e runtime
+
+O que esta superficial ou incompleto:
+- procedural memory influencia o runtime, mas o aprendizado real observado continua raso
+- self_improvement e carregado, mas nao altera nada importante
+- brain avatar consome telemetria sintetica, nao estado cognitivo profundo
+
+Integracoes que mostraram fragilidade real:
+- queue -> persistencia ao vivo: fragil no smoke
+- device registry -> path configurado: inconsistente; runtime caiu no arquivo global
+- self defense -> reports dir configurado: inconsistente; gravou no arquivo global fixo
+- native client -> API endurecida: desconectado por falta de nonce/timestamp
+
+==================================================
+7. PERSISTENCIA E CONTINUIDADE
+==================================================
+
+Fila:
+- existe store persistente
+- testes automatizados sao fortes
+- em validacao real com parada forcada, a tarefa aceita pela API nao reapareceu no arquivo nem no reinicio
+- classificacao: PARCIAL
+
+Memoria semantica:
+- persiste e recarrega
+- foi encontrada no reinicio
+- classificacao: FUNCIONANDO
+
+Memoria procedural:
+- persiste e recarrega
+- store continha 1 procedimento basal do planner
+- valor real ainda limitado
+- classificacao: PARCIAL
+
+Objetivos:
+- goals persistem e recarregam
+- goal semeado foi restaurado apos reinicio
+- conclusao/progresso real nao foi comprovado no smoke
+- classificacao: PARCIAL
+
+Auditoria:
+- persistente e recarregada
+- store continha 19 entradas no ambiente isolado
+- comandos reais apareceram no JSON
+- classificacao: FUNCIONANDO
+
+Loop:
+- sobe
+- roda
+- para limpo quando configurado para `stop-when-idle`
+- testes cobrem watchdog apos excecao
+- classificacao: FUNCIONANDO
+
+Watchdog:
+- comprovado em teste automatizado
+- nao fiz validacao manual de longa duracao
+- classificacao: PARCIAL para operacao persistente longa, FUNCIONANDO para o escopo coberto
+
+Continuidade geral:
+- sim, o sistema restaura boa parte do estado
+- nao, ainda nao prova persistencia confiavel de tudo em cenario hostil ou com kill abrupto
+
+==================================================
+8. SEGURANCA E ACESSO
+==================================================
+
+Autenticacao atual:
+- token + device id confiavel
+- nonce + timestamp para rotas mutantes
+- senha para elevar acesso textual
+- voz apenas como pista informativa
+
+Pontos fortes:
+- a voz nao concede mais admin real
+- o painel so abre apos sessao de dispositivo
+- o runtime expoe identidade de processo
+- auditoria registra acessos e comandos
+
+Fragilidades reais:
+- nao ha assinatura forte nem criptografia de mensagem
+- nonce e local ao processo
+- cliente leve ainda nao implementa nonce/timestamp
+- device registry nao respeitou o path configurado no smoke
+- self defense gravou em caminho global fixo
+
+Policy/core real ou decorativo:
+- real
+- governa validator e runtime
+- nao e so arquivo decorativo
+
+Self defense:
+- real
+- executa
+- gera relatorio
+- ainda e mais camada de autodiagnostico do que defesa operacional madura
+
+==================================================
+9. WORKERS E UTILIDADE PRATICA
+==================================================
+
+worker_runtime:
+- faz diagnostico operacional real
+- utilidade: alta para introspeccao local
+
+worker_study:
+- faz resumo e proximos passos
+- utilidade: real, mas limitada a texto
+
+worker_studio:
+- faz briefing e checklist
+- utilidade: real, mas ainda raso
+
+worker_finance:
+- faz sintese analitica sem automacao financeira
+- utilidade: real e segura no escopo atual
+
+Conclusao sobre workers:
+- nao sao mais stubs vazios
+- ainda nao sao conectores ricos nem agentes especializados profundos
+
+==================================================
+10. PONTOS FORTES DO JARVIS HOJE
+==================================================
+
+- runtime central real e identificavel por commit/boot
+- API e painel realmente funcionam
+- autenticacao por token/device funciona
+- planner, policy, memoria e workers se conversam de verdade
+- auditoria persistente e logging real existem
+- testes automatizados cobrem bem a base local
+- main loop e launcher oficial sobem no ambiente atual
+
+==================================================
+11. PONTOS FRACOS CRITICOS
+==================================================
+
+- cliente leve quebrado contra a API atual
+- fila persistente com comportamento ao vivo ambiguo/fragil em parada forcada
+- caminho configurado do device registry nao refletido no runtime real
+- self defense ignorando o reports dir configurado
+- multiplos launchers e artefatos locais ainda confundem a operacao
+- repositório de trabalho permanece sujo, o que aumenta ambiguidade operacional
+
+==================================================
+12. MODULOS ENGANOSOS OU SUPERFICIAIS
+==================================================
+
+- interface/native_client/jarvis_client.py
+  Parece pronto, mas falha no uso real por nao acompanhar o anti-replay.
+
+- learning/self_improvement.py
+  Parece trilha de autoevolucao, mas hoje e basicamente um registrador de sugestoes.
+
+- interface/brain_avatar/*.js
+  Visualmente impressiona mais do que entrega inteligencia real.
+
+- service/jarvis_windows_service.py
+  Parece fechar a persistencia do sistema, mas aqui so foi validado estruturalmente e por teste indireto, nao como servico real instalado.
+
+- Dockerfile/docker-compose.yml
+  Passam a impressao de deploy pronto, mas neste host nao houve build nem run real.
+
+==================================================
+13. DUPLICACOES, VAZIOS E ARQUIVOS SEM EFEITO
+==================================================
+
+Possiveis duplicacoes:
+- `executive_planner/task_queue_store.json`
+- `intent_layer/goals.json`
+- `memory_system/semantic_memory_store.json`
+- `jarvis_run.cmd` versus `jarvis.cmd`
+
+Placeholders ou sem efeito real:
+- `interface/cli/.gitkeep`
+- `infrastructure/docker/.gitkeep`
+- `infrastructure/persistence/.gitkeep`
+- `infrastructure/monitoring/.gitkeep`
+
+Arquivos vazios encontrados:
+- nao foi encontrado relatorio operacional `.md` ou `.txt` vazio
+- foram encontrados logs de smoke vazios em `tests/_startup_artifacts/smoke_stdout.log` e `tests/_startup_artifacts/smoke_stderr.log`
+- esses arquivos sao artefatos de teste, nao relatorios vivos do sistema
+
+==================================================
+14. O QUE JA PODE SER USADO DE VERDADE HOJE
+==================================================
+
+- subir servidor local via `python runtime/server.py`
+- validar ambiente via `jarvis.cmd check-config`
+- usar painel com token + device id
+- consultar status, memoria e relatorios
+- enviar comandos textuais pela API
+- usar a frase especial com resposta reservada
+- executar autodefesa via comando autenticado
+- usar workers por runtime/planner
+- rodar o loop principal em modo controlado
+
+==================================================
+15. O QUE AINDA NAO DEVE SER CONSIDERADO PRONTO
+==================================================
+
+- cliente leve para uso real
+- servico Windows como garantia de persistencia de verdade
+- deploy Docker validado
+- autenticacao forte
+- fila duravel sob kill abrupto e cenarios hostis
+- cognicao visual como inteligencia real
+- autoaperfeicoamento como modulo operacional real
+
+==================================================
+16. NIVEL ATUAL DO JARVIS
+==================================================
+
+Nivel atual:
+- NIVEL 4 - sistema utilizavel
+
+Justificativa detalhada:
+- passou de nucleo funcional para sistema usavel porque ja sobe, responde, persiste, autentica e executa partes reais da operacao
+- ainda nao chegou a agente persistente confiavel porque faltam confiabilidade operacional forte, validacao de supervisor real, cliente alinhado, persistencia mais robusta e endurecimento de seguranca
+
+O que falta para o proximo nivel:
+- validar servico Windows real ou supervisor equivalente
+- eliminar a ambiguidade da fila persistente ao vivo
+- alinhar cliente leve com a API endurecida
+- reduzir desvios entre paths configurados e paths realmente usados
+- validar deploy reprodutivel fora do host atual
+
+==================================================
+17. PROXIMOS PASSOS REAIS
+==================================================
+
+1. Corrigir e revalidar a persistencia da fila em operacao real
+   Motivo: hoje existe evidência real de comportamento fragil no smoke vivo.
+
+2. Alinhar `jarvis_client.py` ao contrato atual da API
+   Motivo: cliente quebrado reduz a utilidade pratica imediata.
+
+3. Corrigir o respeito a paths configurados em `DeviceRegistry` e `SelfDefenseMonitor`
+   Motivo: hoje ainda ha escrita em caminhos globais fora da configuracao isolada.
+
+4. Validar o servico Windows com privilegio administrativo real
+   Motivo: sem isso o sistema ainda nao prova persistencia operacional no host.
+
+5. Migrar stores mais criticos de JSON puro para armazenamento mais robusto
+   Motivo: fila e auditoria ja estao no limite para chamar o sistema de confiavel.
+
+6. So depois disso expandir mais cognicao, autonomia ou novos modulos
+   Motivo: a base ainda precisa consolidacao antes de crescer.
+
+==================================================
+18. CONCLUSAO HONESTA
+==================================================
+
+O Jarvis hoje funciona ou nao?
+- sim, funciona como sistema local utilizavel e auditavel sob supervisao
+- nao, ainda nao funciona como agente persistente confiavel de nivel operacional pleno
+
+Em que sentido funciona:
+- sobe
+- responde
+- autentica
+- mostra painel
+- processa comandos
+- registra auditoria
+- persiste memoria
+- executa autodefesa
+- integra seus modulos centrais
+
+Em que sentido ainda nao funciona:
+- ainda nao garante persistencia forte sob cenarios agressivos
+- ainda nao garante supervisao real de longa duracao
+- ainda nao tem cliente leve funcional contra a API endurecida
+- ainda nao tem deploy validado fora deste host
+- ainda nao tem seguranca forte o suficiente para chamar de confiavel
+
+Conclusao final curta:
+- o JARVIS ja e mais do que um prototipo
+- o JARVIS ainda nao e um servico persistente confiavel
+- a base merece consolidacao antes de qualquer nova expansao grande

@@ -1,4 +1,4 @@
-"""Widget do cerebro/avatar do JARVIS com cena 3D navegavel."""
+"""Widget Qt que hospeda o cerebro visual oficial do JARVIS no app nativo."""
 
 from __future__ import annotations
 
@@ -63,6 +63,7 @@ def format_brain_analysis(payload: dict[str, Any]) -> str:
 
 
 def _should_use_web_brain() -> bool:
+    """Indica se o host web oficial do cerebro pode ser usado neste ambiente."""
     platform = str(os.environ.get("QT_QPA_PLATFORM", "")).lower()
     if platform == "offscreen":
         return False
@@ -77,15 +78,18 @@ class _BrainWebView(QWebEngineView):
     compactClicked = Signal()
 
     def __init__(self, compact_mode: bool, parent: QWidget | None = None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent)
         self.compact_mode = compact_mode
         self._press_pos = QPoint()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        """Registra o pressionamento do mouse neste widget."""
         self._press_pos = event.position().toPoint()
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        """Registra a liberacao do mouse neste widget."""
         if self.compact_mode and event.button() == Qt.LeftButton:
             current_pos = event.position().toPoint()
             if (current_pos - self._press_pos).manhattanLength() <= 6:
@@ -101,6 +105,7 @@ class _WebBrainCanvas(QWidget):
     expandRequested = Signal()
 
     def __init__(self, *, compact_mode: bool, parent: QWidget | None = None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent)
         self.compact_mode = compact_mode
         self._scene_ready = False
@@ -119,6 +124,7 @@ class _WebBrainCanvas(QWidget):
         self.view.load(self._build_scene_url())
 
     def _build_scene_url(self) -> QUrl:
+        """Monta scene url para o fluxo atual."""
         url = QUrl.fromLocalFile(str(SCENE_HTML_PATH))
         query = QUrlQuery()
         query.addQueryItem("mode", "compact" if self.compact_mode else "expanded")
@@ -126,6 +132,7 @@ class _WebBrainCanvas(QWidget):
         return url
 
     def _configure_view(self) -> None:
+        """Executa a rotina interna de configure view."""
         settings = self.view.settings()
         settings.setAttribute(QWebEngineSettings.JavascriptEnabled, True)
         settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True)
@@ -136,16 +143,19 @@ class _WebBrainCanvas(QWidget):
         self.view.setContextMenuPolicy(Qt.NoContextMenu)
 
     def set_payload(self, evolution_payload: dict[str, Any], analysis_payload: dict[str, Any]) -> None:
+        """Atualiza a carga de dados exibida por este componente."""
         self._evolution_payload = evolution_payload or {}
         self._analysis_payload = analysis_payload or {}
         self._push_payload_to_scene()
 
     def _on_scene_loaded(self, ok: bool) -> None:
+        """Executa a rotina interna de on scene loaded."""
         self._scene_ready = ok
         if ok:
             self._push_payload_to_scene()
 
     def _push_payload_to_scene(self) -> None:
+        """Executa a rotina interna de push payload to scene."""
         if not self._scene_ready:
             return
 
@@ -162,6 +172,7 @@ class _ExpandedBrainDialog(QDialog):
     """Sobreposicao para navegar no cerebro em destaque."""
 
     def __init__(self, parent: QWidget, evolution_payload: dict[str, Any], analysis_payload: dict[str, Any]) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent.window())
         self.setModal(True)
         self.setWindowTitle("JARVIS Brain")
@@ -205,7 +216,7 @@ class _ExpandedBrainDialog(QDialog):
 
         title = QLabel("Cerebro do Jarvis")
         title.setObjectName("BrainOverlayTitle")
-        hint = QLabel("Arraste para girar. Shift + arraste para mover. Use o scroll para zoom.")
+        hint = QLabel("A visualizacao ampliada reutiliza a mesma biblioteca oficial do painel web.")
         hint.setObjectName("BrainOverlayHint")
 
         title_block = QVBoxLayout()
@@ -232,6 +243,7 @@ class _ExpandedBrainDialog(QDialog):
         self.move(parent_window.pos())
 
     def keyPressEvent(self, event) -> None:
+        """Trata o pressionamento de tecla neste componente."""
         if event.key() == Qt.Key_Escape:
             self.close()
             event.accept()
@@ -243,6 +255,7 @@ class _FallbackBrainWidget(QWidget):
     """Fallback leve para testes headless e ambientes sem WebEngine."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent)
         self._evolution_payload: dict[str, Any] = {}
         self._analysis_payload: dict[str, Any] = {}
@@ -254,6 +267,7 @@ class _FallbackBrainWidget(QWidget):
         self._animation_timer.start(45)
 
     def set_payload(self, evolution_payload: dict[str, Any], analysis_payload: dict[str, Any]) -> None:
+        """Atualiza a carga de dados exibida por este componente."""
         self._evolution_payload = evolution_payload or {}
         self._analysis_payload = analysis_payload or {}
         focus_labels = [item.get("label") for item in self._analysis_payload.get("regioes_mais_utilizadas", [])[:4]]
@@ -264,10 +278,12 @@ class _FallbackBrainWidget(QWidget):
         self.update()
 
     def _advance_animation(self) -> None:
+        """Executa a rotina interna de advance animation."""
         self._pulse_phase = (self._pulse_phase + 0.016) % 1.0
         self.update()
 
     def paintEvent(self, _event) -> None:
+        """Desenha o frame atual deste widget."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setRenderHint(QPainter.TextAntialiasing)
@@ -279,6 +295,7 @@ class _FallbackBrainWidget(QWidget):
         self._paint_overlay_text(painter, rect)
 
     def _paint_background(self, painter: QPainter, rect: QRectF) -> None:
+        """Desenha background neste widget."""
         gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
         gradient.setColorAt(0.0, QColor("#020508"))
         gradient.setColorAt(0.45, QColor("#06111a"))
@@ -286,6 +303,7 @@ class _FallbackBrainWidget(QWidget):
         painter.fillRect(rect, gradient)
 
     def _paint_brain_shell(self, painter: QPainter, rect: QRectF) -> None:
+        """Desenha brain shell neste widget."""
         shell_rect = rect.adjusted(30, 24, -30, -34)
         painter.save()
         painter.setPen(Qt.NoPen)
@@ -350,6 +368,7 @@ class _FallbackBrainWidget(QWidget):
         painter.restore()
 
     def _paint_cognitive_regions(self, painter: QPainter, rect: QRectF) -> None:
+        """Desenha cognitive regions neste widget."""
         shell_rect = rect.adjusted(44, 48, -44, -58)
         labels = self._focus_labels or ["Memoria", "Planejamento", "Execucao", "Seguranca"]
         base_points = [
@@ -388,6 +407,7 @@ class _FallbackBrainWidget(QWidget):
         painter.restore()
 
     def _paint_overlay_text(self, painter: QPainter, rect: QRectF) -> None:
+        """Desenha overlay text neste widget."""
         summary = self._evolution_payload.get("resumo", {})
         caption = (
             f"Cerebro 3D em fallback  |  eventos {summary.get('total_eventos', 0)}"
@@ -404,6 +424,7 @@ class NativeBrainWidget(QWidget):
     """Renderiza o cerebro do Jarvis em cena 3D local ou fallback headless."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent)
         self._evolution_payload: dict[str, Any] = {}
         self._analysis_payload: dict[str, Any] = {}
@@ -423,6 +444,7 @@ class NativeBrainWidget(QWidget):
         self.setMinimumSize(320, 360)
 
     def sizeHint(self) -> QSize:
+        """Retorna o tamanho sugerido deste widget."""
         return QSize(420, 520)
 
     def set_payload(self, evolution_payload: dict[str, Any], analysis_payload: dict[str, Any]) -> None:
@@ -444,6 +466,7 @@ class NativeBrainWidget(QWidget):
             fallback.set_payload(self._evolution_payload, self._analysis_payload)
 
     def _open_expanded_view(self) -> None:
+        """Abre expanded view no fluxo atual."""
         if not self._use_web_brain:
             return
         if self._expanded_dialog is not None and self._expanded_dialog.isVisible():
@@ -456,4 +479,5 @@ class NativeBrainWidget(QWidget):
         self._expanded_dialog.show()
 
     def _clear_expanded_dialog(self) -> None:
+        """Limpa expanded dialog do contexto atual."""
         self._expanded_dialog = None

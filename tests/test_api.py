@@ -230,7 +230,7 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(memory_response.status_code, 200)
         self.assertGreaterEqual(len(memory_response.json()["entradas_semanticas"]), 1)
 
-        report_response = client.get("/api/relatorio", headers=headers)
+        report_response = client.get("/api/relatorio/sistema", headers=headers)
         self.assertEqual(report_response.status_code, 200)
         report_payload = report_response.json()
         self.assertEqual(report_payload["saude_runtime"]["status"], "ok")
@@ -348,6 +348,15 @@ class JarvisApiTests(unittest.TestCase):
         self.assertIn("commit", payload)
         self.assertIn("boot_timestamp", payload)
         self.assertIn("entrypoint", payload)
+
+    def test_api_nao_expone_mais_alias_duplicado_de_relatorio(self) -> None:
+        """Garante que o alias antigo de relatorio nao continue ativo."""
+
+        client, headers = self.build_client("report_alias_removed")
+
+        response = client.get("/api/relatorio", headers=headers)
+
+        self.assertEqual(response.status_code, 404)
 
     def test_api_permite_endpoints_protegidos_com_sessao_web_simples(self) -> None:
         """Confirma que a sessao web simples substitui token e device no painel."""

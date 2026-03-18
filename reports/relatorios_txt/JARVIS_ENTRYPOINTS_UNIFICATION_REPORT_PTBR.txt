@@ -79,7 +79,7 @@ JARVIS - RELATORIO DE UNIFICACAO DE ENTRYPOINTS E LAUNCHERS
 - jarvis_native.vbs ajustado para:
   - virar shim minima
   - chamar o launcher tecnico oficial em vez de um bootstrap paralelo
-- README.md, API_PTBR.md, DEPLOY_PTBR.md e CHANGELOG.md atualizados para refletir a nova fonte de verdade operacional.
+- README.md, docs/referencia/API_PTBR.md, docs/referencia/DEPLOY_PTBR.md e docs/referencia/CHANGELOG.md atualizados para refletir a nova fonte de verdade operacional.
 - tests/test_startup_portability.py endurecido para:
   - validar o api-direct como shim legado
   - isolar totalmente os stores temporarios dos testes de startup

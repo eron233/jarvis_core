@@ -4,6 +4,10 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## Em desenvolvimento
 
+- Removido de vez o modo legado `api-direct` de `jarvis.cmd`; o launcher agora rejeita esse caminho em vez de mantê-lo como sombra operacional.
+- Aposentado `jarvis_native.vbs`; `jarvis_native.pyw` passou a ser o único wrapper técnico remanescente do app nativo.
+- Removidos os ganchos de migração automática por paths legados em fila, memória semântica e objetivos; `data/` passa a ser a única origem operacional suportada.
+- Convertida `interface/native_app/brain_scene.js` em host fino da biblioteca oficial `interface/brain_avatar`, eliminando a engine paralela de renderização no desktop.
 - Unificados os entrypoints e launchers por responsabilidade: `main.py` ficou como loop puro standalone, `runtime/server.py` como servidor HTTP/API oficial e `jarvis.cmd` como launcher tecnico oficial.
 - Reduzidos `jarvis_run.cmd`, `jarvis_native.pyw` e `jarvis_native.vbs` a wrappers auxiliares explicitamente documentados, sem disputar a fonte de verdade operacional.
 - Transformado o modo `api-direct` de `jarvis.cmd` em shim legado que apenas redireciona para `server`, eliminando um caminho divergente de subida.
@@ -86,7 +90,7 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Implementada a API minima do JARVIS em FastAPI em `interface/api/app.py`.
 - Adicionada autenticacao inicial por token para endpoints protegidos.
 - Expostos endpoints de status, ciclo, tarefas, objetivos, memoria recente e relatorio operacional.
-- Adicionada documentacao dedicada da API em `API_PTBR.md`.
+- Adicionada documentacao dedicada da API em `docs/referencia/API_PTBR.md`.
 - Implementado o painel mobile-first em `interface/dashboard/index.html`.
 - Adicionadas rotas web para acesso ao painel e redirecionamento pela API.
 - Incluida entrada textual simples e acoes rapidas para operacao inicial pelo celular.
@@ -104,7 +108,7 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Adicionado healthcheck publico em `/health` com resumo de ambiente.
 - Escrita de `environment_report.json`, `shutdown_report.json` e `jarvis.log` preparada para deploy.
 - Adicionados testes de configuracao, startup e deploy em `tests/test_cloud_deploy.py`.
-- Atualizada a documentacao de deploy em `DEPLOY_PTBR.md`.
+- Atualizada a documentacao de deploy em `docs/referencia/DEPLOY_PTBR.md`.
 - Criado o modulo `security/security_knowledge_core.py` como base de conhecimento defensiva interna.
 - Estruturados dominios de identidade, aplicacao, infraestrutura, continuidade e observabilidade.
 - Adicionada exportacao deterministica do conhecimento para memoria semantica e procedural.

@@ -383,6 +383,7 @@ class ThreatModelEngine:
 
     @staticmethod
     def _score_to_level(score: int) -> str:
+        """Executa a rotina interna de score to level."""
         if score >= 9:
             return "critico"
         if score >= 7:
@@ -393,11 +394,13 @@ class ThreatModelEngine:
 
     @staticmethod
     def _dominant_consequence(impactos: Dict[str, str]) -> str:
+        """Executa a rotina interna de dominant consequence."""
         impact_rank = {"baixo": 1, "medio": 2, "alto": 3, "critico": 4}
         return max(impactos, key=lambda item: impact_rank.get(impactos[item], 0))
 
     @staticmethod
     def _summarize_risks(risks: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Executa a rotina interna de summarize risks."""
         counts = {level: 0 for level in RISK_LEVELS}
         for risk in risks:
             counts[risk["nivel_risco"]] += 1

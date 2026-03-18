@@ -1,0 +1,130 @@
+VITAL ORGANS - RELATORIO DE ESTABILIDADE INTERNA DO JARVIS
+Data de geracao: 2026-03-16
+Projeto: C:\Users\User\Documents\jarvis_core
+
+1. ORGAOS CRIADOS
+
+- runtime/vital_organs/structural_integrity_monitor.py
+  Responsabilidade:
+  - comparar stores oficiais com os caminhos reais usados pelo runtime
+  - detectar stores legados ainda existentes
+  - detectar caminhos duplicados entre responsabilidades persistentes
+
+- runtime/vital_organs/self_optimization_core.py
+  Responsabilidade:
+  - detectar polling excessivo do loop
+  - detectar crescimento desnecessario do cache interno de nonces
+  - aplicar apenas otimizacoes seguras e reversiveis de baixo risco
+
+- runtime/vital_organs/runtime_hygiene_engine.py
+  Responsabilidade:
+  - validar separacao entre codigo versionado e estado operacional
+  - verificar se stores vivos estao no diretorio oficial esperado
+  - detectar risco de sujeira de Git por artefatos operacionais
+
+- runtime/vital_organs/failure_prevention_engine.py
+  Responsabilidade:
+  - detectar watchdogs recorrentes
+  - detectar fluxo potencialmente travado com fila pendente
+  - recriar stores criticos ausentes quando isso for seguro
+
+- runtime/vital_organs/vital_organs_orchestrator.py
+  Responsabilidade:
+  - orquestrar o ciclo interno dos orgaos vitais
+  - manter thread interna leve e silenciosa
+  - persistir relatorio interno em reports/vital_organs_status.json
+
+2. PONTO DE INTEGRACAO NO RUNTIME
+
+Integracoes realizadas:
+
+- C:\Users\User\Documents\jarvis_core\runtime\internal_agent_runtime.py
+  Metodos adicionados:
+  - configure_vital_organs(...)
+  - run_vital_organs_cycle_once()
+  - start_vital_organs()
+  - shutdown_vital_organs(...)
+
+- C:\Users\User\Documents\jarvis_core\main.py
+  Integracao:
+  - bootstrap_runtime() agora configura os orgaos vitais
+  - quando o boot e real, executa um ciclo inicial e inicia background
+  - main() encerra os orgaos vitais no fechamento do processo
+
+- C:\Users\User\Documents\jarvis_core\runtime\server.py
+  Integracao:
+  - JarvisServerContext.build_loop_config() passa enable_vital_organs_background=True
+  - shutdown() encerra os orgaos vitais antes da persistencia final
+
+- C:\Users\User\Documents\jarvis_core\interface\api\app.py
+  Integracao:
+  - create_app() passa enable_vital_organs_background=True quando monta o caminho real padrao da API
+  - o app global do modulo passa a nascer com essa flag no boot lazy
+
+Observacao importante:
+- os orgaos vitais NAO foram expostos em endpoint, menu, painel, botao ou chat
+- eles rodam apenas como infraestrutura interna do runtime
+- o estado publico do runtime continua sem campo visivel de "vital_organs"
+
+3. O QUE JA FICOU ATIVO AUTOMATICAMENTE
+
+Ativacao automatica confirmada:
+
+- boot por C:\Users\User\Documents\jarvis_core\main.py
+- boot por C:\Users\User\Documents\jarvis_core\runtime\server.py
+- boot lazy do app HTTP em C:\Users\User\Documents\jarvis_core\interface\api\app.py
+
+Comportamento ativo:
+
+- configuracao automatica no bootstrap
+- primeiro ciclo interno automatico quando o boot real habilita background
+- thread interna daemon para monitoramento silencioso
+- relatorio interno automatico em reports/vital_organs_status.json
+
+4. VALIDACAO REAL EXECUTADA
+
+Testes dedicados:
+- C:\Users\User\Documents\jarvis_core\tests\test_vital_organs.py
+  Resultado:
+  - 3/3 OK
+
+Suite completa:
+- python -m unittest discover -s tests -v
+  Resultado:
+  - 100/100 OK
+
+Smoke real adicional:
+- bootstrap de C:\Users\User\Documents\jarvis_core\runtime\server.py validado via JarvisServerContext
+- health respondeu corretamente
+- reports/vital_organs_status.json foi gerado automaticamente
+- os orgaos permaneceram invisiveis na camada publica
+
+5. O QUE AINDA DEPENDE DE OUTRO DISPOSITIVO OU BLOCO
+
+- supervisao de processo fora do runtime (servico Windows real) continua pertencendo ao bloco de servico/deploy
+- persistencia transacional continua dependendo de um bloco futuro de storage mais forte (SQLite ou equivalente)
+- correlacao desses orgaos com seguranca semanal consolidada depende do bloco de relatorio semanal de seguranca
+
+6. RISCOS RESTANTES
+
+- a persistencia interna desses orgaos ainda depende de JSON para o relatorio, o que e suficiente para auditoria leve, mas nao substitui storage transacional
+- a thread interna e segura e leve, mas ainda e intraprocesso; ela nao cobre concorrencia multiprocesso distribuida
+- a deteccao de polling/redraw e heuristica; ela endurece o essencial, mas nao substitui telemetria profunda de performance
+- o runtime_hygiene_engine depende da disponibilidade local do Git para validar toda a higiene do workspace
+- stores legados sao detectados e reportados, mas a remocao definitiva continua dependente de limpeza controlada do repositorio
+
+7. CONCLUSAO HONESTA
+
+Os orgaos vitais internos de estabilidade foram implementados e acoplados de forma nativa ao runtime.
+Eles ja sobem automaticamente no caminho real de boot, operam em segundo plano, nao aparecem para o usuario e geram apenas relatorios internos.
+
+O dispositivo atual ficou responsavel com sucesso por:
+- integridade estrutural
+- higiene operacional
+- prevencao inicial de falhas
+- auto-otimizacao leve e reversivel
+
+O que ainda nao esta resolvido por esse dispositivo:
+- storage transacional
+- supervisao de processo no nivel do sistema operacional
+- consolidacao cruzada com blocos externos de seguranca/relatorio semanal

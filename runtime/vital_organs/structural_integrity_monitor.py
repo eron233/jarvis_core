@@ -3,7 +3,7 @@ JARVIS - Monitor de Integridade Estrutural
 
 Responsavel por:
 - comparar configuracao declarada com o estado real do runtime
-- detectar stores legados, caminhos duplicados e defaults silenciosos
+- detectar caminhos duplicados, divergencias de store e defaults silenciosos
 - produzir violacoes estruturais internas para auditoria tecnica
 
 Integracoes principais:
@@ -23,11 +23,10 @@ from typing import Any, Dict, List
 
 @dataclass
 class StructuralIntegrityMonitor:
-    """Monitora coerencia entre runtime, configuracao oficial e stores legados."""
+    """Monitora coerencia entre runtime e configuracao oficial persistente."""
 
     project_root: Path
     official_paths: Dict[str, Path]
-    legacy_paths: Dict[str, Path]
 
     def run(self, runtime: Any) -> Dict[str, Any]:
         """Executa uma rodada de verificacao estrutural silenciosa."""
@@ -94,19 +93,6 @@ class StructuralIntegrityMonitor:
                 )
             )
 
-        for label, legacy_path in self.legacy_paths.items():
-            if not legacy_path.exists():
-                continue
-            violations.append(
-                self._violation(
-                    violation_id=f"{label}_legacy_store_present",
-                    severity="medium",
-                    kind="legacy_store_present",
-                    message=f"Store legado ainda presente em {legacy_path}.",
-                    actual_path=legacy_path,
-                )
-            )
-
         overall_status = "saudavel"
         if any(item["severity"] == "high" for item in violations):
             overall_status = "critico"
@@ -121,12 +107,12 @@ class StructuralIntegrityMonitor:
             "resumo": {
                 "total_violacoes": len(violations),
                 "stores_oficiais": {label: str(path) for label, path in self.official_paths.items()},
-                "stores_legados_monitorados": {label: str(path) for label, path in self.legacy_paths.items()},
             },
         }
 
     @staticmethod
     def _as_path(value: Any) -> Path | None:
+        """Executa a rotina interna de as path."""
         if value in (None, ""):
             return None
         return Path(str(value)).resolve()
@@ -142,6 +128,7 @@ class StructuralIntegrityMonitor:
         actual_path: Path | None = None,
         labels: List[str] | None = None,
     ) -> Dict[str, Any]:
+        """Executa a rotina interna de violation."""
         return {
             "violation_id": violation_id,
             "severity": severity,

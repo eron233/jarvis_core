@@ -53,6 +53,7 @@ class SelfDefenseMonitor:
     report_path: Path = field(default_factory=lambda: DEFAULT_REPORT_PATH)
 
     def __post_init__(self) -> None:
+        """Finaliza a normalizacao inicial deste dataclass."""
         self.report_path = Path(self.report_path)
 
     def run_periodic_audit(
@@ -144,6 +145,7 @@ class SelfDefenseMonitor:
         return report
 
     def _build_port_report(self, environment_report: Dict[str, Any]) -> Dict[str, Any]:
+        """Monta port report para o fluxo atual."""
         host = str(environment_report.get("host_api") or "127.0.0.1")
         port = int(environment_report.get("porta_api") or 0)
         ports: List[Dict[str, Any]] = []
@@ -167,6 +169,7 @@ class SelfDefenseMonitor:
         environment_report: Dict[str, Any],
         health_report: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
+        """Monta configuration findings para o fluxo atual."""
         findings: List[Dict[str, Any]] = []
         auth_report = environment_report.get("autenticacao_configurada", {})
 
@@ -205,6 +208,7 @@ class SelfDefenseMonitor:
         return findings
 
     def _persist_report(self, report: Dict[str, Any]) -> None:
+        """Executa a rotina interna de persist report."""
         self.report_path.parent.mkdir(parents=True, exist_ok=True)
         temp_path = self.report_path.with_name(f"{self.report_path.name}.tmp")
         temp_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -212,6 +216,7 @@ class SelfDefenseMonitor:
 
     @staticmethod
     def _probe_local_port(port: int) -> bool:
+        """Inspeciona local port no ambiente local."""
         try:
             with socket.create_connection(("127.0.0.1", port), timeout=0.2):
                 return True
@@ -220,4 +225,5 @@ class SelfDefenseMonitor:
 
     @staticmethod
     def _utc_now() -> str:
+        """Retorna o timestamp UTC atual em formato ISO 8601."""
         return datetime.now(timezone.utc).isoformat()

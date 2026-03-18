@@ -653,30 +653,10 @@ def create_app(
         runtime = _ensure_runtime_initialized(request)
         return runtime.build_cognitive_evolution_analysis(level=nivel)
 
-    @app.get("/api/relatorio", dependencies=[Depends(require_trusted_device)])
-    def get_report(request: Request) -> Dict[str, Any]:
-        """
-        Retorna o relatorio operacional resumido do sistema.
-
-        Parametros:
-        - request: requisicao HTTP atual.
-
-        Retorno:
-        - relatorio consolidado do runtime com ambiente.
-
-        Efeitos no sistema:
-        - nenhum; usa o ultimo ciclo conhecido para montar a resposta.
-        """
-
-        runtime = _ensure_runtime_initialized(request)
-        report = runtime.build_system_report(last_cycle_result=app.state.last_cycle_result)
-        report["ambiente"] = _build_environment_report(request.app)
-        return report
-
     @app.get("/api/relatorio/sistema", dependencies=[Depends(require_trusted_device)])
     def get_system_report(request: Request) -> Dict[str, Any]:
         """
-        Alias autenticado para o relatorio geral do sistema.
+        Retorna o relatorio operacional resumido oficial do sistema.
 
         Parametros:
         - request: requisicao HTTP atual.

@@ -20,6 +20,7 @@ class BackgroundTask(QRunnable):
     """Executa um callable fora da thread principal e devolve o resultado via sinais."""
 
     def __init__(self, name: str, fn: Callable[[], Any]) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__()
         self.name = name
         self.fn = fn

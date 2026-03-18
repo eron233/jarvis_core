@@ -20,13 +20,10 @@ from startup_bootstrap import ensure_project_root_on_path
 
 ensure_project_root_on_path(__file__)
 
-from executive_planner.queue import LEGACY_STORAGE_PATH as LEGACY_QUEUE_STORAGE_PATH
 from executive_planner.queue import TaskQueue
 from executive_planner.audit import AuditLogger, traduzir_motivo, traduzir_status
-from intent_layer.goal_manager import LEGACY_GOALS_PATH
 from memory_system.episodic_memory import EpisodicMemory
 from memory_system.procedural_memory import ProceduralMemory
-from memory_system.semantic_memory import LEGACY_STORAGE_PATH as LEGACY_SEMANTIC_STORAGE_PATH
 from memory_system.semantic_memory import SemanticMemory
 from device.device_registry import DeviceRegistry
 from runtime.cognitive_evolution import CognitiveEvolutionTracker
@@ -145,7 +142,6 @@ def bootstrap_runtime(
         project_root=PROJECT_ROOT,
         report_path=_resolve_vital_organs_report_path(config),
         official_paths=_build_vital_organs_official_paths(config),
-        legacy_paths=_build_vital_organs_legacy_paths(),
         official_data_dir=_resolve_vital_organs_data_dir(config, deployment_config),
         official_reports_dir=config.self_defense_report_path.parent,
         cycle_interval_seconds=config.cycle_sleep_seconds,
@@ -262,6 +258,7 @@ class JarvisSystemLoop:
         cycle_result: Dict[str, Any],
         runtime_state: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """Registra cycle no contexto atual."""
         selected_task = cycle_result.get("selected_task") or {}
         cycle_log = {
             "cycle_id": cycle_id,
@@ -285,6 +282,7 @@ class JarvisSystemLoop:
         return cycle_log
 
     def _install_signal_handlers(self) -> None:
+        """Executa a rotina interna de install signal handlers."""
         for signame in ("SIGINT", "SIGTERM"):
             signum = getattr(signal, signame, None)
             if signum is None:
@@ -293,6 +291,7 @@ class JarvisSystemLoop:
         self._signal_handlers_installed = True
 
     def _handle_signal(self, signum: int, _frame: Any) -> None:
+        """Trata signal recebido pelo componente."""
         signal_name = signal.Signals(signum).name.lower()
         self.request_shutdown(f"signal_{signal_name}")
 
@@ -302,6 +301,7 @@ class JarvisSystemLoop:
         persisted_state: Dict[str, Any],
         runtime_state: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """Monta shutdown summary para o fluxo atual."""
         reason = self.shutdown_reason or "requested"
         queue_snapshot = persisted_state.get("queue") or {}
         semantic_snapshot = persisted_state.get("semantic_memory") or {}
@@ -318,6 +318,7 @@ class JarvisSystemLoop:
         }
 
     def _format_cycle_message(self, cycle_log: Dict[str, Any]) -> str:
+        """Formata cycle message para exibicao ou log."""
         return (
             f"[ciclo {cycle_log['cycle_id']}] "
             f"status={cycle_log['status_ptbr']} "
@@ -326,6 +327,7 @@ class JarvisSystemLoop:
         )
 
     def _format_shutdown_message(self, summary: Dict[str, Any]) -> str:
+        """Formata shutdown message para exibicao ou log."""
         return (
             f"[encerramento] ciclos={summary['completed_cycles']} "
             f"motivo={summary['shutdown_reason_ptbr']} "
@@ -334,6 +336,7 @@ class JarvisSystemLoop:
         )
 
     def _log(self, message: str) -> None:
+        """Executa a rotina interna de log."""
         if self.logger is not None:
             self.logger(message)
 
@@ -448,16 +451,6 @@ def _build_vital_organs_official_paths(config: SystemLoopConfig) -> Dict[str, Pa
     }
 
 
-def _build_vital_organs_legacy_paths() -> Dict[str, Path]:
-    """Retorna os stores legados ainda relevantes para vigilancia estrutural."""
-
-    return {
-        "queue_storage_path": LEGACY_QUEUE_STORAGE_PATH,
-        "semantic_storage_path": LEGACY_SEMANTIC_STORAGE_PATH,
-        "goals_storage_path": LEGACY_GOALS_PATH,
-    }
-
-
 def _resolve_vital_organs_data_dir(
     config: SystemLoopConfig,
     deployment_config: JarvisEnvironmentConfig,
@@ -485,6 +478,7 @@ def _resolve_vital_organs_report_path(config: SystemLoopConfig) -> Path:
 
 
 def _load_queue_storage(task_queue: TaskQueue, logger: Callable[[str], None] | None) -> None:
+    """Carrega queue storage para o contexto atual."""
     task_queue.storage_path.parent.mkdir(parents=True, exist_ok=True)
     if not task_queue.storage_path.exists():
         snapshot = task_queue.save_to_disk()
@@ -514,6 +508,7 @@ def _load_semantic_storage(
     semantic_memory: SemanticMemory,
     logger: Callable[[str], None] | None,
 ) -> None:
+    """Carrega semantic storage para o contexto atual."""
     semantic_memory.storage_path.parent.mkdir(parents=True, exist_ok=True)
     if not semantic_memory.storage_path.exists():
         snapshot = semantic_memory.snapshot()
@@ -553,6 +548,7 @@ def _load_procedural_storage(
     procedural_memory: ProceduralMemory,
     logger: Callable[[str], None] | None,
 ) -> None:
+    """Carrega procedural storage para o contexto atual."""
     if procedural_memory.storage_path is None:
         return
 
@@ -594,6 +590,7 @@ def _load_cognitive_evolution_storage(
     cognitive_tracker: CognitiveEvolutionTracker,
     logger: Callable[[str], None] | None,
 ) -> None:
+    """Carrega cognitive evolution storage para o contexto atual."""
     if cognitive_tracker.storage_path is None:
         return
 
@@ -636,6 +633,7 @@ def _load_goal_manager(
     storage_path: Path,
     logger: Callable[[str], None] | None,
 ):
+    """Carrega goal manager para o contexto atual."""
     from intent_layer.goal_manager import GoalManager
 
     storage_path.parent.mkdir(parents=True, exist_ok=True)
@@ -670,6 +668,7 @@ def _load_device_registry(
     storage_path: Path,
     logger: Callable[[str], None] | None,
 ):
+    """Carrega device registry para o contexto atual."""
     from device.device_registry import DeviceRegistry
 
     storage_path.parent.mkdir(parents=True, exist_ok=True)
@@ -699,6 +698,7 @@ def _load_audit_storage(
     audit_logger: AuditLogger,
     logger: Callable[[str], None] | None,
 ) -> None:
+    """Carrega audit storage para o contexto atual."""
     audit_logger.storage_path.parent.mkdir(parents=True, exist_ok=True)
     if not audit_logger.storage_path.exists():
         snapshot = audit_logger.save_to_disk()
@@ -736,6 +736,7 @@ def _load_audit_storage(
 
 
 def _backup_corrupted_storage(storage_path: Path) -> Path:
+    """Executa a rotina interna de backup corrupted storage."""
     suffix = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     backup_path = storage_path.with_name(f"{storage_path.stem}.corrompido-{suffix}{storage_path.suffix}")
     storage_path.rename(backup_path)
@@ -743,6 +744,7 @@ def _backup_corrupted_storage(storage_path: Path) -> Path:
 
 
 def _log_message(logger: Callable[[str], None] | None, message: str) -> None:
+    """Executa a rotina interna de log message."""
     if logger is not None:
         logger(message)
 

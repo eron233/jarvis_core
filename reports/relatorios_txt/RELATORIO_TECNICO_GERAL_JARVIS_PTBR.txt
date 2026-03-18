@@ -1,0 +1,1150 @@
+# RELATORIO TECNICO GERAL DO SISTEMA JARVIS
+
+Data da auditoria: 2026-03-14
+Repositorio auditado: `C:\Users\User\Documents\jarvis_core`
+
+Base de evidencia desta auditoria:
+- leitura direta do codigo-fonte e dos artefatos persistentes atuais
+- estado git real do repositorio no momento da analise
+- execucao completa da suite `python -m unittest discover -s tests -v` com resultado `81/81 OK`
+- smoke real do processo vivo em `127.0.0.1:8010`
+- smoke controlado do codigo atual em servidor efemero local, confirmando `/health`, `/docs`, `/api/auth/device-session`, `/api/status`, `/api/comando` e `/api/cognicao/evolucao`
+
+Estado git observado:
+- branch: `master`
+- ultimo commit: `8f2991b Cycle 25: mapa evolutivo cognitivo`
+- arvore de trabalho: suja
+- diff local: `32 files changed, 1516 insertions(+), 17 deletions(-)`
+- arquivos locais nao versionados relevantes: `jarvis_run.cmd`, `docs/guias/JARVIS_CODE_GUIDE_PTBR.md`, `reports/relatorios_txt/reports/relatorios_txt/CODE_ANNOTATION_REPORT_PTBR.txt`
+
+Observacao operacional critica:
+- o processo vivo encontrado em `127.0.0.1:8010` nao reflete integralmente o codigo atual do repositorio
+- esse processo respondeu `200` em `/health`, `/docs`, `/painel` e `/api/status`
+- porem o `openapi.json` desse processo nao expunha `/api/comando` nem `/api/cognicao/evolucao`
+- o codigo atual em disco expoe esses endpoints e o smoke controlado do codigo atual confirmou ambos com `200`
+- conclusao: existe divergencia real entre o estado do repositorio e pelo menos um runtime atualmente em execucao
+
+==================================================
+1. VISAO GERAL EXECUTIVA
+==================================================
+
+Resumo tecnico do sistema atual:
+
+O JARVIS atual e um sistema local/servidor de agente supervisionado com runtime central, planner deterministico, camada de objetivos, memorias em JSON, API FastAPI, painel HTML/JS, workers por dominio, autodefesa interna e um modulo cognitivo visual baseado em telemetria historica. O sistema consegue subir, responder por HTTP, executar ciclos, persistir parte relevante do estado, proteger endpoints com token + `device id`, processar comandos textuais e produzir relatorios operacionais.
+
+Finalidade operacional:
+
+Na pratica, o projeto funciona como um nucleo de orquestracao local ou em VPS simples para tarefas cognitivas seguras e auditaveis. Ele nao e um agente autonomo geral. Ele e um sistema de controle, organizacao, consulta, relatorio e execucao supervisionada de tarefas textuais, com introspeccao operacional e defensiva.
+
+Nivel de maturidade geral:
+
+- maturidade geral: intermediaria utilizavel
+- estado real: funcional para uso controlado, nao endurecido para exposicao ampla
+- grau de confiabilidade: bom em cenarios locais/single-user/single-process; insuficiente para operacao concorrente, exposta ou de longa duracao sem endurecimento adicional
+
+O que ja faz de forma confiavel:
+
+- bootstrap do runtime e do planner
+- ciclo deterministico `plan -> prioritize -> validate -> schedule -> execute -> review`
+- persistencia de fila, objetivos, memoria semantica, memoria procedural e historico cognitivo
+- exposicao da API com healthchecks, relatorios, tarefas, objetivos e comando textual
+- painel web simples para consulta e comando
+- gate constitucional para negar ou escalar tarefas sensiveis
+- autodefesa on-demand em ambiente interno autorizado
+- testes automatizados amplos nos caminhos cobertos
+
+O que ainda e incompleto, instavel ou experimental:
+
+- autenticacao por voz: nao e reconhecimento de voz real; e apenas um campo textual confiado pelo cliente
+- device trust: e um `header` estatico, nao um vinculo criptografico ao dispositivo
+- servico Windows: implementado, mas nao validado end-to-end neste host por falta de privilegio administrativo
+- deploy em Docker: preparado, mas sem smoke real neste ambiente
+- auditoria persistente estruturada: nao existe; a maior parte da auditoria e em memoria
+- autodefesa periodica e relatorio semanal: nao existem em operacao automatica
+- camada cognitiva: agrega introspeccao e visualizacao; nao representa ganho real de raciocinio autonomo
+
+Principais riscos em alto nivel:
+
+- ponto unico de falha no arquivo `runtime/internal_agent_runtime.py`
+- concorrencia sem locks entre API, loop e persistencia JSON
+- risco de perda de tarefas durante o `drain()` da fila se houver queda no meio do ciclo
+- modelo de seguranca baseado em segredos estaticos e identificadores declarados pelo cliente
+- divergencia possivel entre codigo em disco e processo realmente em execucao
+- ausencia de trilha de auditoria estruturada persistente apos reinicio
+
+Grau de acoplamento entre os blocos principais:
+
+- alto
+- o runtime central concentra planner, memorias, objetivos, workers, seguranca, device registry, aprendizagem estrutural, evolucao cognitiva e relatorios
+- a API depende do runtime compartilhado em `app.state`
+- o painel depende de formatos JSON especificos da API
+- a persistencia depende de multiplos arquivos JSON sem coordenacao transacional
+
+Diagnostico executivo:
+
+O sistema esta alem do estagio de prototipo vazio e abaixo do estagio de servico confiavel endurecido. Ele e tecnicamente interessante, funcional e relativamente bem testado em ambiente controlado. Ao mesmo tempo, ele ainda carrega fragilidades importantes de concorrencia, seguranca, persistencia e governanca operacional.
+
+==================================================
+2. MAPA ARQUITETURAL ATUAL
+==================================================
+
+Arquitetura real observada:
+
+- entrypoint de loop local: `main.py`
+- entrypoint de servidor unificado: `runtime/server.py`
+- entrypoint FastAPI direto por import: `interface/api/app.py`
+- runtime central: `runtime/internal_agent_runtime.py`
+- planner: `executive_planner/planner.py`
+- objetivos: `intent_layer/goal_manager.py`
+- memorias: `memory_system/semantic_memory.py`, `memory_system/procedural_memory.py`, `memory_system/episodic_memory.py`
+- seguranca: `constitutional_core/policy.py`, `runtime/autonomy.py`, `security/access_control.py`, `security/self_defense.py`, `security/threat_model_engine.py`, `security/security_twin.py`, `security/security_validation_engine.py`, `security/remediation_engine.py`
+- device manager: `device/device_registry.py`
+- API: `interface/api/app.py`
+- painel: `interface/dashboard/index.html`
+- cliente leve: `interface/native_client/jarvis_client.py`
+- servico Windows: `service/jarvis_windows_service.py`
+- cognicao historica: `runtime/cognitive_evolution.py` + `interface/brain_avatar/*.js`
+
+Fluxo de dados:
+
+1. Tarefas entram por API, por carga persistida de fila ou por bootstrap.
+2. O planner drena a fila, prioriza, valida e escolhe uma tarefa.
+3. O runtime aplica o gate de autonomia constitucional.
+4. Um worker de dominio processa a tarefa.
+5. O runtime grava efeitos em memoria semantica, procedural, episodica, objetivos e historico cognitivo.
+6. O estado e consultado pela API e renderizado pelo painel.
+
+Fluxo de comando:
+
+1. Cliente leve ou painel envia request HTTP.
+2. `interface/api/app.py` valida `X-Jarvis-Token` e `X-Jarvis-Device-Id`.
+3. Em `/api/comando`, o runtime ainda aplica `AccessControl` para definir `guest` ou `admin`.
+4. O comando vira resposta textual, relatorio, ciclo do planner ou auditoria interna.
+
+Fluxo de autenticacao:
+
+1. Endpoints protegidos exigem token e `device id`.
+2. O painel HTML usa cookie derivado de `token + trusted_device_id` para liberar a pagina principal.
+3. As chamadas JS do painel ainda dependem de token e `device id` em `localStorage`.
+4. Para comandos administrativos, a API aceita `voz_identificada` ou `senha`.
+5. Importante: a "voz" nao e audio verificado; e apenas um campo textual do request.
+
+Fluxo de persistencia:
+
+1. `TaskQueue` grava `task_queue_store.json`.
+2. `SemanticMemory` grava `semantic_memory_store.json`.
+3. `ProceduralMemory` grava `procedural_memory_store.json`.
+4. `GoalManager` grava `goals.json`.
+5. `DeviceRegistry` grava `device_registry.json`.
+6. `CognitiveEvolutionTracker` grava `cognitive_evolution_history.json`.
+7. `runtime/server.py` grava `reports/environment_report.json` e `reports/shutdown_report.json`.
+8. `SelfDefenseMonitor` grava `reports/self_defense_latest.json`.
+
+Fluxo de introspeccao:
+
+1. `InternalAgentRuntime.build_system_report()`, `build_health_report()`, `build_queue_report()`, `build_memory_report()` e `build_audit_report()` consolidam estado.
+2. `SelfDefenseMonitor.run_periodic_audit()` gera modelo de ameaca, gemeo, validacao, remediacao e achados de configuracao.
+3. `SelfImprovementAdvisor` gera sugestoes estruturais, mas nao altera codigo nem arquitetura.
+
+Fluxo cognitivo:
+
+1. Bootstrap grava `EVENT_NETWORK_RESTRUCTURE`.
+2. Execucoes concluidas chamam `_record_cognitive_learning_from_task()`.
+3. `CognitiveEvolutionTracker` agrega eventos por nivel temporal.
+4. API expoe o payload de evolucao e de analise.
+5. O painel consome esses dados e monta a visualizacao cerebral.
+
+Dependencias fortes:
+
+- `runtime/internal_agent_runtime.py` depende de quase todo o resto
+- `interface/api/app.py` depende diretamente de `main.py`, `runtime/internal_agent_runtime.py` e `runtime/system_config.py`
+- `index.html` depende do contrato exato dos endpoints
+- `security/self_defense.py` depende do runtime estar corretamente bootstrapado
+
+Dependencias frageis:
+
+- `app = create_app()` em import-time e `runtime/server.py` constroem a API por caminhos diferentes
+- existe mais de uma forma "oficial" de subir o sistema: `main.py`, `runtime/server.py`, `jarvis.cmd`, `jarvis_run.cmd`, `uvicorn interface.api.app:app`, servico Windows
+- os arquivos JSON sao mutados por multiplos componentes sem sincronizacao
+
+Single points of failure:
+
+- `runtime/internal_agent_runtime.py`: orquestracao central
+- arquivos JSON unicos por tipo de estado
+- `interface/api/app.py`: gateway unico de API e painel
+- segredos estaticos (`JARVIS_TOKEN`, `JARVIS_TRUSTED_DEVICE_ID`, `ADMIN_PASSWORD`) quando mal configurados
+
+==================================================
+3. INVENTARIO REAL DE MODULOS
+==================================================
+
+Backend e runtime:
+
+| Componente | Funcao real | Status | Dependencias | Riscos | Observacoes |
+| --- | --- | --- | --- | --- | --- |
+| `main.py` | Loop continuo local, bootstrap, recuperacao de storages corrompidos | estavel com ressalvas | runtime, fila, memorias, objetivos | try/except evita queda, mas nao resolve concorrencia nem thread death | bom entrypoint local; logging persistente depende do modo de uso |
+| `runtime/server.py` | Sobe API, logging, relatorios de startup/shutdown e loop opcional em thread | estavel com ressalvas | FastAPI, uvicorn, runtime, config | loop e API compartilham estado sem locks | e o entrypoint mais coerente para deploy |
+| `runtime/internal_agent_runtime.py` | Nucleo do sistema: planner, workers, memoria, seguranca, relatorios, comando, evolucao | critico | praticamente todo o projeto | single point of failure, alta complexidade, forte acoplamento | arquivo com ~1598 linhas |
+| `executive_planner/planner.py` | Ciclo deterministico do planner | estavel com ressalvas | queue, prioritizer, validator, audit, runtime | usa `drain()` e pode perder tarefas em falha no meio do ciclo | auditavel, simples e legivel |
+| `executive_planner/queue.py` | Fila persistente normalizada em JSON | fragil | audit, runtime | sem locking, sem transacao, escrita completa do arquivo | pratica, mas nao resiliente a concorrencia |
+| `executive_planner/validator.py` | Validacao estrutural + politica constitucional | estavel | constitutional policy | depende de politicas simples por keywords e flags | cumpre bem o papel atual |
+| `executive_planner/prioritizer.py` | Score simples por impacto, urgencia e prioridade do objetivo | estavel | queue, planner | criterio muito simples, sem saturacao nem fairness | suficiente no estado atual |
+| `intent_layer/goal_manager.py` | Metas, objetivos ativos, progresso e vinculacao com tarefas | estavel com ressalvas | runtime, queue | persistencia sem locks; progresso depende de integridade de `task_id` | funcional e bem integrado |
+
+API, clientes e servicos:
+
+| Componente | Funcao real | Status | Dependencias | Riscos | Observacoes |
+| --- | --- | --- | --- | --- | --- |
+| `interface/api/app.py` | Camada HTTP, protecao de acesso, endpoints e entrega do painel | fragil estruturalmente | FastAPI, runtime, main, config | estado global em `app.state`, duplicidade de startup path, payloads amplos | arquivo com ~752 linhas |
+| `interface/native_client/jarvis_client.py` | Cliente leve textual para `/api/comando` | parcial | urllib, API | sem testes diretos, sem retry, sem sessao | utilitario simples e adequado |
+| `service/jarvis_windows_service.py` | Supervisao e reinicio do servidor no Windows | parcial | pywin32, runtime/server.py | nao validado end-to-end neste host, sem heartbeat de saude | implementado, mas nao consolidado |
+| `jarvis.cmd` | Launcher multiproposito do sistema | estavel | Python local, main.py, runtime/server.py | mais de um launcher cria ambiguidade | o launcher mais coerente e rastreado |
+| `jarvis_run.cmd` | Launcher amigavel para usuario comum | improvisado | `jarvis.cmd`, browser, Python hardcoded | nao versionado, default fixo de porta, pode divergir do restante | existe localmente e funciona, mas esta fora da trilha oficial |
+
+Painel e frontend:
+
+| Componente | Funcao real | Status | Dependencias | Riscos | Observacoes |
+| --- | --- | --- | --- | --- | --- |
+| `interface/dashboard/index.html` | Painel unico, mobile-first, com JS inline e canvas cognitivo | parcial | API, localStorage, brain avatar | acoplamento forte com payloads, nenhuma tolerancia fina a falhas, mistura view e logica | arquivo com ~459 linhas |
+| `interface/dashboard/access_gate.html` | Tela inicial para validar dispositivo no navegador | estavel | API | contrato simples, pouca superficie | cumpre a funcao |
+| `interface/brain_avatar/evolution_map.js` | Orquestra fetch e renderizacao cognitiva | parcial | API, renderer, maps | quebra se payload mudar | bem modular para um frontend sem framework |
+| `interface/brain_avatar/brain_renderer.js` | Renderiza canvas | estavel visualmente | neural network, shader | sem medicao real de performance; depende de browser moderno | visualmente a peca mais estruturada |
+| `interface/brain_avatar/*.js` restantes | shader, plasticidade, consciencia, overlay procedural, particulas | majoritariamente visuais | renderer e payload cognitivo | baixo risco operacional, baixo valor funcional isolado | utilidade maior e de observabilidade |
+
+Seguranca:
+
+| Componente | Funcao real | Status | Dependencias | Riscos | Observacoes |
+| --- | --- | --- | --- | --- | --- |
+| `constitutional_core/policy.py` | Politica viva derivada da identidade e principios | estavel com ressalvas | JSON constitucionais, validator, autonomy | criterios simples por flags/keywords; nao ha politica compilada ou versionada | hoje governa parte importante do sistema |
+| `runtime/autonomy.py` | Gate de execucao automatica | estavel | constitutional policy | depende de dados corretos na tarefa | bloqueia o que deve bloquear hoje |
+| `security/access_control.py` | Classifica `guest` ou `admin` por voz/senha declaradas | fragil | API, runtime | nao e autenticacao forte, e apenas comparacao textual | deve ser tratado como gate leve, nao como IAM real |
+| `security/self_defense.py` | Auditoria interna autorizada | parcial | runtime, engines de seguranca | on-demand, sem agenda automatica nem historico semanal | bom para diagnostico controlado |
+| `security/threat_model_engine.py`, `security_twin.py`, `security_validation_engine.py`, `remediation_engine.py` | modelagem, gemeo, validacao e remediacao | parciais mas funcionais | runtime, reports, twin state | ainda muito baseados em heuristicas locais | solidos para a fase atual |
+| `device/device_registry.py` | Registro de dispositivos autorizados | parcial | API, runtime | sem recuperacao de JSON corrompido, sem locking, sem prova criptografica | util para um ambiente pequeno |
+
+Memoria e persistencia:
+
+| Componente | Funcao real | Status | Dependencias | Riscos | Observacoes |
+| --- | --- | --- | --- | --- | --- |
+| `memory_system/semantic_memory.py` | Fatos e entradas pesquisaveis por score deterministico | estavel com ressalvas | runtime, API | duplicacao de fatos de bootstrap, escrita integral do arquivo | util e facil de auditar |
+| `memory_system/procedural_memory.py` | Heuristicas e padroes reutilizaveis | estavel com ressalvas | runtime, planner | sobrescreve por `name`, preserva pouco historico | boa base, ainda nao sofisticada |
+| `memory_system/episodic_memory.py` | Eventos recentes em RAM | fragil | runtime, API | sem persistencia | bom cache de eventos, nao e trilha historica |
+| `data/*.json` | Estado persistente | fragil | varios modulos | sem locks, sem transacoes, sem migracoes | ainda sustentavel em volume, nao em concorrencia |
+
+Cognição:
+
+| Componente | Funcao real | Status | Dependencias | Riscos | Observacoes |
+| --- | --- | --- | --- | --- | --- |
+| `runtime/cognitive_evolution.py` | Historico cognitivo sintetico e payload visual/analitico | parcial | runtime, data JSON | ruido, inflacao por bootstrap, impacto nao calibrado | agrega mais observabilidade que inteligencia |
+| `data/cognitive_evolution_history.json` | Persistencia do historico cognitivo | fragil | tracker | crescimento linear, arquivo versionado no git | e um ponto de atrito operacional real |
+| `learning/self_improvement.py` | Registro de aprendizados e sugestoes estruturais | improvisado controlado | runtime, self-defense | utilidade limitada, sem autoalteracao real | mais proximo de bloco de notas inteligente |
+
+Automacao e operacao:
+
+| Componente | Funcao real | Status | Dependencias | Riscos | Observacoes |
+| --- | --- | --- | --- | --- | --- |
+| `RuntimeLoopWorker` em `runtime/server.py` | Loop em thread compartilhada com a API | parcial | server, main loop | sem monitor da thread, sem locks | simples e funcional, mas fraco para concorrencia |
+| `JarvisWindowsService` | Reinicio em caso de morte do processo | parcial | pywin32 | nao detecta processo travado, so processo morto | watchdog externo apenas no Windows |
+| `docker-compose.yml` e `Dockerfile` | Preparacao de deploy simples | parcial | Docker | nao validado aqui em execucao real | plausivel, mas nao comprovado neste host |
+
+Testes:
+
+| Grupo | Funcao real | Status | Dependencias | Riscos | Observacoes |
+| --- | --- | --- | --- | --- | --- |
+| `tests/*.py` | validacao unitaria e integracao in-process | bom para regressao local | unittest, TestClient, artefatos locais | cobre pouco de concorrencia, deploy real e navegador real | 24 arquivos, 81 testes |
+
+Documentacao operacional:
+
+| Documento | Estado real | Risco | Observacoes |
+| --- | --- | --- | --- |
+| `README.md` | majoritariamente coerente, mas otimista | medio | descreve bem o codigo, nao ressalta o bastante os limites operacionais |
+| `docs/referencia/API_PTBR.md` | coerente com o codigo atual | medio | nao reflete o processo vivo antigo em execucao |
+| `docs/referencia/ARCHITECTURE.md` | boa fotografia do codigo | medio | pouco enfase em concorrencia e persistencia fraca |
+| `reports/relatorios_txt/reports/relatorios_txt/SYSTEM_MATURITY_REPORT_PTBR.txt` | excessivamente positivo | medio/alto | destaca maturidade mais alta do que a robustez real sugere |
+| `docs/planos/NEXT_STEPS.md` | estreito demais | medio | prioriza evolucao futura e nao a consolidacao estrutural urgente |
+
+==================================================
+4. CAPACIDADES OPERACIONAIS REAIS
+==================================================
+
+Capacidades confirmadas:
+
+| Capacidade | Como funciona hoje | Arquivos principais | Confiabilidade | O que pode falhar | Persistencia | Validacao real |
+| --- | --- | --- | --- | --- | --- | --- |
+| Bootstrap do runtime | carrega planner, memorias, objetivos, workers e politica | `runtime/internal_agent_runtime.py`, `main.py` | boa em ambiente controlado | quebra em corrupcao nao tratada de alguns artefatos, especialmente device registry | parcial | testes + smoke |
+| Ciclo do planner | drena fila, pontua, valida e executa uma tarefa | `executive_planner/planner.py` | boa no caminho coberto | risco de perda de fila em falha entre `drain()` e requeue | fila persistente | testes |
+| Fila persistente | normaliza e grava tarefas em JSON | `executive_planner/queue.py` | boa em single-thread | corrupcao ou race condition em concorrencia | sim | testes |
+| Objetivos persistentes | mantem metas e progresso | `intent_layer/goal_manager.py` | boa | progresso depende de `task_id` consistente | sim | testes |
+| Memoria semantica | armazena fatos e busca por token overlap | `memory_system/semantic_memory.py` | boa para pequenos volumes | ruido, duplicacao por bootstrap, crescimento linear | sim | testes |
+| Memoria procedural | registra heuristicas reutilizaveis | `memory_system/procedural_memory.py` | boa para reaproveitamento simples | historico sobrescrito por nome, busca heuristica simples | sim | testes |
+| API protegida | headers + device trust | `interface/api/app.py` | boa localmente | exposicao remota com segredos padrao ou vazados | n/a | testes + smoke |
+| Comando textual | roteia consultas e algumas acoes | `interface/api/app.py`, `runtime/internal_agent_runtime.py` | boa | modelo de acesso fraco, sem NLP real | eventos em memoria + log em server mode | testes + smoke |
+| Painel | consulta relatorios, envia comando e mostra cerebro visual | `interface/dashboard/index.html` | aceitavel | quebra com qualquer mudanca de payload ou falha parcial da API | localStorage + cookie | testes superficiais + smoke |
+| Workers | processam tarefas textuais por dominio | `workers/*.py` | aceitavel | analise rasa, sem conectores externos | via runtime | testes |
+| Autodefesa on-demand | gera threat model, twin, validacao e remediation | `security/self_defense.py` | aceitavel | nao e periodica, nao mantem serie historica | `reports/self_defense_latest.json` | testes |
+| Historico cognitivo | registra eventos sinteticos e gera payload visual | `runtime/cognitive_evolution.py` | aceitavel como telemetria | inflacao, ruido e interpretacao excessiva | sim | testes + smoke |
+
+Capacidades parciais:
+
+- servico Windows leve: existe, mas a instalacao real exige privilegio administrativo e o teste atual cobre apenas a geracao do comando, nao a operacao do servico
+- deploy Docker: artefatos existem, mas nao houve build/run real nesta maquina
+- watchdog: existe um comportamento watchdog-like no loop e um supervisor de processo no Windows; nao existe um watchdog independente, persistente e completo para todos os modos
+- logging central: existe em `runtime/server.py`, mas o modo `main.py` puro nao oferece o mesmo nivel de logging persistente
+- device registry: existe e funciona, mas nao prova identidade do dispositivo
+
+Capacidades simuladas ou superficiais:
+
+- autenticacao por voz: e um campo textual em JSON, nao biometria de voz
+- "cerebro" visual: e um painel de observabilidade em canvas, nao um cerebro computacional real
+- "plasticidade neural": e mapeamento visual de score, nao adaptacao sinaptica biologicamente ou algoritmicamente profunda
+- `learning/self_improvement.py`: e registro de observacoes e sugestoes, nao autoevolucao do codigo
+
+Capacidades declaradas mas ainda nao robustas:
+
+- consumo alvo `< 2% CPU` e `< 120MB RAM`: nao ha medicao automatizada disso
+- "10000 neuronios simulados": o sistema calcula contagem logica, mas renderiza no maximo ~1600 pontos em canvas
+- relatorio periodico/semanal de seguranca: nao existe de forma automatica hoje
+- prontidao completa para servico Windows: a implementacao existe, a operacao real neste host nao foi consolidada
+
+==================================================
+5. ANALISE DO RUNTIME CENTRAL
+==================================================
+
+Como ele inicia:
+
+- em `main.py`, por `bootstrap_runtime()`
+- em `runtime/server.py`, por `JarvisServerContext.bootstrap()`
+- em `interface/api/app.py`, por `_ensure_runtime_initialized()`
+- todos convergem para `InternalAgentRuntime.bootstrap()`
+
+Como mantem o loop:
+
+- `JarvisSystemLoop.run()` executa `runtime.run_planner_cycle()`
+- em caso de sucesso, registra `cycle_log`
+- em caso de excecao no ciclo, chama `record_runtime_error()` e continua
+- usa `cycle_sleep_seconds` ou `idle_sleep_seconds`
+
+Como registra eventos:
+
+- `AuditLogger` em memoria
+- `EpisodicMemory` em memoria
+- `LOGGER` em arquivo quando usando `runtime/server.py`
+- `CognitiveEvolutionTracker` em JSON
+
+Como lida com falhas:
+
+- falha de ciclo: capturada, auditada e convertida em `status=failed`
+- arquivos corrompidos de fila, memoria semantica, memoria procedural, objetivos e evolucao cognitiva: podem ser renomeados para `.corrompido-*.json` no bootstrap de `main.py`
+- `device_registry.json`: nao tem a mesma estrategia de recuperacao
+
+Como integra workers:
+
+- resolve worker por `task["worker"]` ou dominio
+- consulta guidance procedural antes do dispatch
+- injeta `runtime_context` e `goal_summary`
+- registra `summary`, `details`, `evidence` e desfecho nas memorias
+
+Como integra seguranca:
+
+- `ConstitutionalPolicy` e carregada no bootstrap
+- `PlanValidator` e `AutonomyController` recebem a politica viva
+- `AccessControl` governa o nivel `admin` ou `guest` nos comandos
+- `SelfDefenseMonitor` executa a auditoria interna autorizada
+
+Como integra memoria:
+
+- `SemanticMemory` recebe fatos de bootstrap e resultados de tarefas
+- `ProceduralMemory` recebe padroes de execucao e guidance
+- `EpisodicMemory` recebe bootstrap, ciclos, acessos, comandos, erros e dispatch
+
+Como integra evolucao cognitiva:
+
+- bootstrap registra `EVENT_NETWORK_RESTRUCTURE`
+- tarefas concluidas registram eventos de conhecimento, padrao e habilidade conforme heuristicas
+- relatorios do runtime expoem a evolucao cognitiva semanal e historica
+
+Como faz persistencia:
+
+- `persist_runtime_state()` grava fila, memoria semantica, procedural, objetivos, devices e cognicao
+- `runtime/server.py` grava relatorios de startup e shutdown
+- `jarvis.log` recebe logs operacionais quando o servidor unificado esta em uso
+
+Como reage a excecoes:
+
+- excecoes do ciclo sao capturadas pelo loop
+- excecoes de bootstrap ou de contexto de servidor nao sao isoladas com o mesmo cuidado
+- falha na thread do loop em `runtime/server.py` nao gera um supervisor dedicado para reinicia-la
+
+Existe watchdog real?
+
+- existe um mecanismo watchdog-like no loop: o ciclo continua apos excecoes controladas
+- existe um supervisor de processo no servico Windows: reinicia se o processo morrer
+- nao existe watchdog de liveness para detectar thread morta, deadlock ou processo vivo mas travado
+
+Risco de travamento silencioso:
+
+- medio
+- se a thread do loop morrer fora do caminho coberto pelo `try/except`, a API pode continuar viva sem que o loop esteja realmente operando
+- o servico Windows so ajuda quando o processo cai, nao quando a logica interna entra em estado morto
+
+Risco de loop improdutivo:
+
+- alto
+- o log atual mostra centenas de ciclos ociosos consecutivos em `jarvis.log`
+- o sistema suporta fila vazia, mas nao ha politica de hibernacao mais inteligente, backoff progressivo ou suspensao do loop
+
+Risco de consumo excessivo:
+
+- hoje parece baixo em idle por causa do `idle_sleep_seconds`
+- nao ha medicao automatica ou telemetria de CPU/RAM
+- o requisito de hardware fraco ainda nao foi verificado empiricamente
+
+Risco de dead state:
+
+- real
+- ha varias formas de o sistema parecer "ativo" sem estar realmente saudavel:
+- API viva com loop parado
+- processo antigo ainda de pe, mas divergente do codigo atual
+- runtime inicializado, porem com auditoria historica perdida apos restart
+
+Pontos fortes:
+
+- bootstrap centralizado e claro
+- boa integracao entre planner, memorias, objetivos e workers
+- politica constitucional realmente influencia execucao
+- relatorios operacionais sao ricos para o porte atual
+
+Pontos frageis:
+
+- monolito de runtime grande demais
+- falta de sincronizacao de estado compartilhado
+- trilha de auditoria muito volatil
+- duplicacao de fatos de bootstrap na memoria semantica
+- ruido cognitivo gerado pelo proprio bootstrap
+
+Gargalos:
+
+- `runtime/internal_agent_runtime.py` concentra responsabilidade demais
+- I/O JSON sincrono e integral
+- API e loop compartilham o mesmo objeto runtime
+
+Riscos imediatos:
+
+- perda de tarefa durante falha no meio do ciclo
+- corrida de escrita entre loop e API
+- processo em execucao ficar defasado em relacao ao repo sem sinalizacao clara
+
+==================================================
+6. ANALISE DA API E DOS ENDPOINTS
+==================================================
+
+Observacao geral:
+
+Todos os endpoints protegidos dependem do mesmo `app.state.runtime`. Isso simplifica a integracao, mas cria um acoplamento forte com estado global e aumenta o risco de concorrencia e regressao transversal.
+
+Endpoints reais:
+
+| Metodo | Rota | Finalidade | Autenticacao | Entrada | Saida | Arquivos envolvidos | Validacoes | Riscos e fragilidades |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | redirecionar para o painel | publica | nenhuma | redirect | `interface/api/app.py` | nenhuma | simples; baixo risco |
+| `GET` | `/painel` | servir gate ou painel | cookie opcional | nenhuma | HTML | `interface/api/app.py`, `interface/dashboard/*.html` | verifica cookie derivado | o HTML depende de cookie, mas a API real ainda depende de token + device no JS |
+| `POST` | `/api/auth/device-session` | criar sessao HTTP do painel | token + device | headers | JSON + cookie | `interface/api/app.py` | compara token e trusted device | cookie derivado de segredos estaticos, sem `Secure`, sem store server-side |
+| `DELETE` | `/api/auth/device-session` | remover sessao do painel | publica | nenhuma | JSON | `interface/api/app.py` | nenhuma | baixo risco |
+| `GET` | `/api/saude` | saude basica publica | publica | nenhuma | JSON | `interface/api/app.py`, runtime | bootstrap do runtime | endpoint publico inicializa runtime; expoe status basico |
+| `GET` | `/health` | healthcheck de deploy | publica | nenhuma | JSON rico | `interface/api/app.py`, runtime | nenhuma alem do bootstrap | expoe paths e indicios de configuracao; risco de info leak em bind publico |
+| `GET` | `/api/health` | healthcheck protegido | token + device | headers | JSON rico | `interface/api/app.py`, runtime | depende de trusted access | depende de estado global e runtime compartilhado |
+| `GET` | `/api/status` | estado atual resumido | token + device | headers | JSON | `interface/api/app.py`, runtime | trusted access | baixo risco funcional; alto acoplamento com `describe_state()` |
+| `POST` | `/api/ciclos/executar` | executar um ciclo do planner | token + device | headers | JSON | `interface/api/app.py`, runtime, planner | trusted access | endpoint mutante importante que nao exige camada adicional de admin alem dos segredos HTTP |
+| `POST` | `/api/comando` | canal textual unificado | token + device e opcional voz/senha | JSON `texto`, `voz_identificada`, `senha`, `modo_resposta` | JSON | `interface/api/app.py`, runtime, `security/access_control.py` | pydantic minima | "voz" nao e voz real; comandos admin dependem de campos facilmente falsificaveis se o token/device vazarem |
+| `GET` | `/api/tarefas` | listar fila atual | token + device | headers | JSON | `interface/api/app.py`, runtime | trusted access | depende do estado global da fila |
+| `POST` | `/api/tarefas` | adicionar tarefa | token + device | JSON task | JSON | `interface/api/app.py`, runtime, goals, queue | pydantic minima | permite mutacao sem camada extra de admin; validacao de conteudo e simples |
+| `GET` | `/api/objetivos` | relatorio de objetivos | token + device | query `goal_id` opcional | JSON | `interface/api/app.py`, runtime, goal manager | trusted access | razoavelmente robusto |
+| `GET` | `/api/memoria/recente` | memoria semantica e episodica recente | token + device | query `limit`, `domain` | JSON | `interface/api/app.py`, runtime | `limit` entre 1 e 20 | resposta depende da disponibilidade das memorias |
+| `GET` | `/api/cognicao/evolucao` | payload visual do mapa cognitivo | token + device | query `nivel` | JSON | `interface/api/app.py`, runtime, cognitive tracker | trusted access | ainda telemetria sintetica; payload grande pode crescer |
+| `GET` | `/api/cognicao/evolucao/analise` | analise interna do historico cognitivo | token + device | query `nivel` | JSON | `interface/api/app.py`, runtime, cognitive tracker | trusted access | interpreta scores sinteticos como se fossem atividade cognitiva |
+| `GET` | `/api/relatorio` | relatorio geral | token + device | headers | JSON | `interface/api/app.py`, runtime | trusted access | payload amplo e dependente de varios subsistemas |
+| `GET` | `/api/relatorio/sistema` | alias do relatorio geral | token + device | headers | JSON | `interface/api/app.py`, runtime | trusted access | duplica rota e manutencao |
+| `GET` | `/api/relatorio/fila` | relatorio da fila | token + device | headers | JSON | `interface/api/app.py`, runtime | trusted access | contagem historica de concluidas depende de heuristicas internas |
+| `GET` | `/api/relatorio/objetivos` | relatorio de metas/objetivos | token + device | headers | JSON | `interface/api/app.py`, runtime, goal manager | trusted access | bom, mas depende de integridade dos `task_ids` |
+| `GET` | `/api/relatorio/memoria` | relatorio da memoria | token + device | headers | JSON | `interface/api/app.py`, runtime, semantic/procedural | trusted access | reabre JSON do disco para integridade; escala mal em arquivos grandes |
+| `GET` | `/api/relatorio/auditoria` | relatorio de auditoria | token + device | headers | JSON | `interface/api/app.py`, runtime, audit logger | trusted access | auditoria nao persiste; reinicios limpam grande parte do valor desse endpoint |
+| `GET` | `/docs` | UI do FastAPI | publica | nenhuma | HTML | FastAPI | nenhuma | expoe contrato da API para qualquer rede com acesso |
+| `GET` | `/openapi.json` | schema aberto | publica | nenhuma | JSON | FastAPI | nenhuma | excelente para debug, ruim para superficie publica sem endurecimento |
+
+Endpoints criticos:
+
+- `POST /api/ciclos/executar`
+- `POST /api/comando`
+- `POST /api/tarefas`
+- `GET /health`
+
+Endpoints frageis:
+
+- todos os `/api/relatorio/*` por dependerem de estado global e multiplos subrelatorios
+- `/api/cognicao/evolucao` e `/api/cognicao/evolucao/analise` por payload sintetico e acoplado ao frontend
+- `/painel` por depender do contrato do cookie e do `localStorage`
+
+Endpoints expostos demais:
+
+- `/health`
+- `/docs`
+- `/openapi.json`
+
+Endpoints sem validacao suficiente:
+
+- `/api/comando`: sem limites fortes de tamanho, sem rate limit, sem verificacao real de voz
+- `/api/tarefas`: Pydantic minima, sem regras de negocio mais profundas na borda
+- `/api/ciclos/executar`: controle de acesso apenas pelo mesmo segredo da API, sem aprovacao extra
+
+Endpoints que dependem de estado global:
+
+- praticamente todos os endpoints protegidos
+- `app.state.runtime`
+- `app.state.system_config`
+- `app.state.last_cycle_result`
+- `app.state.bootstrap_state`
+
+Endpoints que podem quebrar o painel:
+
+- `/api/health`
+- `/api/relatorio/sistema`
+- `/api/relatorio/fila`
+- `/api/relatorio/objetivos`
+- `/api/relatorio/memoria`
+- `/api/relatorio/auditoria`
+- `/api/cognicao/evolucao`
+- `/api/cognicao/evolucao/analise`
+
+Inconsistencias observadas entre contrato e implementacao:
+
+- o contrato documental atual inclui `/api/comando` e endpoints cognitivos, e o codigo atual tambem
+- porem o processo vivo em `127.0.0.1:8010` nao expunha esses endpoints no `openapi.json`
+- isso nao e uma inconsistência do codigo; e uma inconsistência operacional entre processo rodando e repositorio atual
+
+==================================================
+7. ANALISE DO PAINEL E FRONTEND
+==================================================
+
+Estrutura geral:
+
+O frontend atual e um HTML unico com CSS inline, JS inline e modulos ES para o cerebro visual. Nao ha framework, bundler, roteamento SPA nem camada de estado mais sofisticada. Isso reduz peso e dependencia, mas aumenta acoplamento manual entre markup, fetch e formato de resposta.
+
+Como consome a API:
+
+- armazena `token` e `device id` em `localStorage`
+- usa `fetch` com headers customizados para todas as chamadas
+- usa `Promise.all` em `atualizarResumo()`
+- reusa os mesmos endpoints operacionais da API
+
+Como renderiza estado do sistema:
+
+- `stateBox`, `goalsBox`, `tasksBox`, `memoryBox`, `healthBox`, `auditBox`
+- tudo e despejado como JSON formatado em `<pre>`
+- isso e pratico e transparente, mas pouco resiliente e pouco orientado a UX
+
+Como renderiza estado cognitivo:
+
+- `evolution_map.js` busca os endpoints cognitivos
+- `brain_renderer.js` desenha o canvas
+- os resumos saem em `brainSummary` e `brainAnalysis`
+
+Como renderiza relatorios:
+
+- sem camada de adaptacao
+- o painel exibe basicamente o JSON recebido
+- qualquer mudanca de chave no backend pode quebrar a visualizacao ou gerar mensagens vagas
+
+Como renderiza o cerebro visual:
+
+- canvas 2D unico
+- distribuicao procedural de neuronios
+- trilhas de aprendizado
+- destaque de regioes "quentes" e "frias"
+- particulas ao longo das trilhas
+
+Dependencias JS criadas:
+
+- `activity_controller.js`
+- `brain_renderer.js`
+- `consciousness_map.js`
+- `evolution_map.js`
+- `neural_field_shader.js`
+- `neural_network.js`
+- `neural_plasticity_engine.js`
+- `neural_procedural_engine.js`
+- `synapse_particles.js`
+
+Riscos de performance:
+
+- nao ha animacao pesada continua; isso ajuda
+- o renderer limita a ~1600 neuronios renderizados
+- a promessa de "10000 neuronios" e logica, nao visual real
+- nao ha benchmark nem telemetria de FPS, CPU ou memoria
+
+Riscos de compatibilidade:
+
+- depende de navegador com suporte a `fetch`, `canvas`, `localStorage` e modulos ES
+- nao existe fallback para ambientes mais restritos
+
+Risco de acoplamento excessivo com backend:
+
+- alto
+- o painel conhece nomes de campos internos como `status_runtime.status_ptbr`
+- uma pequena mudanca de contrato pode quebrar varias areas ao mesmo tempo
+
+Risco de quebra por resposta inconsistente da API:
+
+- alto
+- `Promise.all` falha inteiro se qualquer uma das chamadas falhar
+- nao ha degradacao parcial por widget
+
+Qualidade da separacao entre visualizacao e logica:
+
+- painel principal: baixa a media
+- brain avatar modular: media
+- o frontend cognitivo e mais organizado que o painel principal
+
+Detalhamento dos arquivos do brain avatar:
+
+| Arquivo | Papel real | Natureza | Solidez | Custo | O que precisa endurecimento |
+| --- | --- | --- | --- | --- | --- |
+| `activity_controller.js` | estado local da visualizacao | estrutural simples | boa | baixo | quase nada; e bem pequeno |
+| `brain_renderer.js` | desenho do canvas | estrutural/visual | boa para a fase atual | moderado e controlado | faltam metricas e testes reais de render |
+| `consciousness_map.js` | marca regioes quentes e frias | visual apenas | boa | baixo | depende totalmente da analise backend |
+| `evolution_map.js` | orquestra fetch e composicao | estrutural importante | media | baixo/moderado | muito acoplado ao payload; sem tolerancia a erro fino |
+| `neural_field_shader.js` | fundo e cores | visual apenas | boa | baixo | baixo valor operacional |
+| `neural_network.js` | gera distribuicao procedural de neuronios | estrutural visual | boa | moderado | "10000 neuronios" e so contagem logica; nao confundir com simulacao real |
+| `neural_plasticity_engine.js` | traduz score em halo/espessura | visual apenas | boa | baixo | nenhuma urgencia |
+| `neural_procedural_engine.js` | overlay com numeros de memoria/procedimentos/objetivos | estrutural leve | boa | baixo | hoje entrega pouco valor alem de contagens |
+| `synapse_particles.js` | pontos ao longo das trilhas | visual apenas | boa | baixo | sem urgencia |
+
+O que e solido:
+
+- renderer em canvas com limite de custo
+- modularizacao do brain avatar
+- ausencia de dependencias pesadas no frontend
+
+O que e visual apenas:
+
+- consciencia, plasticidade, particulas, shader, boa parte da "evolucao" visual
+
+O que e estrutural:
+
+- `evolution_map.js`
+- `brain_renderer.js`
+- `neural_network.js`
+- `activity_controller.js`
+
+O que e caro computacionalmente:
+
+- hoje nada parece excessivamente caro no navegador
+- o risco maior nao e GPU/CPU, e acoplamento sem validacao formal de payload
+
+O que precisa endurecimento:
+
+- desacoplar o painel principal do formato cru dos relatorios
+- tratar falha parcial por widget
+- validar schema dos payloads cognitivos antes de desenhar
+- adicionar algum versionamento de contrato frontend/backend
+
+==================================================
+8. ANALISE DA PERSISTENCIA E DOS DADOS
+==================================================
+
+Diretorios e artefatos observados:
+
+- `data/`
+- `logs/`
+- `reports/`
+
+Arquivos de dados observados:
+
+- `data/cognitive_evolution_history.json`
+- `data/device_registry.json`
+- `data/goals.json`
+- `data/procedural_memory_store.json`
+- `data/semantic_memory_store.json`
+- `data/task_queue_store.json`
+- `logs/jarvis.log`
+- `reports/environment_report.json`
+
+Tabela de persistencia:
+
+| Artefato | Finalidade | Formato | Frequencia de escrita | Risco de corrupcao | Risco de crescimento | Risco de concorrencia | Auditoria | Limitacao estrutural |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `task_queue_store.json` | fila do planner | JSON | alta, a cada mutacao e `drain()` | medio | medio | alto | boa leitura humana | sem transacao; pode perder tarefas no meio do ciclo |
+| `semantic_memory_store.json` | fatos e entradas semanticas | JSON | alta, bootstrap e resultados de tarefas | medio | alto | alto | boa | cresce com duplicacoes de bootstrap |
+| `procedural_memory_store.json` | heuristicas operacionais | JSON | media | medio | medio | alto | boa | guarda estado atual melhor do que historico |
+| `goals.json` | objetivos e progresso | JSON | media | medio | baixo/medio | alto | boa | sem locking e sem schema evolution |
+| `device_registry.json` | dispositivos confiaveis | JSON | media | alto | baixo | medio/alto | boa | sem recuperacao de corrupcao no bootstrap |
+| `cognitive_evolution_history.json` | historico cognitivo | JSON | media/alta | medio | alto | alto | boa | payload sintetico, arquivo rastreado em git |
+| `logs/jarvis.log` | logs operacionais | texto | continua | baixo | alto | medio | media | sem rotacao, mistura eventos diferentes |
+| `reports/environment_report.json` | resumo do startup | JSON | por startup | baixo | baixo | baixo | boa | sobrescreve o historico |
+| `reports/shutdown_report.json` | resumo do shutdown | JSON | por shutdown | baixo | baixo | baixo | boa | sobrescreve o historico |
+| `reports/self_defense_latest.json` | ultimo autodiagnostico | JSON | sob demanda | baixo | baixo | baixo | boa | so guarda o ultimo relatorio |
+| `AuditLogger.entries` | auditoria estruturada | memoria | continua | perda total no restart | n/a | n/a | ruim em longo prazo | nao persistente |
+| `EpisodicMemory.episodes` | eventos recentes | memoria | continua | perda total no restart | n/a | n/a | ruim em longo prazo | nao persistente |
+
+O sistema ja passou do ponto em que JSON virou gargalo?
+
+- por volume bruto: ainda nao
+- por confiabilidade e concorrencia: sim
+
+Hoje o problema nao e tamanho de arquivo, e sim:
+
+- escrita integral do arquivo
+- ausencia de lock
+- ausencia de commit transacional
+- ausencia de indice
+- ausencia de trilha historica
+- dificuldade para uso concorrente da API com loop em background
+
+Quais dados deveriam migrar primeiro para SQLite ou equivalente:
+
+1. fila de tarefas
+2. auditoria estruturada
+3. acessos e comandos
+4. objetivos
+5. memoria semantica
+6. memoria procedural
+7. historico cognitivo
+8. device registry
+
+Quais arquivos sao mais sensiveis e por que:
+
+- `semantic_memory_store.json`: pode conter contexto interno, resumo de tarefas e evidencias
+- `procedural_memory_store.json`: expoe heuristicas e fluxo interno de execucao
+- `device_registry.json`: lista dispositivos confiaveis
+- `logs/jarvis.log`: registra comandos e estados operacionais
+- `reports/environment_report.json`: pode revelar paths e configuracao operacional
+
+Achados especificos relevantes:
+
+- `data/cognitive_evolution_history.json` esta versionado pelo git, apesar de `data/*` estar ignorado
+- isso suja a arvore de trabalho durante a operacao normal e mistura dado vivo com codigo
+- semantic memory e bootstrap adicionam fatos de runtime a cada inicializacao, o que aumenta ruido e crescimento desnecessario
+
+==================================================
+9. ANALISE DE SEGURANCA
+==================================================
+
+Pontos fortes:
+
+- endpoints mutantes nao estao publicos por padrao; exigem `token` + `device id`
+- validator e runtime usam politica constitucional para negar tarefas proibidas
+- comandos guest nao podem acionar algumas acoes administrativas
+- autodefesa so atua sobre o proprio sistema e um gemeo isolado autorizado
+- ha rastreabilidade razoavel em memoria e em log quando o servidor unificado esta em uso
+
+Falhas criticas:
+
+1. "Autenticacao por voz" nao existe de verdade.
+2. Senha administrativa padrao esta no codigo e no `.env.example`.
+3. O modelo `token + device id` e replayavel e fraco.
+4. Endpoints importantes mutam o sistema sem segunda camada de aprovacao.
+5. `/health`, `/docs` e `/openapi.json` sao publicos.
+
+Falhas medias:
+
+- ausencia de rate limiting, throttling e lockout
+- ausencia de `Secure` no cookie do painel
+- segredos em `localStorage`
+- ausencia de trilha persistente de seguranca estruturada
+- arquivos persistentes nao sao cifrados nem protegidos por politica interna de permissoes
+- autodefesa nao roda periodicamente nem gera tendencia historica consolidada
+
+Riscos de abuso local:
+
+- qualquer usuario local com acesso ao navegador e aos segredos pode operar a API
+- `jarvis.log` pode vazar comandos textuais enviados ao sistema
+- `jarvis_run.cmd` local nao versionado cria rota paralela de operacao
+
+Riscos de exposicao remota:
+
+- bind amplo `0.0.0.0` por padrao
+- documentacao e schema publicos
+- segredos estaticos sem rotacao automatica
+- ausencia de TLS nativo, reverse proxy e rate limiting no proprio projeto
+
+Riscos de bypass:
+
+- bypass de "voz" por spoof de campo textual
+- bypass operacional se token + device vazarem
+- painel HTML usa cookie, mas a API real depende dos mesmos segredos em headers; nao ha sessao server-side independente
+
+Riscos de replay:
+
+- altos
+- nao ha nonce, timestamp assinado nem expiracao curta
+- o `device id` confiavel e reutilizavel
+
+Riscos de falha de validacao:
+
+- `TaskCreateRequest` e `CommandRequest` fazem pouca validacao semantica
+- a principal validacao de negocio fica para depois, no runtime/planner/politica
+
+O que precisa ser corrigido primeiro:
+
+1. retirar a ilusao de autenticacao por voz e trata-la como input auxiliar, nao como prova
+2. exigir troca de senha administrativa e segredo do device em producao
+3. restringir ou sanitizar `/health`, `/docs` e `/openapi.json` em deploy exposto
+4. adicionar rate limiting e sessao mais forte
+5. persistir auditoria de acesso e comando de forma estruturada
+
+==================================================
+10. ANALISE DA CAMADA COGNITIVA
+==================================================
+
+Componentes auditados:
+
+- `runtime/cognitive_evolution.py`
+- `data/cognitive_evolution_history.json`
+- `interface/brain_avatar/*.js`
+- chamadas do runtime para `_record_cognitive_learning_from_task()`
+
+O que o bloco realmente faz:
+
+Ele registra eventos sinteticos de "aprendizado" com base em bootstrap e execucao de tarefas, agrega isso por regioes simbolicas do cerebro e produz um payload visual, um resumo numerico, uma analise de regioes mais e menos utilizadas e trilhas de conexao sinteticas.
+
+Confiabilidade da interpretacao:
+
+- baixa a media
+- os eventos nao medem acuracia, qualidade, generalizacao nem ganho cognitivo real
+- eles medem atividade sintetica baseada em heuristicas
+
+Risco de evento falso e de inflacao artificial:
+
+- alto
+- o bootstrap sempre registra `EVENT_NETWORK_RESTRUCTURE`
+- tasks concluidas geram impacto com formula fixa baseada em contagem de evidencias e passos
+- nao ha mecanismo de "nao houve aprendizado"
+
+Utilidade operacional real:
+
+- boa como observabilidade leve
+- media como diagnostico exploratorio
+- baixa como insumo decisorio autonomo
+
+Resposta clara as perguntas centrais:
+
+- o bloco cognitivo agrega principalmente observabilidade, nao inteligencia real
+- o mapa evolutivo tem alguma utilidade tecnica para introspeccao, mas ainda e mais visual e interpretativo do que analitico ou decisorio
+- para se tornar realmente valioso, precisa correlacionar eventos com acerto, falha, retrabalho, custo e melhora efetiva de heuristicas
+
+==================================================
+11. TESTES, COBERTURA E CONFIABILIDADE
+==================================================
+
+Panorama:
+
+- arquivos de teste: 24
+- casos de teste identificados: 81
+- resultado da execucao: `81/81 OK`
+
+Tipos de teste existentes:
+
+- testes unitarios puros
+- integracao in-process com `FastAPI TestClient`
+- testes de persistencia com artefatos locais isolados
+- smoke real manual nesta auditoria
+
+Cobertura relevante por area:
+
+- planner e fila: bem cobertos para caminhos principais
+- runtime e bootstrap: bem cobertos localmente
+- API: bem coberta em TestClient
+- dashboard: cobertura superficial, focada em gate e assets
+- workers: cobertura boa do caminho feliz
+- memorias: cobertura boa de roundtrip e busca
+- seguranca defensiva: cobertura razoavel dos motores internos
+- Windows service: cobertura muito rasa
+- Docker/deploy: cobertura indireta, sem container real
+
+O que nao esta coberto de forma forte:
+
+- concorrencia real entre API e loop em background
+- corridas de escrita em JSON
+- processo vivo defasado em relacao ao repositorio
+- build e run real de Docker
+- instalacao e start reais do servico Windows
+- integracao real do cliente nativo com um servidor vivo
+- comportamento do painel em navegador real sob falhas parciais
+- rotacao e crescimento de log de longa duracao
+- corrupcao do `device_registry.json`
+
+81/81 OK significa robustez real?
+
+- nao
+- significa ausencia de quebra nos caminhos cobertos
+- nao significa prontidao para concorrencia, seguranca forte, deploy real ou longa duracao
+
+O que ainda pode quebrar mesmo com tudo verde:
+
+- perda de fila em falha no meio do ciclo
+- divergencia entre processo vivo e codigo atual
+- race conditions entre API e loop
+- servico Windows real
+- deploy Docker real
+- auth fraca em ambiente exposto
+- painel por mudanca pequena de payload
+
+==================================================
+12. DIVIDA TECNICA E GARGALOS
+==================================================
+
+Urgente:
+
+| Problema | Impacto | Onde esta | Como corrigir | Esforco | Risco de adiar |
+| --- | --- | --- | --- | --- | --- |
+| runtime sem sincronizacao | corrupcao e comportamento indefinido | runtime + API + JSON | locks ou serializacao central de mutacoes | medio/alto | alto |
+| janela de perda no `drain()` | perda de tarefa | planner + queue | fila transacional ou commit por etapa | medio | alto |
+| auditoria nao persistente | perda de rastreabilidade | audit logger + episodic memory | persistencia estruturada | medio | alto |
+| autenticacao fraca | abuso administrativo | access control + API | fortalecer sessao e segredos | medio | alto |
+| divergencia runtime/repositorio | auditoria enganosa | launchers + API + server | expor commit/versao e reduzir caminhos de start | baixo/medio | alto |
+
+Alta prioridade:
+
+| Problema | Impacto | Onde esta | Como corrigir | Esforco | Risco de adiar |
+| --- | --- | --- | --- | --- | --- |
+| secrets padrao parcialmente aceitos em producao | inseguranca operacional | `runtime/system_config.py` | validar tambem senha/voz admin | baixo | alto |
+| `/health` e `/docs` publicos demais | info leak | API | sanitizar ou gatear em producao | baixo/medio | medio/alto |
+| `cognitive_evolution_history.json` versionado | repo sujo e ruido | `data/` + git | desversionar artefato vivo | baixo | medio |
+| sem rotacao de logs | crescimento indefinido | `runtime/server.py` | handler rotativo | baixo | medio |
+| `device_registry.json` sem recuperacao | bootstrap pode falhar | `device/device_registry.py` | backup e recreacao segura | baixo | medio/alto |
+
+Media prioridade:
+
+| Problema | Impacto | Onde esta | Como corrigir | Esforco | Risco de adiar |
+| --- | --- | --- | --- | --- | --- |
+| workers ainda rasos | valor limitado | `workers/*.py` | enriquecer heuristicas | medio | medio |
+| self-defense sem agenda | pouca utilidade longitudinal | `security/self_defense.py` | consolidacao periodica | medio | medio |
+| painel fortemente acoplado | regressao facil | `interface/dashboard/index.html` | adaptadores e tolerancia a falha | medio | medio |
+| `SelfImprovementAdvisor` superficial | baixo valor | `learning/self_improvement.py` | correlacionar com fatos reais | baixo/medio | baixo/medio |
+| multiplicidade de launchers | ambiguidade operacional | `jarvis.cmd`, `jarvis_run.cmd`, `main.py`, `runtime/server.py` | declarar caminho oficial unico | baixo | medio |
+
+==================================================
+13. FALHAS CRITICAS E RISCOS IMEDIATOS
+==================================================
+
+Ordenado por severidade:
+
+1. Compartilhamento de estado sem sincronizacao entre loop e API.
+2. Risco real de perda de tarefas devido ao `drain()` persistido antes do commit logico do ciclo.
+3. Autenticacao administrativa baseada em segredo estatico + `device id` textual + "voz" declarada pelo cliente.
+4. Ausencia de auditoria estruturada persistente.
+5. Divergencia observada entre processo vivo e codigo atual do repositorio.
+6. Exposicao publica de `/health`, `/docs` e `/openapi.json`.
+7. `cognitive_evolution_history.json` versionado, poluindo o repositorio com dado operacional vivo.
+8. Falta de recuperacao de corrupcao em `device_registry.json`.
+9. Ausencia de rotacao de logs.
+10. Self-defense e watchdog parciais, sem orquestracao periodica real.
+
+==================================================
+14. CONSISTENCIA ENTRE DOCUMENTACAO E REALIDADE
+==================================================
+
+Documentos coerentes com o codigo atual:
+
+- `docs/referencia/API_PTBR.md`
+- `docs/referencia/ARCHITECTURE.md`
+- `README.md` em grande parte
+- `docs/referencia/system_capabilities_index.md`
+
+Documentos parcialmente desatualizados ou otimistas:
+
+- `reports/relatorios_txt/reports/relatorios_txt/SYSTEM_MATURITY_REPORT_PTBR.txt`
+- `docs/checkpoints/session_checkpoint.md`
+- `docs/planos/NEXT_STEPS.md`
+- `docs/referencia/DEPLOY_PTBR.md`
+
+Promessas nao implementadas ou ainda nao robustas:
+
+- servico Windows como fluxo consolidado
+- autodefesa periodica/semanal
+- baixo consumo de CPU/RAM com medicao real
+- "voz admin" como autenticacao real
+- "cerebro cognitivo completo" como ganho real de inteligencia
+
+Partes que precisam ser reescritas:
+
+- resumo de maturidade
+- security posture
+- prontidao de servico Windows
+- prontidao de deploy
+- natureza real da camada cognitiva
+
+==================================================
+15. ESTADO DE MATURIDADE DO SISTEMA
+==================================================
+
+Escala utilizada:
+- para maturidade: 0 a 10, maior e melhor
+- para risco operacional: 0 a 10, maior e pior
+
+| Eixo | Nota | Leitura tecnica |
+| --- | --- | --- |
+| Robustez | 5/10 | funciona bem em caminho controlado, mas ainda fragil em concorrencia e falhas intermediarias |
+| Modularidade | 6/10 | ha separacao por diretorios e modulos, mas o runtime central absorve responsabilidade demais |
+| Seguranca | 4/10 | boa intencao arquitetural, controles reais ainda fracos para ambiente exposto |
+| Persistencia | 5/10 | existe e funciona, mas em JSON sem locks nem transacoes |
+| Observabilidade | 6/10 | relatorios, healthchecks, logs e self-defense ajudam bastante |
+| Testabilidade | 7/10 | cobertura local boa para o tamanho do projeto |
+| Escalabilidade | 3/10 | a arquitetura atual nao e adequada para concorrencia ou crescimento sem reestruturacao |
+| Manutenibilidade | 4/10 | comentario e doc melhoraram, mas o runtime monolitico ainda pesa muito |
+| Clareza arquitetural | 6/10 | a arquitetura e inteligivel, embora mais integrada do que o ideal |
+| Risco operacional | 7/10 | alto o suficiente para exigir consolidacao antes de expandir muito mais |
+
+==================================================
+16. PLANO DE MELHORIAS PRIORIZADO
+==================================================
+
+Correcoes imediatas:
+
+1. serializar mutacoes do runtime
+2. eliminar a perda de fila no `drain()`
+3. persistir auditoria estruturada
+4. expor versao/commit em `/health` e `/api/status`
+
+Endurecimento estrutural:
+
+1. reduzir responsabilidades do runtime central
+2. unificar caminho oficial de subida
+3. tratar corrupcao do `device_registry.json`
+
+Melhoria de seguranca:
+
+1. remover dependencia de "voz" textual como auth
+2. exigir segredos nao padrao em producao de forma completa
+3. restringir `/docs` e sanitizar `/health` em producao
+4. adicionar rate limiting e sessao menos replayavel
+
+Melhoria de persistencia:
+
+1. migrar fila e auditoria para SQLite
+2. migrar memorias para armazenamento transacional
+3. retirar `data/cognitive_evolution_history.json` do git
+
+Melhoria de testes:
+
+1. adicionar testes de concorrencia API + loop
+2. adicionar smoke real de servidor atual em pipeline local
+3. validar Windows service real por checklist manual automatizavel
+
+Melhoria de observabilidade:
+
+1. rotacao de logs
+2. historico de relatorios, nao so latest
+3. heartbeat do loop em background
+
+Melhoria cognitiva:
+
+1. deduplicar eventos de bootstrap
+2. correlacionar eventos cognitivos com sucesso e falha reais
+3. separar visualizacao de metricas cognitivas reais
+
+Melhoria do painel:
+
+1. degradacao parcial por widget
+2. camada leve de adaptacao de payload
+
+==================================================
+17. CONCLUSAO TECNICA FINAL
+==================================================
+
+Diagnostico franco do estado atual:
+
+O JARVIS atual e um sistema funcional e interessante, com valor real, capacidade de operacao local e uma quantidade incomum de instrumentacao para o seu estagio. Ele nao e uma casca vazia. Ele planeja, executa, persiste, responde por API, serve painel, protege acesso em nivel basico, registra memoria, gera relatorios e se autoinspeciona.
+
+O que esta bom de verdade:
+
+- o nucleo planner/runtime/memoria/objetivos existe de fato
+- a API real funciona e a malha de testes e ampla
+- a politica constitucional influencia comportamento real
+- os workers entregam utilidade minima concreta
+- a observabilidade e acima da media para o porte do sistema
+
+O que esta so aceitavel:
+
+- deploy simples
+- servico Windows
+- camada cognitiva
+- autodefesa
+- painel
+
+O que esta perigoso:
+
+- seguranca baseada em segredos estaticos e identidade declarativa
+- concorrencia sem sincronizacao
+- fila vulneravel a perda durante falha no ciclo
+- ausencia de auditoria persistente
+- divergencia entre repositorio e processo vivo
+
+O sistema esta pronto para crescer?
+
+- funcionalmente: sim
+- estruturalmente: nao ainda
+
+Ele precisa primeiro consolidar a base. Se continuar expandindo capacidades sem resolver concorrencia, seguranca e persistencia, a tendencia e ganhar demonstracoes cada vez mais impressionantes em cima de uma base operacional ainda fraca.
+
+==================================================
+18. ANEXO OBRIGATORIO - TABELA SINTETICA
+==================================================
+
+| AREA | STATUS | RISCO | MATURIDADE | PRINCIPAL PROBLEMA | ACAO RECOMENDADA |
+| --- | --- | --- | --- | --- | --- |
+| Runtime | funcional com fragilidade estrutural | alto | media | centralizacao excessiva e ausencia de locks | serializar mutacoes e reduzir o monolito |
+| API | funcional | medio/alto | media | estado global e exposicao excessiva | endurecer auth, `/health` e `/docs` |
+| Painel | utilizavel | medio | media/baixa | alto acoplamento com payload e pouca tolerancia a falha | adaptar payloads e degradar por widget |
+| Seguranca | basica e insuficiente para exposicao ampla | alto | baixa/media | auth fraca e replayavel | fortalecer sessao, segredos e camada admin |
+| Persistencia | existente e fraca sob concorrencia | alto | media/baixa | JSON sem transacao nem locking | migrar para SQLite por prioridade |
+| Memoria | funcional | medio | media | episodica nao persiste e semantica duplica bootstrap | persistir auditoria/episodica e deduplicar fatos |
+| Cognicao | visualmente forte, analiticamente parcial | medio | baixa/media | telemetria tratada como inteligencia | correlacionar com performance real |
+| Testes | bons para regressao local | medio | media/alta | pouca cobertura de concorrencia e deploy real | adicionar testes de operacao real |
+| Documentacao | ampla mas otimista | medio | media | maturidade descrita acima da robustez real | reescrever docs criticas com mais franqueza |
+| Operacao geral | utilizavel sob supervisao | alto | media | divergencia entre runtime vivo e repositorio | versionar runtime exposto e reduzir entrypoints |
+
+==================================================
+RESUMO PARA AUDITORIA EXTERNA
+==================================================
+
+10 maiores riscos do sistema:
+
+1. estado compartilhado sem sincronizacao entre loop e API
+2. perda potencial de tarefas no `drain()` da fila durante falha intermediaria
+3. autenticacao administrativa baseada em segredos estaticos e "voz" declarativa
+4. ausencia de auditoria estruturada persistente
+5. divergencia observada entre processo vivo e codigo atual
+6. exposicao publica de `/health`, `/docs` e `/openapi.json`
+7. `cognitive_evolution_history.json` versionado e modificado pela operacao normal
+8. falta de recuperacao de corrupcao em `device_registry.json`
+9. ausencia de rotacao de logs
+10. self-defense e watchdog parciais, sem orquestracao periodica real
+
+10 melhorias de maior impacto:
+
+1. sincronizar mutacoes do runtime
+2. tornar a fila transacional
+3. persistir auditoria e acessos de forma estruturada
+4. endurecer autenticacao e remover a ilusao de auth por voz
+5. exigir segredos nao padrao em producao
+6. restringir ou sanitizar `/health` e `/docs`
+7. expor versao/commit no runtime vivo
+8. migrar stores centrais para SQLite
+9. adicionar rotacao de logs e historico de relatorios
+10. deduplicar bootstrap e ruido do historico cognitivo
+
+5 pontos mais solidos do projeto:
+
+1. ciclo deterministico do planner com politica constitucional viva
+2. integracao real entre runtime, objetivos, memoria e workers
+3. API funcional com boa cobertura de testes locais
+4. camada de observabilidade operacional rica para o porte do sistema
+5. autodefesa interna limitada ao ambiente autorizado e isolado
+
+5 ilusoes de robustez que podem enganar uma analise superficial:
+
+1. `81/81 OK` nao significa prontidao para concorrencia, deploy real ou seguranca forte
+2. "autenticacao por voz" nao e autenticacao de voz real
+3. "10000 neuronios simulados" nao corresponde a 10000 entidades renderizadas nem a ganho cognitivo real
+4. "servico Windows implementado" nao significa servico instalado e operando de forma comprovada neste host
+5. "cerebro cognitivo evolutivo" descreve melhor uma camada de telemetria/visualizacao do que um cerebro operacional autonomo

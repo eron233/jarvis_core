@@ -76,6 +76,7 @@ class SidebarButton(QPushButton):
     """Botao discreto da barra lateral do app."""
 
     def __init__(self, text: str, section_key: str, parent: QWidget | None = None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(text, parent)
         self.section_key = section_key
         self.setCheckable(True)
@@ -87,6 +88,7 @@ class DetailPage(QWidget):
     """Pagina de detalhe simples, real e ligada a payloads da API."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -120,6 +122,7 @@ class ChatMessageBubble(QFrame):
     """Bolha simples do chat nativo."""
 
     def __init__(self, role: str, text: str, meta: str = "", parent: QWidget | None = None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent)
 
         wrapper = QHBoxLayout(self)
@@ -153,6 +156,7 @@ class ChatTimeline(QScrollArea):
     """Timeline vertical do chat principal."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent)
         self.setWidgetResizable(True)
         self.setFrameShape(QFrame.NoFrame)
@@ -190,6 +194,7 @@ class JarvisMainWindow(QMainWindow):
         auto_close_ms: int | None = None,
         initial_command: str | None = None,
     ) -> None:
+        """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__()
         self.config = config
         self.api_client = api_client
@@ -223,6 +228,7 @@ class JarvisMainWindow(QMainWindow):
             QTimer.singleShot(self.auto_close_ms, self.close)
 
     def _build_ui(self) -> None:
+        """Monta ui para o fluxo atual."""
         root = QWidget()
         root_layout = QVBoxLayout(root)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -250,6 +256,7 @@ class JarvisMainWindow(QMainWindow):
         self.setStatusBar(status_bar)
 
     def _build_sidebar(self) -> QWidget:
+        """Monta sidebar para o fluxo atual."""
         panel = QFrame()
         panel.setObjectName("Sidebar")
         panel.setMinimumWidth(180)
@@ -295,6 +302,7 @@ class JarvisMainWindow(QMainWindow):
         return panel
 
     def _build_center_panel(self) -> QWidget:
+        """Monta center panel para o fluxo atual."""
         panel = QFrame()
         panel.setObjectName("CenterPanel")
         layout = QVBoxLayout(panel)
@@ -385,6 +393,7 @@ class JarvisMainWindow(QMainWindow):
         return panel
 
     def _build_brain_panel(self) -> QWidget:
+        """Monta brain panel para o fluxo atual."""
         panel = QFrame()
         panel.setObjectName("BrainPanel")
         panel.setMinimumWidth(360)
@@ -443,6 +452,7 @@ class JarvisMainWindow(QMainWindow):
         return panel
 
     def _connect_signals(self) -> None:
+        """Conecta signals deste componente."""
         self.sidebar_group.buttonClicked.connect(self._handle_sidebar_click)
         self.sidebar_refresh_button.clicked.connect(self.refresh_everything)
         self.refresh_brain_button.clicked.connect(self.refresh_brain_bundle)
@@ -451,6 +461,7 @@ class JarvisMainWindow(QMainWindow):
         self.command_input.returnPressed.connect(self.send_command)
 
     def _apply_styles(self) -> None:
+        """Aplica styles ao estado atual."""
         self.setStyleSheet(
             """
             QMainWindow, QWidget { background: #000000; color: #f5f7fa; font-family: "Bahnschrift"; }
@@ -499,6 +510,7 @@ class JarvisMainWindow(QMainWindow):
         )
 
     def _apply_bootstrap_state(self) -> None:
+        """Aplica bootstrap state ao estado atual."""
         self.chat_timeline.add_message(
             "assistant",
             "JARVIS pronto para conversar.",
@@ -509,6 +521,7 @@ class JarvisMainWindow(QMainWindow):
         self._set_section("chat")
 
     def _schedule_refresh(self) -> None:
+        """Agenda refresh para execucao posterior."""
         self.refresh_everything()
 
         self.status_timer = QTimer(self)
@@ -520,6 +533,7 @@ class JarvisMainWindow(QMainWindow):
         self.brain_timer.start(self.config.brain_refresh_interval_ms)
 
     def _fill_quick_command(self, text: str) -> None:
+        """Executa a rotina interna de fill quick command."""
         self.command_input.setText(text)
         self.command_input.setFocus(Qt.ShortcutFocusReason)
 
@@ -540,22 +554,27 @@ class JarvisMainWindow(QMainWindow):
             self.command_input.setFocus(Qt.ShortcutFocusReason)
 
     def _handle_sidebar_click(self, button) -> None:
+        """Trata sidebar click recebido pelo componente."""
         self._set_section(getattr(button, "section_key", "chat"))
 
     def _set_section(self, section: str) -> None:
+        """Atualiza section no estado atual."""
         self._current_section = section
         for section_key, page in self.detail_pages.items():
             page.setVisible(section_key == section)
         self._render_current_section()
 
     def refresh_everything(self) -> None:
+        """Atualiza todos os paines e resumos da janela."""
         self.refresh_bundle()
         self.refresh_brain_bundle()
 
     def refresh_bundle(self) -> None:
+        """Atualiza o pacote principal de dados da interface."""
         self._run_background("dashboard_bundle", self.api_client.fetch_dashboard_bundle, self._on_bundle_ready)
 
     def refresh_brain_bundle(self, force: bool = False) -> None:
+        """Atualiza o pacote de dados do cerebro visual."""
         level = self.brain_level.currentText()
         job_name = f"brain_bundle:{level}"
         if not force and job_name in self._active_jobs:
@@ -567,6 +586,7 @@ class JarvisMainWindow(QMainWindow):
         )
 
     def send_command(self) -> None:
+        """Envia o comando atual ao backend do Jarvis."""
         command_text = self.command_input.text().strip()
         if not command_text:
             self.footer_command.setText("Digite um comando antes de enviar.")
@@ -593,6 +613,7 @@ class JarvisMainWindow(QMainWindow):
         )
 
     def _on_bundle_ready(self, bundle: dict[str, Any]) -> None:
+        """Executa a rotina interna de on bundle ready."""
         self._authenticated_local_session = True
         self._latest_bundle = bundle
         self._render_current_section()
@@ -600,6 +621,7 @@ class JarvisMainWindow(QMainWindow):
         self.footer_refresh.setText(f"Ultimo refresh {datetime.now().strftime('%H:%M:%S')}")
 
     def _on_brain_bundle_ready(self, bundle: dict[str, Any]) -> None:
+        """Executa a rotina interna de on brain bundle ready."""
         self._latest_brain_bundle = bundle
         evolution = bundle.get("evolution", {})
         analysis = bundle.get("analysis", {})
@@ -608,6 +630,7 @@ class JarvisMainWindow(QMainWindow):
         self.brain_analysis_view.setPlainText(format_brain_analysis(analysis))
 
     def _on_command_ready(self, payload: dict[str, Any]) -> None:
+        """Executa a rotina interna de on command ready."""
         self._authenticated_local_session = True
         self._last_command_payload = payload
         self.chat_timeline.add_message(
@@ -629,6 +652,7 @@ class JarvisMainWindow(QMainWindow):
 
     @staticmethod
     def _looks_like_auth_error(message: str) -> bool:
+        """Indica se auth error aparenta estar presente."""
         normalized = message.lower()
         return "401" in normalized or "403" in normalized or "token" in normalized or "dispositivo" in normalized
 
@@ -649,6 +673,7 @@ class JarvisMainWindow(QMainWindow):
         return "Nao consegui processar esse comando agora."
 
     def _on_background_error(self, job_name: str, traceback_text: str) -> None:
+        """Executa a rotina interna de on background error."""
         message = self._extract_error_message(traceback_text)
         if self._looks_like_auth_error(message):
             self._authenticated_local_session = False
@@ -664,6 +689,7 @@ class JarvisMainWindow(QMainWindow):
         self._render_runtime_summary()
 
     def _render_runtime_summary(self) -> None:
+        """Renderiza runtime summary na interface atual."""
         if not self._latest_bundle:
             return
 
@@ -693,6 +719,7 @@ class JarvisMainWindow(QMainWindow):
         )
 
     def _render_current_section(self) -> None:
+        """Renderiza current section na interface atual."""
         page = self.detail_pages.get(self._current_section)
         if page is None:
             return
@@ -700,6 +727,7 @@ class JarvisMainWindow(QMainWindow):
         page.set_content(title=title, summary_lines=summary_lines, payload=payload)
 
     def _build_section_content(self, section: str) -> tuple[str, list[str], Any]:
+        """Monta section content para o fluxo atual."""
         bundle = self._latest_bundle
         system_report = bundle.get("system_report", {})
         runtime_state = system_report.get("status_runtime", {})
@@ -826,6 +854,7 @@ class JarvisMainWindow(QMainWindow):
         *,
         on_finished: Callable[[], None] | None = None,
     ) -> None:
+        """Executa background no contexto atual."""
         if job_name in self._active_jobs:
             return
 
@@ -834,12 +863,14 @@ class JarvisMainWindow(QMainWindow):
         self._running_futures[job_name] = future
 
         def _finish_job() -> None:
+            """Executa a rotina interna de finish job."""
             self._active_jobs.discard(job_name)
             self._running_futures.pop(job_name, None)
             if on_finished is not None:
                 on_finished()
 
         def _poll_future() -> None:
+            """Executa a rotina interna de poll future."""
             current_future = self._running_futures.get(job_name)
             if current_future is None:
                 return

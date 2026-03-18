@@ -166,8 +166,8 @@ class StartupPortabilityTests(unittest.TestCase):
         self.assertTrue((artifact_dir / "procedural_memory_store.json").exists())
 
     @unittest.skipUnless(sys.platform.startswith("win"), "Launcher .cmd valido apenas em Windows.")
-    def test_windows_launcher_api_direct_is_legacy_shim_to_server(self) -> None:
-        """Confirma que o modo legado api-direct redireciona para o servidor oficial."""
+    def test_windows_launcher_rejeita_modo_legado_api_direct(self) -> None:
+        """Confirma que o launcher nao aceita mais o modo legado api-direct."""
 
         env = dict(os.environ)
         env["PYTHON_BIN"] = sys.executable
@@ -188,12 +188,9 @@ class StartupPortabilityTests(unittest.TestCase):
             env=env,
         )
 
-        self.assertEqual(completed.returncode, 0, msg=completed.stderr)
-        self.assertIn("modo api-direct foi aposentado", completed.stdout)
-        self.assertIn("Redirecionando para o servidor oficial", completed.stdout)
-        payload = extract_json_payload_from_output(completed.stdout)
-        self.assertIn("mensagem", payload)
-        self.assertIn("ambiente", payload)
+        self.assertNotEqual(completed.returncode, 0, msg=completed.stderr)
+        self.assertIn("Modo invalido: api-direct", completed.stdout)
+        self.assertIn("Uso: jarvis.cmd", completed.stdout)
 
 
 if __name__ == "__main__":

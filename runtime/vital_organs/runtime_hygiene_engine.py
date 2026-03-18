@@ -111,9 +111,11 @@ class RuntimeHygieneEngine:
         }
 
     def _paths_for_git(self) -> List[Path]:
+        """Executa a rotina interna de paths for git."""
         return list(self.operational_paths.values()) + [self.official_data_dir, self.official_reports_dir]
 
     def _git_available(self) -> bool:
+        """Executa a rotina interna de git available."""
         try:
             subprocess.run(
                 ["git", "rev-parse", "--is-inside-work-tree"],
@@ -128,6 +130,7 @@ class RuntimeHygieneEngine:
             return False
 
     def _git_is_tracked(self, path: Path) -> bool:
+        """Executa a rotina interna de git is tracked."""
         try:
             result = subprocess.run(
                 ["git", "ls-files", "--error-unmatch", str(path)],
@@ -142,6 +145,7 @@ class RuntimeHygieneEngine:
             return False
 
     def _git_dirty_entries(self, paths: Iterable[Path]) -> List[str]:
+        """Executa a rotina interna de git dirty entries."""
         try:
             command = ["git", "status", "--porcelain", "--"]
             command.extend(str(path) for path in paths)

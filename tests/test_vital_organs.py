@@ -75,27 +75,31 @@ class VitalOrgansTests(unittest.TestCase):
             runtime.shutdown_vital_organs(reason="test_cleanup")
             self.assertFalse(orchestrator._thread is not None and orchestrator._thread.is_alive())
 
-    def test_structural_integrity_monitor_detects_legacy_store(self) -> None:
-        """Garante detecao explicita de stores legados ainda presentes."""
+    def test_structural_integrity_monitor_detects_runtime_path_mismatch(self) -> None:
+        """Garante deteccao explicita quando o runtime usa um store fora do caminho oficial."""
 
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             official_path = root / "data" / "task_queue_store.json"
-            legacy_path = root / "executive_planner" / "task_queue_store.json"
+            unexpected_path = root / "data_alternativo" / "task_queue_store.json"
             official_path.parent.mkdir(parents=True, exist_ok=True)
-            legacy_path.parent.mkdir(parents=True, exist_ok=True)
+            unexpected_path.parent.mkdir(parents=True, exist_ok=True)
             official_path.write_text('{"task_count": 0, "tasks": []}', encoding="utf-8")
-            legacy_path.write_text('{"task_count": 1, "tasks": []}', encoding="utf-8")
+            unexpected_path.write_text('{"task_count": 1, "tasks": []}', encoding="utf-8")
 
             class _RuntimeStub:
+                """Stub minimo de runtime usado para validar os orgaos vitais."""
+
                 @staticmethod
                 def _utc_now() -> str:
+                    """Retorna o timestamp UTC atual em formato ISO 8601."""
                     return "2026-03-16T00:00:00+00:00"
 
                 @staticmethod
                 def describe_state() -> dict[str, str]:
+                    """Retorna um resumo minimo do estado representado por este stub."""
                     return {
-                        "queue_store": str(official_path),
+                        "queue_store": str(unexpected_path),
                         "semantic_store": str(root / "data" / "semantic_memory_store.json"),
                         "procedural_store": str(root / "data" / "procedural_memory_store.json"),
                         "goal_store": str(root / "data" / "goals.json"),
@@ -117,14 +121,13 @@ class VitalOrgansTests(unittest.TestCase):
                     "cognitive_evolution_storage_path": root / "data" / "cognitive_evolution_history.json",
                     "self_defense_report_path": root / "reports" / "self_defense_latest.json",
                 },
-                legacy_paths={"queue_storage_path": legacy_path},
             )
 
             report = monitor.run(_RuntimeStub())
 
-            self.assertEqual(report["status"], "atencao")
+            self.assertEqual(report["status"], "critico")
             self.assertTrue(
-                any(item["kind"] == "legacy_store_present" for item in report["violacoes"])
+                any(item["kind"] == "runtime_path_mismatch" for item in report["violacoes"])
             )
 
 

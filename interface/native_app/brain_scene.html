@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>JARVIS Brain Scene</title>
+  <title>JARVIS Brain Host</title>
   <style>
     :root {
       color-scheme: dark;
@@ -184,12 +184,12 @@
       <div class="hintbar">
         <div class="panel">
           <strong>Controles</strong>
-          <span id="hintLine">Clique para expandir o cerebro. No modo amplo voce pode girar, mover e aplicar zoom.</span>
-          <span id="controlLine">Use a roda do mouse para zoom. Duplo clique para resetar a camera.</span>
+          <span id="hintLine">Host nativo da biblioteca visual oficial do cerebro do JARVIS.</span>
+          <span id="controlLine">A visualizacao acompanha o mapa evolutivo oficial usado no painel web.</span>
         </div>
         <div class="panel">
           <strong>Leitura atual</strong>
-          <span id="statusLine" class="warm">Cerebro 3D inicializando.</span>
+          <span id="statusLine" class="warm">Host cerebral inicializando.</span>
           <span id="detailLine">Aguardando o primeiro mapa cognitivo do Jarvis.</span>
         </div>
       </div>
@@ -203,6 +203,6 @@
       </div>
     </div>
   </div>
-  <script src="brain_scene.js"></script>
+  <script type="module" src="brain_scene.js"></script>
 </body>
 </html>

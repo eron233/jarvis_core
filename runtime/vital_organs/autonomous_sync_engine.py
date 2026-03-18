@@ -30,6 +30,7 @@ AUTHORIZED_DEVICES = ("pc_esposa(voce)", "pc_melhor_amigo")
 
 
 def _parse_bool(value: str | None, default: bool = False) -> bool:
+    """Converte e normaliza bool."""
     if value is None:
         return default
     normalized = value.strip().lower()
@@ -89,6 +90,7 @@ class CommandResult:
 
     @property
     def ok(self) -> bool:
+        """Retorna um resultado positivo para este fluxo interno."""
         return self.returncode == 0
 
 
@@ -103,6 +105,7 @@ class AutonomousSyncEngine:
     last_run_epoch: float | None = None
 
     def __post_init__(self) -> None:
+        """Finaliza a normalizacao inicial deste dataclass."""
         self.project_root = Path(self.project_root)
         self.coordination_dir = self.project_root / "coordination"
         self.development_dir = self.project_root / "development"
@@ -336,6 +339,7 @@ class AutonomousSyncEngine:
             time.sleep(self.config.sync_interval_seconds)
 
     def _reserve_lock(self) -> Dict[str, Any]:
+        """Executa a rotina interna de reserve lock."""
         snapshot = self._read_locks()
         now = self._utc_now()
         active_locks = []
@@ -380,6 +384,7 @@ class AutonomousSyncEngine:
         return {"granted": True, "message": "Lock reservado com sucesso."}
 
     def _release_lock(self) -> None:
+        """Executa a rotina interna de release lock."""
         snapshot = self._read_locks()
         remaining = [
             lock
@@ -392,12 +397,14 @@ class AutonomousSyncEngine:
         )
 
     def _read_locks(self) -> Dict[str, Any]:
+        """Le locks do armazenamento correspondente."""
         try:
             return json.loads(self.lock_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, FileNotFoundError):
             return {"updated_at": self._utc_now(), "locks": []}
 
     def _append_checkpoint(self, *, task: str, result: str, commit_sha: str | None) -> None:
+        """Acrescenta checkpoint ao registro correspondente."""
         entry = (
             f"## {self._utc_now()}\n"
             f"- dispositivo: {self.config.device_name}\n"
@@ -411,6 +418,7 @@ class AutonomousSyncEngine:
             handle.write(entry)
 
     def _append_log(self, *, action: str, result: str) -> None:
+        """Acrescenta log ao registro correspondente."""
         line = (
             f"{self._utc_now()} | dispositivo={self.config.device_name or 'indefinido'} | "
             f"acao={action} | resultado={result}\n"
@@ -419,6 +427,7 @@ class AutonomousSyncEngine:
             handle.write(line)
 
     def _read_remote_state(self) -> Dict[str, Any]:
+        """Le remote state do armazenamento correspondente."""
         result = self._run(
             [
                 "git",
@@ -439,6 +448,7 @@ class AutonomousSyncEngine:
         return {"ahead": ahead, "behind": behind}
 
     def _parse_changed_files(self) -> List[str]:
+        """Converte e normaliza changed files."""
         result = self._run(["git", "status", "--porcelain"], tolerate_failure=True)
         if not result.ok:
             return []
@@ -450,6 +460,7 @@ class AutonomousSyncEngine:
         return files
 
     def _classify_changed_files(self, files: Iterable[str]) -> tuple[List[str], List[str]]:
+        """Executa a rotina interna de classify changed files."""
         allowed_prefixes = self._allowed_prefixes()
         allowed: List[str] = []
         blocked: List[str] = []
@@ -466,36 +477,41 @@ class AutonomousSyncEngine:
         return allowed, blocked
 
     def _allowed_prefixes(self) -> List[str]:
+        """Executa a rotina interna de allowed prefixes."""
         if self.config.sync_area == "global":
             return [""]
         return [
             f"{self.config.sync_area}/",
             "tests/",
             "README.md",
-            "ARCHITECTURE.md",
-            "CHANGELOG.md",
-            "NEXT_STEPS.md",
-            "SYSTEM_MATURITY_REPORT_PTBR.md",
-            "system_capabilities_index.md",
+            "docs/referencia/ARCHITECTURE.md",
+            "docs/referencia/CHANGELOG.md",
+            "docs/planos/NEXT_STEPS.md",
+            "reports/relatorios_txt/reports/relatorios_txt/SYSTEM_MATURITY_REPORT_PTBR.txt",
+            "docs/referencia/system_capabilities_index.md",
             "coordination/TASK_LOCKS.json",
         ]
 
     def _build_commit_message(self) -> str:
+        """Monta commit message para o fluxo atual."""
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
         return f"autonomous-sync({self.config.device_name}/{self.config.sync_area}): checkpoint {timestamp}"
 
     def _current_commit(self) -> str | None:
+        """Executa a rotina interna de current commit."""
         result = self._run(["git", "rev-parse", "HEAD"], tolerate_failure=True)
         if not result.ok:
             return None
         return result.stdout.strip() or None
 
     def _is_due(self) -> bool:
+        """Informa se due."""
         if self.last_run_epoch is None:
             return True
         return (self.time_provider() - self.last_run_epoch) >= self.config.sync_interval_seconds
 
     def _is_lock_stale(self, lock: Dict[str, Any]) -> bool:
+        """Informa se lock stale."""
         timestamp = lock.get("timestamp")
         try:
             moment = datetime.fromisoformat(str(timestamp))
@@ -507,12 +523,14 @@ class AutonomousSyncEngine:
         return age > self.config.lock_timeout_seconds
 
     def _run(self, command: Sequence[str], tolerate_failure: bool = False) -> CommandResult:
+        """Executa a rotina interna de run."""
         result = self.command_runner(command)
         if not tolerate_failure:
             self._append_log(action="command", result=f"{' '.join(command)} -> {result.returncode}")
         return result
 
     def _default_command_runner(self, command: Sequence[str]) -> CommandResult:
+        """Executa a rotina interna de default command runner."""
         completed = subprocess.run(
             list(command),
             cwd=self.project_root,
@@ -529,6 +547,7 @@ class AutonomousSyncEngine:
         )
 
     def _command_action(self, action_id: str, result: CommandResult) -> Dict[str, Any]:
+        """Executa a rotina interna de command action."""
         return {
             "action_id": action_id,
             "returncode": result.returncode,
@@ -547,6 +566,7 @@ class AutonomousSyncEngine:
         findings: List[Dict[str, Any]] | None = None,
         metadata: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
+        """Executa a rotina interna de report."""
         return {
             "organ_id": "autonomous_sync_engine",
             "status": status,
@@ -566,6 +586,7 @@ class AutonomousSyncEngine:
 
     @staticmethod
     def _write_json(path: Path, payload: Dict[str, Any]) -> None:
+        """Grava json no armazenamento correspondente."""
         path.parent.mkdir(parents=True, exist_ok=True)
         temp_path = path.with_name(f"{path.name}.tmp")
         temp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -573,4 +594,5 @@ class AutonomousSyncEngine:
 
     @staticmethod
     def _utc_now() -> str:
+        """Retorna o timestamp UTC atual em formato ISO 8601."""
         return datetime.now(timezone.utc).isoformat()

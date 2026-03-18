@@ -89,6 +89,7 @@ class FailurePreventionEngine:
         }
 
     def _materialize_missing_paths(self, runtime: Any, missing_labels: List[str]) -> List[Dict[str, Any]]:
+        """Executa a rotina interna de materialize missing paths."""
         actions: List[Dict[str, Any]] = []
 
         queue_path = self.critical_paths.get("queue_storage_path")
@@ -154,6 +155,7 @@ class FailurePreventionEngine:
 
     @staticmethod
     def _action(label: str, path: Path) -> Dict[str, Any]:
+        """Executa a rotina interna de action."""
         return {
             "action_id": f"materialize_{label}",
             "status": "applied",
@@ -164,6 +166,7 @@ class FailurePreventionEngine:
 
     @staticmethod
     def _seconds_since(timestamp: str) -> float | None:
+        """Executa a rotina interna de seconds since."""
         try:
             moment = datetime.fromisoformat(timestamp)
         except ValueError:

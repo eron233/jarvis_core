@@ -1,7 +1,7 @@
 JARVIS - PLANO DE UNIFICACAO ARQUITETURAL
 Data: 2026-03-16
 Projeto: C:\Users\User\Documents\jarvis_core
-Base principal: JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt
+Base principal: reports/relatorios_txt/JARVIS_DUPLICATION_AND_OVERLAP_REPORT_PTBR.txt
 
 Premissas deste plano:
 - nao remover nada cegamente
