@@ -609,6 +609,11 @@
       background: linear-gradient(180deg, rgba(21, 23, 30, 0.98) 0%, rgba(18, 20, 27, 0.98) 100%);
     }
 
+    .assistant-panel.home-mode {
+      display: grid;
+      align-content: center;
+    }
+
     .section-head {
       margin: 0;
       padding: 20px 24px 8px;
@@ -625,6 +630,28 @@
       color: var(--muted);
     }
 
+    .assistant-panel.home-mode .section-head {
+      padding: clamp(36px, 12vh, 120px) 24px 14px;
+      border-bottom: 0;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .assistant-panel.home-mode .section-head .eyebrow {
+      display: none;
+    }
+
+    .assistant-panel.home-mode .section-head h2 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: -0.05em;
+    }
+
+    .assistant-panel.home-mode .section-head p {
+      margin: 0 auto;
+      max-width: 620px;
+      font-size: 1.02rem;
+    }
+
     .assistant-layout {
       min-height: calc(100vh - 120px);
       grid-template-rows: 1fr auto;
@@ -634,6 +661,10 @@
     .message-stack {
       min-height: 0;
       padding: 0 24px;
+    }
+
+    .assistant-panel.home-mode .message-stack {
+      padding-top: 0;
     }
 
     .message-card.response {
@@ -686,6 +717,18 @@
       font-size: 1rem;
     }
 
+    .assistant-panel.home-mode .chat-thread {
+      min-height: auto;
+      height: auto;
+      overflow: visible;
+      padding: 0;
+    }
+
+    .assistant-panel.home-mode .chat-empty {
+      padding: 0 24px 10px;
+      font-size: 0.98rem;
+    }
+
     .compact-context {
       margin: 4px 0 18px;
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -708,6 +751,10 @@
 
     .compact-context .minibar {
       padding: 0 14px 14px;
+    }
+
+    .assistant-panel.home-mode .compact-context {
+      display: none;
     }
 
     .compact-note,
@@ -733,6 +780,18 @@
       backdrop-filter: blur(18px);
     }
 
+    .assistant-panel.home-mode .composer-card {
+      position: relative;
+      bottom: auto;
+      width: min(760px, calc(100% - 48px));
+      margin: 0 auto clamp(40px, 12vh, 110px);
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      background: rgba(28, 31, 40, 0.96);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+    }
+
     .composer-card-head {
       display: flex;
       align-items: center;
@@ -744,6 +803,10 @@
       color: var(--muted);
       font-size: 0.86rem;
       white-space: nowrap;
+    }
+
+    .assistant-panel.home-mode .composer-card-head {
+      display: none;
     }
 
     textarea,
@@ -760,6 +823,11 @@
       resize: vertical;
     }
 
+    .assistant-panel.home-mode textarea {
+      min-height: 76px;
+      resize: none;
+    }
+
     .composer-actions {
       justify-content: flex-end;
     }
@@ -767,6 +835,10 @@
     .composer-actions > * {
       flex: 0 0 auto;
       min-width: 136px;
+    }
+
+    .assistant-panel.home-mode .composer-actions {
+      justify-content: space-between;
     }
 
     .advanced-options {
@@ -1256,8 +1328,18 @@
 
     function renderChatThread() {
       const target = byId("responseBox");
+      const panel = document.querySelector(".assistant-panel");
+      const homeMode = dashboardState.chat.messages.length <= 1;
+      if (panel) {
+        panel.classList.toggle("home-mode", homeMode);
+      }
       if (!dashboardState.chat.messages.length) {
         target.innerHTML = '<div class="chat-empty">Comece escrevendo ou ative a voz. O Jarvis vai responder aqui em formato de conversa.</div>';
+        return;
+      }
+
+      if (homeMode) {
+        target.innerHTML = '<div class="chat-empty">Escreva, fale ou misture os dois para começar.</div>';
         return;
       }
 
