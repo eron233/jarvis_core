@@ -5,353 +5,1317 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Painel JARVIS</title>
   <style>
-    :root{--bg:#f3eee4;--panel:#fffaf1;--ink:#17261f;--muted:#57665e;--accent:#2c6b4d;--soft:#d8eadf;--line:#d6cfbf;--warn:#a56b1a;--mono:"Courier New",monospace;--sans:"Trebuchet MS","Segoe UI",sans-serif}
-    *{box-sizing:border-box}body{margin:0;font-family:var(--sans);color:var(--ink);background:radial-gradient(circle at top right,rgba(44,107,77,.14),transparent 28%),linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%)}
-    .shell{width:min(100%,1180px);margin:0 auto;padding:18px}.hero,.card,.brain{border:1px solid var(--line);border-radius:22px;box-shadow:0 18px 44px rgba(23,38,31,.08)}
-    .hero{background:linear-gradient(135deg,rgba(22,36,28,.98),rgba(44,107,77,.9));color:#f8f6f0;padding:22px}.hero h1{margin:8px 0;font-size:clamp(2rem,5vw,3.2rem)}.hero p{margin:0;max-width:820px;line-height:1.55;color:rgba(248,246,240,.92)}
-    .label,.pill{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;font-size:.86rem;font-weight:800}.label{background:rgba(216,234,223,.88);color:var(--accent)}.pill{background:rgba(255,255,255,.1);color:#f8f6f0}
-    .hero-top,.status-strip,.grid,.dual,.triples,.actions{display:grid;gap:12px}.hero-top{grid-template-columns:1.4fr .8fr}.status-strip{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:16px}
-    .grid{grid-template-columns:1.35fr .95fr;margin-top:18px}.dual{grid-template-columns:repeat(2,minmax(0,1fr))}.triples{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:14px}.actions{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .card,.brain{background:var(--panel);padding:16px}.card h2,.brain h2{margin:0 0 8px;font-size:1.45rem}.card p,.brain p{margin:0;color:var(--muted);line-height:1.5}.stack{display:grid;gap:16px}
-    .stat{background:#fffdf8;border:1px solid var(--line);border-radius:18px;padding:14px}.stat strong,.summary strong{display:block;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}.stat span{display:block;margin-top:8px;font-size:1.5rem;font-weight:800}
-    .summary,.listbox,.console,details pre,.voice-meter{border-radius:16px}.summary,.listbox{background:#fffdf8;border:1px solid var(--line);padding:14px;min-height:90px}.summary span{display:block;margin-top:8px;line-height:1.45}
-    .listbox ul{margin:0;padding-left:18px;display:grid;gap:8px}.listbox li{line-height:1.4}.muted{color:var(--muted)}
-    label{display:block;font-weight:800;margin-bottom:8px}input,textarea,select,button{width:100%;border-radius:14px;border:1px solid var(--line);font:inherit}
-    input,textarea,select{padding:12px;background:#fffdf8;color:var(--ink)}textarea{min-height:112px;resize:vertical}button{padding:13px;background:var(--accent);color:#f6f4ed;font-weight:800;cursor:pointer}button.secondary{background:var(--soft);color:var(--ink)}button.ghost{background:transparent;color:var(--accent);border-style:dashed}
-    .console{min-height:200px;padding:14px;background:#141a17;color:#f7f5ef;font-family:var(--mono);white-space:pre-wrap}
-    .hint{margin-top:10px;padding:12px;border-radius:16px;background:rgba(165,107,26,.08);color:var(--warn);line-height:1.45}
-    .voice{margin-top:12px;padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(44,107,77,.08),rgba(41,90,131,.06));border:1px solid rgba(44,107,77,.18)}
-    .voice-meter{margin-top:10px;height:12px;background:rgba(23,38,31,.08);overflow:hidden}.voice-meter span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#2c6b4d,#6fb68c,#d8d067);transition:width .1s linear}
-    .transcript{margin-top:10px;padding:14px;border-radius:16px;background:#fffdf8;border:1px solid var(--line);min-height:84px}
-    .brain{margin-top:18px;background:linear-gradient(180deg,rgba(9,20,34,.98),rgba(14,32,48,.98));color:#f8fbff;border-color:rgba(212,175,55,.26)}.brain p{color:rgba(248,251,255,.86)}
-    .brain-toolbar{display:grid;grid-template-columns:1fr repeat(2,minmax(0,180px));gap:10px;margin-top:14px;align-items:end}.brain-toolbar select{background:rgba(255,255,255,.08);color:#f8fbff;border-color:rgba(255,255,255,.2)}
-    .brain-canvas{width:100%;min-height:420px;margin-top:14px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:#07111d;display:block}.brain-status{margin-top:12px;color:#f5deb3}
-    details{margin-top:12px;background:rgba(21,37,28,.04);border:1px dashed rgba(21,37,28,.18);border-radius:18px;padding:12px}details summary{cursor:pointer;font-weight:800;color:#295a83}details pre{margin:10px 0 0;padding:14px;background:#141a17;color:#f6f4ed;font-family:var(--mono);font-size:.88rem;line-height:1.48;overflow:auto}
-    @media (max-width:1040px){.grid,.hero-top,.dual{grid-template-columns:1fr}}@media (max-width:720px){.shell{padding:14px}.actions,.brain-toolbar{grid-template-columns:1fr}}
+    :root {
+      --bg: #07111c;
+      --panel: rgba(13, 22, 36, 0.92);
+      --panel-strong: rgba(10, 17, 28, 0.96);
+      --panel-muted: rgba(18, 29, 46, 0.88);
+      --line: rgba(148, 163, 184, 0.16);
+      --line-strong: rgba(125, 211, 252, 0.18);
+      --text: #ecf4ff;
+      --muted: #9cb0c9;
+      --accent: #3dd9b8;
+      --accent-strong: #68e1ff;
+      --warn: #f4b860;
+      --chip: rgba(255, 255, 255, 0.06);
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+      --radius: 24px;
+      --mono: "Cascadia Code", "Consolas", monospace;
+      --sans: "Segoe UI Variable Display", "Segoe UI", "Trebuchet MS", sans-serif;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(61, 217, 184, 0.12), transparent 26%),
+        radial-gradient(circle at top right, rgba(104, 225, 255, 0.12), transparent 24%),
+        linear-gradient(180deg, #07111c 0%, #08121d 38%, #09141f 100%);
+    }
+
+    body { padding: 24px; }
+
+    .app-shell { width: min(1380px, 100%); margin: 0 auto; display: grid; gap: 18px; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1.25fr 0.95fr;
+      gap: 18px;
+      padding: 24px;
+      background:
+        linear-gradient(135deg, rgba(14, 28, 40, 0.96), rgba(12, 26, 39, 0.92)),
+        linear-gradient(135deg, rgba(61, 217, 184, 0.08), rgba(104, 225, 255, 0.04));
+      border-color: var(--line-strong);
+    }
+
+    .brand-kicker, .eyebrow, .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .brand-kicker, .eyebrow {
+      padding: 8px 14px;
+      background: rgba(61, 217, 184, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(61, 217, 184, 0.14);
+    }
+
+    .topbar h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(2.5rem, 6vw, 4.8rem);
+      line-height: 0.95;
+      letter-spacing: -0.06em;
+    }
+
+    .topbar p { margin: 0; max-width: 760px; line-height: 1.6; color: var(--muted); font-size: 1.03rem; }
+    .topbar-side { display: grid; gap: 14px; align-content: start; }
+    .topbar-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+    .status-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+
+    .chip {
+      width: 100%;
+      padding: 11px 14px;
+      background: var(--chip);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      justify-content: flex-start;
+    }
+
+    .last-reading {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .last-reading strong {
+      display: block;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1.35fr 0.92fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .main-column, .side-column { display: grid; gap: 18px; }
+    .assistant-panel, .focus-panel, .explorer-panel { padding: 22px; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .section-head h2 {
+      margin: 10px 0 6px;
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      letter-spacing: -0.03em;
+    }
+
+    .section-head p { margin: 0; color: var(--muted); line-height: 1.55; }
+    .button, button, textarea, input, select { font: inherit; border-radius: 18px; }
+
+    button, .button {
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: transform 0.16s ease, opacity 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+
+    button:hover, .button:hover { transform: translateY(-1px); }
+
+    .button-primary, button.button-primary, button:not(.button-secondary):not(.button-ghost):not(.tab-button) {
+      background: linear-gradient(135deg, rgba(61, 217, 184, 0.95), rgba(104, 225, 255, 0.88));
+      color: #04212a;
+      font-weight: 800;
+      border-color: rgba(104, 225, 255, 0.18);
+      box-shadow: 0 16px 34px rgba(61, 217, 184, 0.16);
+    }
+
+    .button-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .button-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px dashed rgba(156, 176, 201, 0.22);
+    }
+
+    .topbar-actions button, .composer-actions button, .voice-controls button, .brain-controls button { padding: 13px 16px; }
+    .assistant-layout, .message-stack { display: grid; gap: 16px; }
+
+    .message-card {
+      background: var(--panel-muted);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 16px 18px;
+    }
+
+    .message-card strong,
+    .voice-output strong,
+    .compact-note strong,
+    .insight-card strong,
+    .technical-note strong,
+    .credentials-card strong,
+    .metric strong {
+      display: block;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .message-card.response {
+      background: linear-gradient(180deg, rgba(10, 17, 28, 0.98), rgba(8, 14, 24, 0.98));
+      border-color: rgba(104, 225, 255, 0.1);
+      min-height: 140px;
+      font-size: 1.04rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+
+    .composer-card {
+      padding: 18px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 14px;
+    }
+
+    .field-label { display: block; margin-bottom: 8px; font-weight: 700; color: var(--text); }
+
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(8, 14, 24, 0.78);
+      color: var(--text);
+      padding: 15px 16px;
+      outline: none;
+      box-shadow: inset 0 0 0 1px transparent;
+    }
+
+    textarea:focus, input:focus, select:focus {
+      border-color: rgba(104, 225, 255, 0.35);
+      box-shadow: 0 0 0 4px rgba(104, 225, 255, 0.08);
+    }
+
+    textarea { min-height: 130px; resize: vertical; }
+    .composer-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .composer-actions > * { flex: 1 1 180px; }
+
+    details.advanced-options {
+      border: 1px dashed rgba(156, 176, 201, 0.2);
+      border-radius: 20px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    details.advanced-options summary { cursor: pointer; font-weight: 700; color: var(--muted); }
+    .advanced-grid { display: grid; gap: 12px; margin-top: 14px; }
+
+    .voice-dock {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(61, 217, 184, 0.08), rgba(104, 225, 255, 0.04));
+      border: 1px solid rgba(61, 217, 184, 0.14);
+    }
+
+    .voice-dock p { margin: 0; color: var(--muted); line-height: 1.55; }
+    .voice-controls, .brain-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+    .voice-controls > *, .brain-controls > * { flex: 1 1 160px; }
+    .toggle-row { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.96rem; }
+    .toggle-row input { width: auto; margin: 0; accent-color: var(--accent); }
+    .voice-meter { height: 10px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.06); }
+    .voice-meter span { display: block; width: 0%; height: 100%; background: linear-gradient(90deg, #3dd9b8, #68e1ff, #f4b860); transition: width 0.12s linear; }
+
+    .voice-output, .compact-note, .insight-card, .metric, .technical-note, .credentials-card {
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .voice-output, .compact-note, .insight-card, .technical-note, .credentials-card { padding: 16px; }
+    .voice-output, .compact-note, .insight-card { line-height: 1.6; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .metric { padding: 16px; min-height: 120px; }
+    .metric span { display: block; margin-top: 2px; font-size: clamp(1.4rem, 4vw, 2rem); font-weight: 800; letter-spacing: -0.04em; color: var(--text); }
+    .metric small { display: block; margin-top: 8px; color: var(--muted); line-height: 1.45; }
+    .focus-summary { margin: 0; color: var(--muted); line-height: 1.6; }
+    .insight-grid, .overview-mini-grid, .brain-stage { display: grid; gap: 12px; margin-top: 16px; }
+
+    .tabbar {
+      display: inline-flex;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .tab-button {
+      padding: 10px 14px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    .tab-button.active {
+      background: rgba(61, 217, 184, 0.16);
+      color: var(--text);
+      border-color: rgba(61, 217, 184, 0.14);
+    }
+
+    .pane { display: none; gap: 12px; }
+    .pane.active { display: grid; }
+
+    .brain-canvas-wrap {
+      display: none;
+      padding: 14px;
+      border-radius: 22px;
+      background: rgba(5, 11, 20, 0.88);
+      border: 1px solid rgba(104, 225, 255, 0.08);
+    }
+
+    .brain-canvas-wrap.ready { display: block; }
+    .brain-canvas { width: 100%; min-height: 360px; display: block; border-radius: 18px; background: #07111d; border: 1px solid rgba(255, 255, 255, 0.08); }
+    .brain-status, .footnote { color: var(--muted); line-height: 1.55; }
+    .brain-grid, .credentials-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+    .technical-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .technical-actions > * { flex: 1 1 180px; }
+
+    details.technical-details {
+      border: 1px dashed rgba(156, 176, 201, 0.16);
+      border-radius: 18px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    details.technical-details summary { cursor: pointer; font-weight: 700; color: var(--muted); }
+
+    pre {
+      margin: 10px 0 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: auto;
+      font-family: var(--mono);
+      font-size: 0.86rem;
+      line-height: 1.6;
+      background: rgba(5, 11, 20, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 18px;
+      padding: 14px;
+      color: #d9e8ff;
+    }
+
+    .credentials-card[hidden] { display: none !important; }
+
+    @media (max-width: 1180px) {
+      .workspace, .topbar { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 14px; }
+      .assistant-panel, .focus-panel, .explorer-panel, .topbar { padding: 18px; }
+      .metrics-grid, .brain-grid, .credentials-grid { grid-template-columns: 1fr; }
+      .composer-actions, .voice-controls, .brain-controls, .technical-actions { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="hero">
-      <div class="hero-top">
-        <div>
-          <span class="label">Painel interativo do runtime</span>
-          <h1>JARVIS</h1>
-          <p id="heroHeadline">Aguardando atualizacao inicial do sistema.</p>
+  <main class="app-shell">
+    <header class="panel topbar">
+      <section>
+        <span class="brand-kicker">Assistente operacional</span>
+        <h1>JARVIS</h1>
+        <p id="heroHeadline">Aguardando a primeira leitura do sistema.</p>
+      </section>
+      <section class="topbar-side">
+        <div class="topbar-actions">
+          <button type="button" class="button-secondary" onclick="atualizarResumo(true)">Atualizar agora</button>
         </div>
-        <div class="summary" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#f8f6f0">
-          <strong style="color:rgba(248,246,240,.74)">Ultima leitura</strong>
-          <span id="heroSubline">Nenhum comando executado ainda.</span>
+        <div class="status-strip">
+          <span class="chip" id="healthStatus">Saúde não lida</span>
+          <span class="chip" id="runtimeStatus">Runtime não lido</span>
+          <span class="chip" id="deviceStatus">Sessão não validada</span>
+          <span class="chip" id="voiceStatusPill">Voz indisponível</span>
         </div>
-      </div>
-      <div class="status-strip">
-        <span class="pill" id="healthStatus">API aguardando credenciais</span>
-        <span class="pill" id="runtimeStatus">Runtime nao consultado</span>
-        <span class="pill" id="deviceStatus">Dispositivo nao validado</span>
-        <span class="pill" id="voiceStatusPill">Voz indisponivel</span>
-      </div>
-    </section>
+        <div class="last-reading">
+          <strong>Última leitura</strong>
+          <div id="heroSubline">Sem interações registradas ainda.</div>
+        </div>
+      </section>
+    </header>
 
-    <section class="grid">
-      <div class="stack">
-        <article class="card">
-          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
-            <div><span class="label">Visao geral</span><h2>Resumo do que importa</h2></div>
-            <button type="button" class="secondary" onclick="atualizarResumo()">Atualizar painel</button>
-          </div>
-          <div class="triples">
-            <div class="stat"><strong>Saude do sistema</strong><span id="quickHealth">-</span><small id="quickHealthHint" class="muted">Sem leitura ainda.</small></div>
-            <div class="stat"><strong>Tempo online</strong><span id="quickUptime">-</span><small id="quickUptimeHint" class="muted">Aguardando.</small></div>
-            <div class="stat"><strong>Fila ativa</strong><span id="quickQueue">-</span><small id="quickQueueHint" class="muted">Nenhum dado.</small></div>
-            <div class="stat"><strong>Objetivos ativos</strong><span id="quickGoals">-</span><small id="quickGoalsHint" class="muted">Nenhum dado.</small></div>
-            <div class="stat"><strong>Memoria atual</strong><span id="quickMemory">-</span><small id="quickMemoryHint" class="muted">Nenhum dado.</small></div>
-            <div class="stat"><strong>Dispositivos</strong><span id="quickDevices">-</span><small id="quickDevicesHint" class="muted">Nenhum dado.</small></div>
-          </div>
-          <div class="triples">
-            <div class="summary"><strong>Leitura humana do runtime</strong><span id="runtimeNarrative">Aguardando resumo.</span></div>
-            <div class="summary"><strong>Ultimo ciclo</strong><span id="cycleNarrative">Nenhum ciclo consultado.</span></div>
-            <div class="summary"><strong>Acesso atual</strong><span id="accessNarrative">Sem sessao ativa detectada ainda.</span></div>
-          </div>
-        </article>
-
-        <article class="card">
-          <div><span class="label">Operacao</span><h2>Comando textual</h2><p id="commandModeLabel">Resposta conversacional ativa.</p></div>
-          <div class="dual" style="margin-top:14px">
+    <section class="workspace">
+      <section class="main-column">
+        <article class="panel assistant-panel">
+          <div class="section-head">
             <div>
-              <label for="commandInput">O que voce quer que o Jarvis faca</label>
-              <textarea id="commandInput" placeholder="Exemplo: mostrar objetivos ativos"></textarea>
-              <label for="voiceInput" style="margin-top:12px">Voz identificada (opcional)</label>
-              <input id="voiceInput" type="text" placeholder="Exemplo: eron ou deixe vazio para voz web" />
-              <label for="passwordInput" style="margin-top:12px">Senha administrativa (opcional)</label>
-              <input id="passwordInput" type="password" placeholder="Use apenas quando quiser liberar acoes sensiveis." />
-              <div class="actions" style="margin-top:12px">
+              <span class="eyebrow">Assistente</span>
+              <h2>Fale com o Jarvis sem ruído</h2>
+              <p>O foco aqui é só no fluxo principal: escrever, ouvir e receber resposta. O resto fica recolhido até você precisar.</p>
+            </div>
+          </div>
+
+          <div class="assistant-layout">
+            <div class="message-stack">
+              <article class="message-card">
+                <strong>Leitura humana do runtime</strong>
+                <div id="runtimeNarrative">Aguardando leitura inicial do runtime.</div>
+              </article>
+              <article class="message-card response">
+                <strong>Resposta do Jarvis</strong>
+                <div id="responseBox">Pronto para conversar.</div>
+              </article>
+              <div class="message-stack" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+                <article class="compact-note">
+                  <strong>Último ciclo</strong>
+                  <div id="cycleNarrative">Nenhum ciclo consultado.</div>
+                </article>
+                <article class="compact-note">
+                  <strong>Último comando preparado</strong>
+                  <div id="preparedCommandBox">Nenhum comando por voz preparado.</div>
+                </article>
+              </div>
+            </div>
+
+            <section class="composer-card">
+              <div>
+                <label class="field-label" for="commandInput">O que você quer que o Jarvis faça</label>
+                <textarea id="commandInput" placeholder="Exemplo: resumir meu estado atual e sugerir o próximo passo"></textarea>
+              </div>
+
+              <div class="composer-actions">
                 <button type="button" onclick="enviarComando()">Enviar comando</button>
-                <button type="button" class="secondary" onclick="executarCiclo()">Executar ciclo</button>
+                <button type="button" class="button-secondary" onclick="executarCiclo()">Executar ciclo</button>
               </div>
-              <div class="voice">
-                <span class="label">Central de voz</span>
-                <p style="margin-top:10px">Chame por "Jarvis" para iniciar a escuta. O navegador analisa a fala e transforma isso em comando. Esta camada transcreve fala; ela nao faz biometria vocal.</p>
-                <div class="actions" style="margin-top:12px">
-                  <button type="button" id="voiceToggleButton" class="secondary" onclick="alternarEscutaPorVoz()">Ativar escuta continua</button>
-                  <button type="button" id="voiceStopButton" class="ghost" onclick="desligarEscutaPorVoz()" disabled>Parar escuta</button>
+
+              <details class="advanced-options">
+                <summary>Opções avançadas</summary>
+                <div class="advanced-grid">
+                  <div>
+                    <label class="field-label" for="voiceInput">Voz identificada (opcional)</label>
+                    <input id="voiceInput" type="text" placeholder="Exemplo: eron ou deixe vazio para voz web" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="passwordInput">Senha administrativa (opcional)</label>
+                    <input id="passwordInput" type="password" placeholder="Use apenas para ações sensíveis." />
+                  </div>
                 </div>
-                <label for="voiceAutoSendToggle" style="display:flex;gap:8px;align-items:center;margin:12px 0 0"><input id="voiceAutoSendToggle" type="checkbox" checked style="width:auto" />Enviar o comando automaticamente depois que eu disser "Jarvis"</label>
+              </details>
+
+              <section class="voice-dock">
+                <div>
+                  <span class="eyebrow">Central de voz</span>
+                  <p>Quando você disser “Jarvis”, o painel entra em escuta ativa e tenta transformar a fala em comando. É análise/transcrição de voz, não biometria vocal.</p>
+                </div>
+                <div class="voice-controls">
+                  <button type="button" id="voiceToggleButton" class="button-secondary" onclick="alternarEscutaPorVoz()">Ativar escuta contínua</button>
+                  <button type="button" id="voiceStopButton" class="button-ghost" onclick="desligarEscutaPorVoz()" disabled>Parar escuta</button>
+                </div>
+                <label class="toggle-row" for="voiceAutoSendToggle">
+                  <input id="voiceAutoSendToggle" type="checkbox" checked />
+                  Enviar automaticamente depois da palavra de ativação
+                </label>
                 <div class="voice-meter"><span id="voiceMeterFill"></span></div>
-                <div class="summary" style="margin-top:12px"><strong>Status da escuta</strong><span id="voiceStateText">Escuta por voz ainda nao iniciada.</span></div>
-                <div class="transcript" id="voiceTranscriptBox">Aguardando transcricao por voz.</div>
-                <div class="hint" id="voiceHint">Diga apenas "Jarvis" para acordar a escuta. Depois fale o comando em linguagem natural.</div>
-              </div>
+                <div class="voice-output">
+                  <strong>Status da escuta</strong>
+                  <div id="voiceStateText">Escuta por voz ainda não iniciada.</div>
+                </div>
+                <div class="voice-output" id="voiceTranscriptBox">Aguardando transcrição por voz.</div>
+                <div class="compact-note" id="voiceHint">Diga “Jarvis” para acordar a escuta. Depois fale o comando normalmente.</div>
+              </section>
+            </section>
+          </div>
+        </article>
+
+        <article class="panel credentials-card" id="credentialsBox">
+          <strong>Credenciais do dispositivo</strong>
+          <div class="credentials-grid">
+            <div>
+              <label class="field-label" for="tokenInput">Token de acesso</label>
+              <input id="tokenInput" type="password" placeholder="Informe o token da API" />
             </div>
             <div>
-              <label>Resposta do JARVIS</label>
-              <div class="console" id="responseBox">Aguardando comando.</div>
-              <div class="summary" style="margin-top:12px"><strong>Leitura da ultima resposta</strong><span id="responseSummary">Sem resposta recebida ainda.</span></div>
-              <div class="summary" style="margin-top:12px"><strong>Ultimo comando preparado</strong><span id="preparedCommandBox">Nenhum comando por voz preparado.</span></div>
+              <label class="field-label" for="deviceInput">Identificador do dispositivo confiável</label>
+              <input id="deviceInput" type="text" placeholder="Informe o device id autorizado" />
             </div>
           </div>
+          <div class="composer-actions">
+            <button type="button" onclick="salvarCredenciais()">Salvar credenciais</button>
+            <button type="button" class="button-secondary" onclick="atualizarResumo(true)">Atualizar resumo</button>
+          </div>
+          <div class="footnote" id="credentialsHint">Esse bloco só aparece quando o modo simples por senha não está ativo.</div>
+        </article>
+      </section>
+
+      <aside class="side-column">
+        <article class="panel focus-panel">
+          <div class="section-head" style="margin-bottom:16px">
+            <div>
+              <span class="eyebrow">Modo foco</span>
+              <h2>Só o que ajuda</h2>
+              <p id="focusSummary" class="focus-summary">Aguardando o resumo principal do sistema.</p>
+            </div>
+          </div>
+
+          <div class="metrics-grid">
+            <article class="metric">
+              <strong>Saúde do sistema</strong>
+              <span id="quickHealth">-</span>
+              <small id="quickHealthHint">Sem leitura.</small>
+            </article>
+            <article class="metric">
+              <strong>Tempo online</strong>
+              <span id="quickUptime">-</span>
+              <small id="quickUptimeHint">Sem leitura.</small>
+            </article>
+            <article class="metric">
+              <strong>Fila ativa</strong>
+              <span id="quickQueue">-</span>
+              <small id="quickQueueHint">Sem leitura.</small>
+            </article>
+            <article class="metric">
+              <strong>Objetivos ativos</strong>
+              <span id="quickGoals">-</span>
+              <small id="quickGoalsHint">Sem leitura.</small>
+            </article>
+            <article class="metric">
+              <strong>Memória atual</strong>
+              <span id="quickMemory">-</span>
+              <small id="quickMemoryHint">Sem leitura.</small>
+            </article>
+            <article class="metric">
+              <strong>Dispositivos</strong>
+              <span id="quickDevices">-</span>
+              <small id="quickDevicesHint">Sem leitura.</small>
+            </article>
+          </div>
+
+          <div class="insight-grid">
+            <article class="insight-card">
+              <strong>Acesso atual</strong>
+              <div id="accessNarrative">Aguardando leitura de acesso.</div>
+            </article>
+          </div>
         </article>
 
-        <article class="card">
-          <span class="label">Leitura guiada</span><h2>O que esta acontecendo agora</h2>
-          <div class="triples">
-            <div class="listbox"><strong>Objetivos</strong><div id="goalsNarrative">Sem leitura ainda.</div></div>
-            <div class="listbox"><strong>Fila</strong><div id="queueNarrative">Sem leitura ainda.</div></div>
-            <div class="listbox"><strong>Memoria</strong><div id="memoryNarrative">Sem leitura ainda.</div></div>
-            <div class="listbox"><strong>Seguranca e acesso</strong><div id="securityNarrative">Sem leitura ainda.</div></div>
+        <article class="panel explorer-panel">
+          <div class="tabbar">
+            <button type="button" class="tab-button active" data-pane-target="overview" onclick="ativarAba('overview')">Visão rápida</button>
+            <button type="button" class="tab-button" data-pane-target="brain" onclick="ativarAba('brain')">Cérebro</button>
+            <button type="button" class="tab-button" data-pane-target="technical" onclick="ativarAba('technical')">Técnico</button>
           </div>
-          <div class="triples">
-            <div class="listbox"><strong>Ultimas ocorrencias importantes</strong><div id="auditList">Nenhuma ocorrencia carregada ainda.</div></div>
-            <div class="listbox"><strong>Memorias recentes</strong><div id="memoryList">Nenhuma memoria carregada ainda.</div></div>
-            <div class="listbox"><strong>Dispositivos confiaveis</strong><div id="deviceList">Nenhum dispositivo carregado ainda.</div></div>
-          </div>
+
+          <section class="pane active" id="overviewPane">
+            <article class="insight-card">
+              <strong>Objetivos e fila</strong>
+              <div id="goalsNarrative">Sem leitura ainda.</div>
+            </article>
+            <article class="insight-card">
+              <strong>Memória e contexto</strong>
+              <div id="memoryNarrative">Sem leitura ainda.</div>
+            </article>
+            <article class="insight-card">
+              <strong>Dispositivos confiáveis</strong>
+              <div id="deviceList">Sem leitura ainda.</div>
+            </article>
+          </section>
+
+          <section class="pane" id="brainPane">
+            <article class="technical-note">
+              <strong>Cérebro cognitivo evolutivo</strong>
+              <div id="brainPaneIntro">Esse bloco fica fora do caminho principal. Só carregamos o mapa cognitivo quando você realmente abre esta aba.</div>
+            </article>
+            <div class="brain-stage">
+              <div class="brain-controls">
+                <select id="evolutionLevel">
+                  <option value="recente">Nível 1 - evolução recente</option>
+                  <option value="semanal">Nível 2 - evolução semanal</option>
+                  <option value="mensal">Nível 3 - evolução mensal</option>
+                  <option value="historica" selected>Nível 4 - evolução histórica completa</option>
+                </select>
+                <button type="button" id="brainLoadButton" class="button-secondary" onclick="carregarCerebro()">Carregar visual</button>
+                <button type="button" class="button-secondary" onclick="mostrarEvolucao()">Jarvis, mostre sua evolução</button>
+                <button type="button" class="button-ghost" onclick="analisarEvolucao()">Jarvis, analise sua evolução</button>
+              </div>
+              <div class="brain-canvas-wrap" id="brainCanvasWrap">
+                <canvas id="brainCanvas" class="brain-canvas" width="960" height="420"></canvas>
+              </div>
+              <div class="brain-status" id="brainStatus">Mapa cognitivo ainda não carregado.</div>
+              <div class="brain-grid">
+                <article class="insight-card">
+                  <strong>Resumo evolutivo</strong>
+                  <div id="brainSummary">Sem dados.</div>
+                </article>
+                <article class="insight-card">
+                  <strong>Análise cognitiva</strong>
+                  <div id="brainAnalysis">Sem dados.</div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="pane" id="technicalPane">
+            <article class="technical-note">
+              <strong>Detalhes técnicos</strong>
+              <div id="technicalHint">Nada aqui fica carregado por padrão. Essa aba existe só para auditoria e diagnóstico.</div>
+            </article>
+            <div class="technical-actions">
+              <button type="button" class="button-secondary" onclick="carregarDetalhesTecnicos()">Carregar detalhes técnicos</button>
+            </div>
+            <details class="technical-details">
+              <summary>Resumo geral do sistema</summary>
+              <pre id="stateBox">Nenhum dado técnico carregado.</pre>
+            </details>
+            <details class="technical-details">
+              <summary>Relatório de objetivos</summary>
+              <pre id="goalsBox">Nenhum dado técnico carregado.</pre>
+            </details>
+            <details class="technical-details">
+              <summary>Relatório da fila</summary>
+              <pre id="tasksBox">Nenhum dado técnico carregado.</pre>
+            </details>
+            <details class="technical-details">
+              <summary>Relatório de memória</summary>
+              <pre id="memoryBox">Nenhum dado técnico carregado.</pre>
+            </details>
+            <details class="technical-details">
+              <summary>Saúde do sistema</summary>
+              <pre id="healthBox">Nenhum dado técnico carregado.</pre>
+            </details>
+            <details class="technical-details">
+              <summary>Últimas ocorrências importantes</summary>
+              <pre id="auditBox">Nenhum dado técnico carregado.</pre>
+            </details>
+          </section>
         </article>
-      </div>
-
-      <div class="stack">
-        <section class="brain">
-          <span class="label">Cerebro cognitivo evolutivo</span>
-          <h2>Mapa de evolucao da inteligencia</h2>
-          <p>Camada historica do cerebro do Jarvis para observar crescimento, plasticidade sinaptica e trilhas de aprendizado ao longo do tempo.</p>
-          <div class="brain-toolbar">
-            <label for="evolutionLevel">Zoom cognitivo
-              <select id="evolutionLevel">
-                <option value="recente">Nivel 1 - evolucao recente</option>
-                <option value="semanal">Nivel 2 - evolucao semanal</option>
-                <option value="mensal">Nivel 3 - evolucao mensal</option>
-                <option value="historica" selected>Nivel 4 - evolucao historica completa</option>
-              </select>
-            </label>
-            <button type="button" onclick="mostrarEvolucao()">Jarvis, mostre sua evolucao</button>
-            <button type="button" class="secondary" onclick="analisarEvolucao()">Jarvis, analise sua evolucao cognitiva</button>
-          </div>
-          <canvas id="brainCanvas" class="brain-canvas" width="960" height="420"></canvas>
-          <p class="brain-status" id="brainStatus">Mapa evolutivo ainda nao carregado.</p>
-          <div class="dual" style="margin-top:14px">
-            <article class="card"><label>Resumo evolutivo</label><div class="listbox" id="brainSummary">Sem dados.</div></article>
-            <article class="card"><label>Analise cognitiva</label><div class="listbox" id="brainAnalysis">Sem dados.</div></article>
-          </div>
-        </section>
-
-        <article class="card">
-          <span class="label">Detalhes tecnicos</span><h2>JSON bruto para auditoria</h2>
-          <details><summary>Resumo geral do sistema</summary><pre id="stateBox">Sem dados.</pre></details>
-          <details><summary>Relatorio de objetivos</summary><pre id="goalsBox">Sem dados.</pre></details>
-          <details><summary>Relatorio da fila</summary><pre id="tasksBox">Sem dados.</pre></details>
-          <details><summary>Relatorio de memoria</summary><pre id="memoryBox">Sem dados.</pre></details>
-          <details><summary>Saude do sistema</summary><pre id="healthBox">Sem dados.</pre></details>
-          <details><summary>Ultimas ocorrencias importantes</summary><pre id="auditBox">Sem dados.</pre></details>
-        </article>
-      </div>
-    </section>
-
-    <section class="card" id="credentialsBox">
-      <span class="label">Credenciais</span><h2>Token e dispositivo confiavel</h2>
-      <div class="dual">
-        <div><label for="tokenInput">Token de acesso</label><input id="tokenInput" type="password" placeholder="Informe o token da API" /></div>
-        <div><label for="deviceInput">Identificador do dispositivo confiavel</label><input id="deviceInput" type="text" placeholder="Informe o device id autorizado" /></div>
-      </div>
-      <div class="actions" style="margin-top:12px">
-        <button type="button" onclick="salvarCredenciais()">Salvar credenciais</button>
-        <button type="button" class="secondary" onclick="atualizarResumo()">Atualizar resumo</button>
-      </div>
-      <p class="hint" id="credentialsHint">O painel e os endpoints protegidos exigem token e identificador do dispositivo confiavel.</p>
+      </aside>
     </section>
   </main>
 
   <script>
-    const DASHBOARD_CONFIG = __JARVIS_DASHBOARD_CONFIG__, SIMPLE_WEB_LOGIN = Boolean(DASHBOARD_CONFIG.simple_web_login), TOKEN_KEY = "jarvis_api_token", DEVICE_KEY = "jarvis_device_id", VOICE_COMMAND_SOURCE = "voz-web-local", WAKE_WORD = "jarvis", WAKE_TIMEOUT_MS = 8000;
-    const dashboardState = {voice:{supported:false,enabled:false,wakeArmed:false,wakeTimer:null,recognition:null,audioContext:null,analyser:null,mediaStream:null,meterFrame:null,lastPreparedCommand:"",lastAutoSentCommand:"",lastAutoSentAt:0}};
-    const byId = (id) => document.getElementById(id), getToken = () => localStorage.getItem(TOKEN_KEY) || "", getDeviceId = () => localStorage.getItem(DEVICE_KEY) || "", hasStoredTrustedCredentials = () => Boolean(getToken() && getDeviceId());
-    const formatDateTime = (value) => { if (!value) return "nao informado"; const d = new Date(value); return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString("pt-BR"); };
-    const formatDuration = (seconds) => { const s = Math.max(0, Math.round(Number(seconds) || 0)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60; return h > 0 ? `${h}h ${m}min` : m > 0 ? `${m}min ${r}s` : `${r}s`; };
-    const normalizeSpeechText = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\w\s-]/g, " ").replace(/\s+/g, " ").trim();
-    const renderJson = (id, payload) => { byId(id).textContent = JSON.stringify(payload, null, 2); };
-    const renderList = (targetId, items, emptyMessage) => { byId(targetId).innerHTML = !Array.isArray(items) || items.length === 0 ? `<span class="muted">${emptyMessage}</span>` : `<ul>${items.map((item) => `<li>${item}</li>`).join("")}</ul>`; };
-    const setHero = (headline, subline) => { byId("heroHeadline").textContent = headline; byId("heroSubline").textContent = subline; };
-    const escreverResposta = (texto) => { byId("responseBox").textContent = texto; byId("responseSummary").textContent = texto; byId("heroSubline").textContent = texto; };
-    const setPreparedCommand = (text) => { dashboardState.voice.lastPreparedCommand = text; byId("preparedCommandBox").textContent = text || "Nenhum comando por voz preparado."; };
-    const setVoiceState = (pill, text) => { byId("voiceStatusPill").textContent = pill; byId("voiceStateText").textContent = text; };
+    const DASHBOARD_CONFIG = __JARVIS_DASHBOARD_CONFIG__;
+    const SIMPLE_WEB_LOGIN = Boolean(DASHBOARD_CONFIG.simple_web_login);
+    const TOKEN_KEY = "jarvis_api_token";
+    const DEVICE_KEY = "jarvis_device_id";
+    const VOICE_COMMAND_SOURCE = "voz-web-local";
+    const WAKE_WORD = "jarvis";
+    const WAKE_TIMEOUT_MS = 8000;
+
+    const dashboardState = {
+      cache: {
+        primary: null,
+        technical: null,
+      },
+      ui: {
+        activePane: "overview",
+        technicalLoaded: false,
+        brainLoaded: false,
+      },
+      voice: {
+        supported: false,
+        enabled: false,
+        wakeArmed: false,
+        wakeTimer: null,
+        recognition: null,
+        audioContext: null,
+        analyser: null,
+        mediaStream: null,
+        meterFrame: null,
+        lastPreparedCommand: "",
+        lastAutoSentCommand: "",
+        lastAutoSentAt: 0,
+      },
+      brain: {
+        map: null,
+      },
+    };
+
+    const byId = (id) => document.getElementById(id);
+    const getToken = () => localStorage.getItem(TOKEN_KEY) || "";
+    const getDeviceId = () => localStorage.getItem(DEVICE_KEY) || "";
+    const hasStoredTrustedCredentials = () => Boolean(getToken() && getDeviceId());
+
+    const formatDateTime = (value) => {
+      if (!value) return "não informado";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("pt-BR");
+    };
+
+    const formatDuration = (seconds) => {
+      const total = Math.max(0, Math.round(Number(seconds) || 0));
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const remaining = total % 60;
+      if (hours > 0) return `${hours}h ${minutes}min`;
+      if (minutes > 0) return `${minutes}min ${remaining}s`;
+      return `${remaining}s`;
+    };
+
+    const normalizeSpeechText = (value) =>
+      String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const renderJson = (id, payload) => {
+      byId(id).textContent = JSON.stringify(payload, null, 2);
+    };
+
+    function setHero(headline, subline) {
+      byId("heroHeadline").textContent = headline;
+      byId("heroSubline").textContent = subline;
+    }
+
+    function setResponse(text) {
+      byId("responseBox").textContent = text;
+      byId("heroSubline").textContent = text;
+    }
+
+    function setPreparedCommand(text) {
+      dashboardState.voice.lastPreparedCommand = text;
+      byId("preparedCommandBox").textContent = text || "Nenhum comando por voz preparado.";
+    }
+
+    function setVoiceState(chipText, bodyText) {
+      byId("voiceStatusPill").textContent = chipText;
+      byId("voiceStateText").textContent = bodyText;
+    }
 
     function configureDashboardMode() {
       if (!SIMPLE_WEB_LOGIN) {
-        if (getDeviceId()) byId("deviceStatus").textContent = "Dispositivo " + getDeviceId();
+        byId("credentialsBox").hidden = false;
+        byId("credentialsHint").textContent = "Este campo só precisa existir quando o painel depende de token e device id.";
+        if (getDeviceId()) {
+          byId("deviceStatus").textContent = `Dispositivo ${getDeviceId()}`;
+        }
         return;
       }
-      byId("credentialsBox").hidden = true;
-      byId("credentialsHint").textContent = "Sessao web simples ativa por senha administrativa.";
-      byId("deviceStatus").textContent = "Sessao web simples ativa";
-    }
 
-    function salvarCredenciais() {
-      if (SIMPLE_WEB_LOGIN) return escreverResposta("As credenciais de token e dispositivo ficam desabilitadas neste modo.");
-      const token = byId("tokenInput").value.trim(), deviceId = byId("deviceInput").value.trim();
-      if (!token || !deviceId) return escreverResposta("Informe token e identificador do dispositivo.");
-      localStorage.setItem(TOKEN_KEY, token); localStorage.setItem(DEVICE_KEY, deviceId);
-      byId("deviceStatus").textContent = "Dispositivo " + deviceId;
-      byId("accessNarrative").textContent = "Credenciais locais salvas para o dispositivo " + deviceId + ".";
-      escreverResposta("Credenciais salvas. Voce ja pode consultar o sistema.");
-      atualizarResumo();
+      byId("credentialsBox").hidden = true;
+      byId("deviceStatus").textContent = "Sessão web simples ativa";
     }
 
     async function apiFetch(path, options = {}) {
-      const headers = {"Content-Type":"application/json", ...(options.headers || {})}, method = (options.method || "GET").toUpperCase();
+      const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      };
+      const method = (options.method || "GET").toUpperCase();
+
       if (!SIMPLE_WEB_LOGIN) {
-        const token = getToken(), deviceId = getDeviceId();
-        if (!token || !deviceId) throw new Error("Token e identificador do dispositivo sao obrigatorios.");
+        const token = getToken();
+        const deviceId = getDeviceId();
+        if (!token || !deviceId) {
+          throw new Error("Token e identificador do dispositivo são obrigatórios.");
+        }
         headers["X-Jarvis-Token"] = token;
         headers["X-Jarvis-Device-Id"] = deviceId;
       }
-      if (["POST","PUT","PATCH","DELETE"].includes(method)) {
+
+      if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
         headers["X-Jarvis-Nonce"] = crypto.randomUUID();
         headers["X-Jarvis-Timestamp"] = new Date().toISOString();
       }
-      const response = await fetch(path, {...options, headers, credentials:"same-origin"}), payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.detail || payload.mensagem || "Falha na comunicacao com o JARVIS.");
+
+      const response = await fetch(path, {
+        ...options,
+        method,
+        headers,
+        credentials: "same-origin",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.detail || payload.mensagem || "Falha na comunicação com o JARVIS.");
+      }
       return payload;
     }
 
-    function updateOverview(health, systemReport, queueReport, goalsReport, memoryReport, auditReport) {
-      const runtimeStatus = systemReport.status_runtime || {}, queue = queueReport.resumo || {}, goals = goalsReport.resumo || {}, memory = memoryReport.resumo || {}, devices = systemReport.dispositivos_autorizados || {}, latest = systemReport.ultimo_ciclo_executado || {}, auth = (health.ambiente || {}).autenticacao_configurada || {};
-      byId("healthStatus").textContent = "Saude " + (health.status_ptbr || health.status || "desconhecida");
-      byId("runtimeStatus").textContent = "Runtime " + (runtimeStatus.status_ptbr || runtimeStatus.status || "desconhecido");
-      byId("deviceStatus").textContent = SIMPLE_WEB_LOGIN ? "Sessao web simples ativa" : "Dispositivo " + (getDeviceId() || "nao informado");
+    function salvarCredenciais() {
+      if (SIMPLE_WEB_LOGIN) {
+        setResponse("O modo simples por senha não usa token nem device id no painel.");
+        return;
+      }
+
+      const token = byId("tokenInput").value.trim();
+      const deviceId = byId("deviceInput").value.trim();
+      if (!token || !deviceId) {
+        setResponse("Informe token e identificador do dispositivo.");
+        return;
+      }
+
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(DEVICE_KEY, deviceId);
+      byId("deviceStatus").textContent = `Dispositivo ${deviceId}`;
+      setResponse("Credenciais salvas. O painel já pode consultar o sistema.");
+      atualizarResumo(true);
+    }
+
+    function renderPrimarySummary(health, systemReport) {
+      const runtimeStatus = systemReport.status_runtime || {};
+      const queue = systemReport.estado_da_fila || {};
+      const goals = systemReport.objetivos || {};
+      const memory = systemReport.estado_da_memoria || {};
+      const devices = systemReport.dispositivos_autorizados || {};
+      const latest = systemReport.ultimo_ciclo_executado || {};
+      const auth = (health.ambiente || {}).autenticacao_configurada || {};
+
+      byId("healthStatus").textContent = `Saúde ${health.status_ptbr || health.status || "desconhecida"}`;
+      byId("runtimeStatus").textContent = `Runtime ${runtimeStatus.status_ptbr || runtimeStatus.status || "desconhecido"}`;
+      byId("deviceStatus").textContent = SIMPLE_WEB_LOGIN
+        ? "Sessão web simples ativa"
+        : `Dispositivo ${getDeviceId() || "não informado"}`;
+
       byId("quickHealth").textContent = health.status_ptbr || health.status || "-";
-      byId("quickHealthHint").textContent = `API ${health.api_ativa ? "ativa" : "indisponivel"} e runtime ${health.runtime_ativo ? "ativo" : "parado"}.`;
+      byId("quickHealthHint").textContent = `API ${health.api_ativa ? "ativa" : "indisponível"} e runtime ${health.runtime_ativo ? "ativo" : "parado"}.`;
       byId("quickUptime").textContent = formatDuration(health.uptime_segundos);
-      byId("quickUptimeHint").textContent = `Inicializado em ${formatDateTime(health.runtime_iniciado_em)}.`;
-      byId("quickQueue").textContent = String(queue.tarefas_pendentes ?? 0);
-      byId("quickQueueHint").textContent = `${queue.tarefas_bloqueadas ?? 0} bloqueada(s), ${queue.tarefas_concluidas_total ?? 0} concluida(s).`;
-      byId("quickGoals").textContent = String(goals.total_objetivos_ativos ?? 0);
-      byId("quickGoalsHint").textContent = `${goals.total_metas_estrategicas ?? 0} meta(s) estrategica(s).`;
+      byId("quickUptimeHint").textContent = `Iniciado em ${formatDateTime(health.runtime_iniciado_em)}.`;
+      byId("quickQueue").textContent = String(queue.tarefas_pendentes ?? runtimeStatus.queue_depth ?? 0);
+      byId("quickQueueHint").textContent = `${queue.tarefas_bloqueadas ?? 0} bloqueada(s), ${queue.tarefas_concluidas_total ?? 0} concluída(s).`;
+      byId("quickGoals").textContent = String(goals.total_objetivos_ativos ?? systemReport.quantidade_objetivos_ativos ?? 0);
+      byId("quickGoalsHint").textContent = `${goals.total_metas_estrategicas ?? 0} meta(s) estratégica(s).`;
       byId("quickMemory").textContent = String(memory.total_entradas_semanticas ?? 0);
       byId("quickMemoryHint").textContent = `${memory.total_procedimentos ?? 0} procedimento(s) registrados.`;
       byId("quickDevices").textContent = String(devices.total_dispositivos_confiaveis ?? 0);
-      byId("quickDevicesHint").textContent = `Principal: ${devices.dispositivo_principal || "nao definido"}.`;
-      setHero(runtimeStatus.queue_depth > 0 ? `Jarvis online com ${runtimeStatus.queue_depth} tarefa(s) na fila e ${systemReport.quantidade_objetivos_ativos || 0} objetivo(s) ativo(s).` : "Jarvis online e pronto. No momento ele esta sem tarefas pendentes e sem pressao operacional.", auth.senha_admin_source === "environment" ? "A autenticacao web simples esta usando a senha do ambiente." : "O acesso admin ainda nao veio do ambiente.");
-      byId("runtimeNarrative").textContent = `Status ${runtimeStatus.status_ptbr || runtimeStatus.status || "desconhecido"}, autonomia ${runtimeStatus.modo_autonomia || "nao informada"} e ${runtimeStatus.total_cycles_executed || systemReport.total_ciclos_executados || 0} ciclo(s) executado(s).`;
-      byId("cycleNarrative").textContent = latest.status_ptbr ? `Ultimo ciclo ficou ${latest.status_ptbr} por ${latest.reason_ptbr || latest.reason || "motivo nao informado"}.` : "Nenhum ciclo relatado ainda.";
-      byId("accessNarrative").textContent = SIMPLE_WEB_LOGIN ? "Sessao web simples ativa. O painel esta autenticado por senha administrativa." : `Painel protegido por token e dispositivo. Device atual: ${getDeviceId() || "nao informado"}.`;
-      byId("goalsNarrative").textContent = (goals.total_objetivos_ativos || 0) > 0 ? `Existem ${goals.total_objetivos_ativos} objetivo(s) ativo(s) e ${goals.objetivos_concluidos || 0} concluido(s).` : "Nao ha objetivos ativos no momento. O painel mostra um estado de espera operacional.";
-      byId("queueNarrative").textContent = (queue.total_tarefas || 0) > 0 ? `A fila tem ${queue.total_tarefas} tarefa(s), sendo ${queue.tarefas_pendentes || 0} pendente(s).` : "A fila esta vazia. Isso explica o runtime ficar ocioso.";
-      byId("memoryNarrative").textContent = `A memoria semantica tem ${memory.total_entradas_semanticas || 0} entrada(s) e a procedural ${memory.total_procedimentos || 0} procedimento(s). Ultima escrita em ${formatDateTime(memory.ultima_escrita)}.`;
-      byId("securityNarrative").textContent = `Token ${auth.token_configurado ? "configurado" : "indefinido"}, dispositivo confiavel ${auth.dispositivo_confiavel_configurado ? "configurado" : "indefinido"} e senha admin vinda de ${auth.senha_admin_source || "fonte desconhecida"}.`;
-      renderList("auditList", (systemReport.ultimos_eventos || []).slice(0, 6).map((event) => `<strong>${event.event_ptbr || event.event || "evento"}</strong>: ${event.reason_ptbr || event.reason || event.status_ptbr || event.status || "sem detalhe"}${event.timestamp ? " em " + formatDateTime(event.timestamp) : ""}`), "Nenhuma ocorrencia relevante encontrada.");
-      renderList("memoryList", (memoryReport.memorias_recentes || []).slice(0, 5).map((memoryItem) => `<strong>${memoryItem.domain || "geral"}</strong>: ${memoryItem.content || "sem conteudo"}`), "Nenhuma memoria recente carregada.");
-      renderList("deviceList", (devices.dispositivos_confiaveis || []).map((device) => `<strong>${device.nome || device.device_id}</strong> (${device.primary ? "principal" : device.tipo})`), "Nenhum dispositivo confiavel registrado.");
-      renderJson("stateBox", systemReport); renderJson("goalsBox", goalsReport); renderJson("tasksBox", queueReport); renderJson("memoryBox", memoryReport); renderJson("healthBox", health); renderJson("auditBox", auditReport);
+      byId("quickDevicesHint").textContent = `Principal: ${devices.dispositivo_principal || "não definido"}.`;
+
+      const heroHeadline = (queue.tarefas_pendentes || runtimeStatus.queue_depth || 0) > 0
+        ? `Jarvis online com ${(queue.tarefas_pendentes || runtimeStatus.queue_depth || 0)} tarefa(s) esperando atenção.`
+        : "Jarvis online e sem ruído operacional no momento.";
+      const heroSubline = auth.senha_admin_source === "environment"
+        ? "Painel atualizado com as credenciais do ambiente."
+        : "Painel ativo, mas a senha administrativa ainda não veio do ambiente.";
+      setHero(heroHeadline, heroSubline);
+
+      byId("runtimeNarrative").textContent = `Status ${runtimeStatus.status_ptbr || runtimeStatus.status || "desconhecido"}, autonomia ${runtimeStatus.modo_autonomia || "não informada"} e ${runtimeStatus.total_cycles_executed || systemReport.total_ciclos_executados || 0} ciclo(s) executado(s).`;
+      byId("cycleNarrative").textContent = latest.status_ptbr
+        ? `Último ciclo ficou ${latest.status_ptbr} por ${latest.reason_ptbr || latest.reason || "motivo não informado"}.`
+        : "Nenhum ciclo relatado ainda.";
+      byId("accessNarrative").textContent = SIMPLE_WEB_LOGIN
+        ? "Sessão web simples ativa. O painel está autenticado por senha administrativa."
+        : `Painel protegido por token e dispositivo. Device atual: ${getDeviceId() || "não informado"}.`;
+
+      byId("focusSummary").textContent = (goals.total_objetivos_ativos || 0) > 0
+        ? `Há ${goals.total_objetivos_ativos} objetivo(s) ativo(s) e ${(queue.tarefas_pendentes || 0)} tarefa(s) pendente(s).`
+        : "O Jarvis está pronto, com poucos elementos visíveis e sem excesso de telemetria aberta.";
+
+      byId("goalsNarrative").textContent = (goals.total_objetivos_ativos || 0) > 0
+        ? `Existem ${goals.total_objetivos_ativos} objetivo(s) ativo(s) e ${goals.objetivos_concluidos || 0} concluído(s). A fila tem ${queue.tarefas_pendentes || 0} tarefa(s) pendente(s).`
+        : "Não há objetivos ativos nem pressão na fila. O sistema está em espera operacional.";
+
+      byId("memoryNarrative").textContent = `A memória semântica tem ${memory.total_entradas_semanticas || 0} entrada(s), a procedural ${memory.total_procedimentos || 0} procedimento(s) e a última escrita foi em ${formatDateTime(memory.ultima_escrita)}.`;
+
+      const trustedDevices = (devices.dispositivos_confiaveis || []).map((device) => device.nome || device.device_id);
+      byId("deviceList").textContent = trustedDevices.length > 0
+        ? `${trustedDevices.join(", ")}.`
+        : "Nenhum dispositivo confiável registrado.";
     }
 
-    async function atualizarResumo() {
+    async function atualizarResumo(silent = false) {
       try {
-        const [health, systemReport, queueReport, goalsReport, memoryReport, auditReport] = await Promise.all([apiFetch("/api/health"), apiFetch("/api/relatorio/sistema"), apiFetch("/api/relatorio/fila"), apiFetch("/api/relatorio/objetivos"), apiFetch("/api/relatorio/memoria"), apiFetch("/api/relatorio/auditoria")]);
-        updateOverview(health, systemReport, queueReport, goalsReport, memoryReport, auditReport);
-        if (window.jarvisEvolutionMap) await window.jarvisEvolutionMap.refresh();
-        escreverResposta("Painel atualizado com sucesso.");
-      } catch (error) { escreverResposta(error.message); }
+        const [health, systemReport] = await Promise.all([
+          apiFetch("/api/health"),
+          apiFetch("/api/relatorio/sistema"),
+        ]);
+        dashboardState.cache.primary = { health, systemReport };
+        renderPrimarySummary(health, systemReport);
+        if (!silent) {
+          setResponse("Painel atualizado com sucesso.");
+        }
+      } catch (error) {
+        setResponse(error.message);
+      }
+    }
+
+    async function carregarDetalhesTecnicos(force = false) {
+      if (dashboardState.ui.technicalLoaded && !force) {
+        return;
+      }
+
+      try {
+        const [health, systemReport, queueReport, goalsReport, memoryReport, auditReport] = await Promise.all([
+          apiFetch("/api/health"),
+          apiFetch("/api/relatorio/sistema"),
+          apiFetch("/api/relatorio/fila"),
+          apiFetch("/api/relatorio/objetivos"),
+          apiFetch("/api/relatorio/memoria"),
+          apiFetch("/api/relatorio/auditoria"),
+        ]);
+
+        dashboardState.cache.technical = { health, systemReport, queueReport, goalsReport, memoryReport, auditReport };
+        dashboardState.ui.technicalLoaded = true;
+
+        renderJson("stateBox", systemReport);
+        renderJson("goalsBox", goalsReport);
+        renderJson("tasksBox", queueReport);
+        renderJson("memoryBox", memoryReport);
+        renderJson("healthBox", health);
+        renderJson("auditBox", auditReport);
+        byId("technicalHint").textContent = "Detalhes técnicos carregados sob demanda. Eles ficam fora da frente principal para não poluir a navegação.";
+      } catch (error) {
+        setResponse(error.message);
+      }
     }
 
     async function executarCiclo() {
       try {
-        const payload = await apiFetch("/api/ciclos/executar", {method:"POST"}), result = payload.resultado || {};
-        escreverResposta(`Ciclo executado com status ${result.status_ptbr || result.status || "desconhecido"}.`);
-        await atualizarResumo();
-      } catch (error) { escreverResposta(error.message); }
+        const payload = await apiFetch("/api/ciclos/executar", { method: "POST" });
+        const result = payload.resultado || {};
+        setResponse(`Ciclo executado com status ${result.status_ptbr || result.status || "desconhecido"}.`);
+        await atualizarResumo(true);
+        if (dashboardState.ui.technicalLoaded) {
+          await carregarDetalhesTecnicos(true);
+        }
+      } catch (error) {
+        setResponse(error.message);
+      }
     }
 
     async function enviarComando(options = {}) {
-      const command = String(options.command ?? byId("commandInput").value).trim(), voice = String(options.voice ?? byId("voiceInput").value).trim(), password = String(options.password ?? byId("passwordInput").value).trim();
-      if (!command) return escreverResposta("Digite um comando textual antes de enviar.");
+      const command = String(options.command ?? byId("commandInput").value).trim();
+      const voice = String(options.voice ?? byId("voiceInput").value).trim();
+      const password = String(options.password ?? byId("passwordInput").value).trim();
+      if (!command) {
+        setResponse("Digite um comando textual antes de enviar.");
+        return;
+      }
+
       try {
-        const payload = await apiFetch("/api/comando", {method:"POST", body:JSON.stringify({texto:command, voz_identificada:voice || null, senha:password || null, modo_resposta:"conversacional"})});
-        escreverResposta(payload.resposta || payload.mensagem || "Sem resposta do runtime.");
-        byId("commandInput").value = command;
+        const payload = await apiFetch("/api/comando", {
+          method: "POST",
+          body: JSON.stringify({
+            texto: command,
+            voz_identificada: voice || null,
+            senha: password || null,
+            modo_resposta: "conversacional",
+          }),
+        });
+        const responseText = payload.resposta || payload.mensagem || "Sem resposta do runtime.";
+        setResponse(responseText);
         setPreparedCommand(command);
-        await atualizarResumo();
-      } catch (error) { escreverResposta(error.message); }
+        byId("commandInput").value = command;
+        await atualizarResumo(true);
+        if (dashboardState.ui.technicalLoaded) {
+          await carregarDetalhesTecnicos(true);
+        }
+      } catch (error) {
+        setResponse(error.message);
+      }
     }
-  </script>
-  <script>
+
+    function ativarAba(pane) {
+      dashboardState.ui.activePane = pane;
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.paneTarget === pane);
+      });
+      document.querySelectorAll(".pane").forEach((element) => {
+        element.classList.toggle("active", element.id === `${pane}Pane`);
+      });
+
+      if (pane === "technical") {
+        carregarDetalhesTecnicos();
+      }
+      if (pane === "brain") {
+        carregarCerebro();
+      }
+    }
+
+    async function carregarCerebro() {
+      if (dashboardState.ui.brainLoaded) {
+        byId("brainStatus").textContent = "Mapa cognitivo pronto.";
+        return;
+      }
+
+      try {
+        const module = await import("/brain-avatar/evolution_map.js");
+        dashboardState.brain.map = module.createEvolutionMap({
+          canvas: byId("brainCanvas"),
+          summaryTarget: byId("brainSummary"),
+          analysisTarget: byId("brainAnalysis"),
+          statusTarget: byId("brainStatus"),
+          fetchJson: (path) => apiFetch(path),
+        });
+        dashboardState.ui.brainLoaded = true;
+        byId("brainCanvasWrap").classList.add("ready");
+        byId("brainLoadButton").textContent = "Visual carregado";
+        byId("brainPaneIntro").textContent = "Mapa cognitivo carregado sob demanda. Ele não fica ocupando espaço nem carregando o painel principal.";
+        await dashboardState.brain.map.showEvolution(getEvolutionLevel());
+      } catch (error) {
+        setResponse(error.message);
+      }
+    }
+
+    function getEvolutionLevel() {
+      return byId("evolutionLevel").value || "historica";
+    }
+
+    async function mostrarEvolucao() {
+      try {
+        await carregarCerebro();
+        await dashboardState.brain.map.showEvolution(getEvolutionLevel());
+        setResponse("Mapa evolutivo cognitivo atualizado.");
+      } catch (error) {
+        setResponse(error.message);
+      }
+    }
+
+    async function analisarEvolucao() {
+      try {
+        await carregarCerebro();
+        await dashboardState.brain.map.analyzeEvolution(getEvolutionLevel());
+        setResponse("Análise interna da evolução cognitiva concluída.");
+      } catch (error) {
+        setResponse(error.message);
+      }
+    }
+
     const getSpeechRecognitionConstructor = () => window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
     function configureVoiceSupport() {
-      dashboardState.voice.supported = Boolean(getSpeechRecognitionConstructor() && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function" && window.crypto && typeof window.crypto.randomUUID === "function");
-      if (!dashboardState.voice.supported) { setVoiceState("Voz indisponivel neste navegador", "Este navegador nao oferece a combinacao necessaria de microfone + reconhecimento de fala."); byId("voiceHint").textContent = "Se quiser usar voz, abra o painel em um navegador com Web Speech API e permissao de microfone."; byId("voiceToggleButton").disabled = true; return; }
-      setVoiceState("Voz pronta para ativacao", "Escuta por voz pronta. Clique para permitir o microfone.");
+      dashboardState.voice.supported = Boolean(
+        getSpeechRecognitionConstructor() &&
+        navigator.mediaDevices &&
+        typeof navigator.mediaDevices.getUserMedia === "function" &&
+        window.crypto &&
+        typeof window.crypto.randomUUID === "function"
+      );
+
+      if (!dashboardState.voice.supported) {
+        setVoiceState("Voz indisponível", "Este navegador não oferece a combinação necessária de microfone e reconhecimento de fala.");
+        byId("voiceHint").textContent = "Abra o painel em um navegador com Web Speech API e microfone liberado.";
+        byId("voiceToggleButton").disabled = true;
+        return;
+      }
+
+      setVoiceState("Voz pronta para ativação", "Clique para permitir o microfone e comece dizendo “Jarvis”.");
     }
+
     async function ensureVoiceAnalyser() {
-      if (dashboardState.voice.mediaStream && dashboardState.voice.analyser) return;
-      const stream = await navigator.mediaDevices.getUserMedia({audio:true}), AudioContextClass = window.AudioContext || window.webkitAudioContext; if (!AudioContextClass) throw new Error("Este navegador nao oferece AudioContext para acompanhar a intensidade da voz.");
-      const audioContext = new AudioContextClass(), analyser = audioContext.createAnalyser(), source = audioContext.createMediaStreamSource(stream); analyser.fftSize = 1024; source.connect(analyser); Object.assign(dashboardState.voice, {mediaStream:stream, audioContext, analyser});
+      if (dashboardState.voice.mediaStream && dashboardState.voice.analyser) {
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error("Este navegador não oferece AudioContext para acompanhar a intensidade da voz.");
+      }
+
+      const audioContext = new AudioContextClass();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      analyser.fftSize = 1024;
+      source.connect(analyser);
+      Object.assign(dashboardState.voice, { mediaStream: stream, audioContext, analyser });
     }
+
     function startVoiceMeter() {
-      const analyser = dashboardState.voice.analyser, fill = byId("voiceMeterFill"); if (!analyser) return fill.style.width = "0%";
-      const data = new Uint8Array(analyser.fftSize), tick = () => { if (!dashboardState.voice.enabled || !dashboardState.voice.analyser) return fill.style.width = "0%"; analyser.getByteTimeDomainData(data); let sum = 0; for (let i = 0; i < data.length; i += 1) { const centered = (data[i] - 128) / 128; sum += centered * centered; } fill.style.width = `${Math.min(100, Math.max(2, Math.round(Math.sqrt(sum / data.length) * 280)))}%`; dashboardState.voice.meterFrame = requestAnimationFrame(tick); };
-      if (dashboardState.voice.meterFrame) cancelAnimationFrame(dashboardState.voice.meterFrame); dashboardState.voice.meterFrame = requestAnimationFrame(tick);
+      const analyser = dashboardState.voice.analyser;
+      const fill = byId("voiceMeterFill");
+      if (!analyser) {
+        fill.style.width = "0%";
+        return;
+      }
+
+      const data = new Uint8Array(analyser.fftSize);
+      const tick = () => {
+        if (!dashboardState.voice.enabled || !dashboardState.voice.analyser) {
+          fill.style.width = "0%";
+          return;
+        }
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i += 1) {
+          const centered = (data[i] - 128) / 128;
+          sum += centered * centered;
+        }
+        fill.style.width = `${Math.min(100, Math.max(2, Math.round(Math.sqrt(sum / data.length) * 280)))}%`;
+        dashboardState.voice.meterFrame = requestAnimationFrame(tick);
+      };
+
+      if (dashboardState.voice.meterFrame) {
+        cancelAnimationFrame(dashboardState.voice.meterFrame);
+      }
+      dashboardState.voice.meterFrame = requestAnimationFrame(tick);
     }
-    function stopVoiceMeter() { if (dashboardState.voice.meterFrame) cancelAnimationFrame(dashboardState.voice.meterFrame); dashboardState.voice.meterFrame = null; byId("voiceMeterFill").style.width = "0%"; }
-    function clearWakeTimer() { if (dashboardState.voice.wakeTimer) clearTimeout(dashboardState.voice.wakeTimer); dashboardState.voice.wakeTimer = null; }
-    function armWakeWindow() { dashboardState.voice.wakeArmed = true; clearWakeTimer(); dashboardState.voice.wakeTimer = setTimeout(() => { dashboardState.voice.wakeArmed = false; byId("voiceStateText").textContent = 'Escuta continua ativa. Aguardando voce dizer "Jarvis".'; }, WAKE_TIMEOUT_MS); byId("voiceStateText").textContent = 'Palavra de ativacao detectada. Agora diga o comando.'; }
+
+    function stopVoiceMeter() {
+      if (dashboardState.voice.meterFrame) {
+        cancelAnimationFrame(dashboardState.voice.meterFrame);
+      }
+      dashboardState.voice.meterFrame = null;
+      byId("voiceMeterFill").style.width = "0%";
+    }
+
+    function clearWakeTimer() {
+      if (dashboardState.voice.wakeTimer) {
+        clearTimeout(dashboardState.voice.wakeTimer);
+      }
+      dashboardState.voice.wakeTimer = null;
+    }
+
+    function armWakeWindow() {
+      dashboardState.voice.wakeArmed = true;
+      clearWakeTimer();
+      dashboardState.voice.wakeTimer = setTimeout(() => {
+        dashboardState.voice.wakeArmed = false;
+        byId("voiceStateText").textContent = "Escuta contínua ativa. Aguardando você dizer “Jarvis”.";
+      }, WAKE_TIMEOUT_MS);
+      byId("voiceStateText").textContent = "Palavra de ativação detectada. Agora diga o comando.";
+    }
+
     function prepareVoiceCommand(commandText, rawTranscript) {
-      const normalizedCommand = String(commandText || "").trim(); if (!normalizedCommand) return;
-      byId("commandInput").value = normalizedCommand; if (!byId("voiceInput").value.trim()) byId("voiceInput").value = VOICE_COMMAND_SOURCE; setPreparedCommand(normalizedCommand); byId("voiceTranscriptBox").textContent = `Transcricao final: ${rawTranscript}`; dashboardState.voice.wakeArmed = false; clearWakeTimer();
-      const autoSend = byId("voiceAutoSendToggle").checked, now = Date.now();
-      if (autoSend && (dashboardState.voice.lastAutoSentCommand !== normalizedCommand || now - dashboardState.voice.lastAutoSentAt > 7000)) { dashboardState.voice.lastAutoSentCommand = normalizedCommand; dashboardState.voice.lastAutoSentAt = now; enviarComando({command:normalizedCommand, voice:VOICE_COMMAND_SOURCE}); } else { byId("voiceStateText").textContent = `Comando preparado: ${normalizedCommand}`; }
+      const normalizedCommand = String(commandText || "").trim();
+      if (!normalizedCommand) {
+        return;
+      }
+
+      byId("commandInput").value = normalizedCommand;
+      if (!byId("voiceInput").value.trim()) {
+        byId("voiceInput").value = VOICE_COMMAND_SOURCE;
+      }
+      setPreparedCommand(normalizedCommand);
+      byId("voiceTranscriptBox").textContent = `Transcrição final: ${rawTranscript}`;
+      dashboardState.voice.wakeArmed = false;
+      clearWakeTimer();
+
+      const autoSend = byId("voiceAutoSendToggle").checked;
+      const now = Date.now();
+      if (
+        autoSend &&
+        (
+          dashboardState.voice.lastAutoSentCommand !== normalizedCommand ||
+          now - dashboardState.voice.lastAutoSentAt > 7000
+        )
+      ) {
+        dashboardState.voice.lastAutoSentCommand = normalizedCommand;
+        dashboardState.voice.lastAutoSentAt = now;
+        enviarComando({ command: normalizedCommand, voice: VOICE_COMMAND_SOURCE });
+      } else {
+        byId("voiceStateText").textContent = `Comando preparado: ${normalizedCommand}`;
+      }
     }
+
     function processFinalSpeechChunk(chunk) {
-      const normalized = normalizeSpeechText(chunk); if (!normalized) return; byId("voiceTranscriptBox").textContent = `Ultima fala: ${chunk}`;
-      const wakeIndex = normalized.indexOf(WAKE_WORD), hasWakeWord = wakeIndex >= 0;
-      if (hasWakeWord) { armWakeWindow(); const rawLower = chunk.toLowerCase(), rawIndex = rawLower.indexOf(WAKE_WORD), afterWake = rawIndex >= 0 ? chunk.slice(rawIndex + WAKE_WORD.length).replace(/^[\\s,.;:-]+/, "").trim() : ""; if (afterWake) prepareVoiceCommand(afterWake, chunk); return; }
-      if (dashboardState.voice.wakeArmed) prepareVoiceCommand(chunk.trim(), chunk);
+      const normalized = normalizeSpeechText(chunk);
+      if (!normalized) {
+        return;
+      }
+
+      byId("voiceTranscriptBox").textContent = `Última fala: ${chunk}`;
+      const wakeIndex = normalized.indexOf(WAKE_WORD);
+      const hasWakeWord = wakeIndex >= 0;
+
+      if (hasWakeWord) {
+        armWakeWindow();
+        const rawLower = chunk.toLowerCase();
+        const rawIndex = rawLower.indexOf(WAKE_WORD);
+        const afterWake = rawIndex >= 0
+          ? chunk.slice(rawIndex + WAKE_WORD.length).replace(/^[\s,.;:-]+/, "").trim()
+          : "";
+        if (afterWake) {
+          prepareVoiceCommand(afterWake, chunk);
+        }
+        return;
+      }
+
+      if (dashboardState.voice.wakeArmed) {
+        prepareVoiceCommand(chunk.trim(), chunk);
+      }
     }
+
     function createRecognition() {
-      if (dashboardState.voice.recognition) return dashboardState.voice.recognition;
-      const SpeechRecognition = getSpeechRecognitionConstructor(); if (!SpeechRecognition) throw new Error("Reconhecimento de fala indisponivel neste navegador.");
-      const recognition = new SpeechRecognition(); recognition.lang = "pt-BR"; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 1;
-      recognition.onstart = () => setVoiceState("Ouvindo por voz", 'Escuta continua ativa. Diga "Jarvis" para acordar o painel.');
-      recognition.onerror = (event) => { setVoiceState("Falha na voz", `A escuta encontrou o erro ${(event && event.error) || "erro_desconhecido"}.`); byId("voiceHint").textContent = "Se o navegador bloquear o microfone, libere a permissao e tente novamente."; };
-      recognition.onend = () => { if (!dashboardState.voice.enabled) return setVoiceState("Voz pausada", "Escuta por voz pausada."); setTimeout(() => { if (dashboardState.voice.enabled) try { recognition.start(); } catch (_error) {} }, 450); };
-      recognition.onresult = (event) => { let interim = "", finals = []; for (let i = event.resultIndex; i < event.results.length; i += 1) { const result = event.results[i], transcript = result[0]?.transcript?.trim() || ""; if (!transcript) continue; if (result.isFinal) finals.push(transcript); else interim += (interim ? " " : "") + transcript; } if (interim) byId("voiceTranscriptBox").textContent = `Ouvindo: ${interim}`; finals.forEach(processFinalSpeechChunk); };
-      dashboardState.voice.recognition = recognition; return recognition;
+      if (dashboardState.voice.recognition) {
+        return dashboardState.voice.recognition;
+      }
+
+      const SpeechRecognition = getSpeechRecognitionConstructor();
+      if (!SpeechRecognition) {
+        throw new Error("Reconhecimento de fala indisponível neste navegador.");
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = "pt-BR";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setVoiceState("Ouvindo por voz", "Escuta contínua ativa. Diga “Jarvis” para acordar o painel.");
+      };
+
+      recognition.onerror = (event) => {
+        setVoiceState("Falha na voz", `A escuta encontrou o erro ${(event && event.error) || "erro_desconhecido"}.`);
+        byId("voiceHint").textContent = "Se o navegador bloquear o microfone, libere a permissão e tente novamente.";
+      };
+
+      recognition.onend = () => {
+        if (!dashboardState.voice.enabled) {
+          setVoiceState("Voz pausada", "Escuta por voz pausada.");
+          return;
+        }
+        setTimeout(() => {
+          if (dashboardState.voice.enabled) {
+            try {
+              recognition.start();
+            } catch (_error) {
+            }
+          }
+        }, 450);
+      };
+
+      recognition.onresult = (event) => {
+        let interim = "";
+        const finals = [];
+
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const result = event.results[i];
+          const transcript = result[0]?.transcript?.trim() || "";
+          if (!transcript) {
+            continue;
+          }
+          if (result.isFinal) {
+            finals.push(transcript);
+          } else {
+            interim += `${interim ? " " : ""}${transcript}`;
+          }
+        }
+
+        if (interim) {
+          byId("voiceTranscriptBox").textContent = `Ouvindo: ${interim}`;
+        }
+
+        finals.forEach(processFinalSpeechChunk);
+      };
+
+      dashboardState.voice.recognition = recognition;
+      return recognition;
     }
+
     async function ativarEscutaPorVoz() {
-      if (!dashboardState.voice.supported) return escreverResposta("Este navegador nao suporta a escuta por voz desse painel.");
-      try { await ensureVoiceAnalyser(); const recognition = createRecognition(); dashboardState.voice.enabled = true; byId("voiceToggleButton").textContent = "Escuta ativa"; byId("voiceStopButton").disabled = false; setVoiceState("Preparando a voz", "Microfone liberado. Inicializando escuta continua."); startVoiceMeter(); try { recognition.start(); } catch (_error) {} } catch (error) { dashboardState.voice.enabled = false; setVoiceState("Voz indisponivel", error.message); escreverResposta(error.message); }
+      if (!dashboardState.voice.supported) {
+        setResponse("Este navegador não suporta a escuta por voz deste painel.");
+        return;
+      }
+
+      try {
+        await ensureVoiceAnalyser();
+        const recognition = createRecognition();
+        dashboardState.voice.enabled = true;
+        byId("voiceToggleButton").textContent = "Escuta ativa";
+        byId("voiceStopButton").disabled = false;
+        setVoiceState("Preparando a voz", "Microfone liberado. Inicializando escuta contínua.");
+        startVoiceMeter();
+        try {
+          recognition.start();
+        } catch (_error) {
+        }
+      } catch (error) {
+        dashboardState.voice.enabled = false;
+        setVoiceState("Voz indisponível", error.message);
+        setResponse(error.message);
+      }
     }
+
     function desligarEscutaPorVoz() {
-      dashboardState.voice.enabled = false; dashboardState.voice.wakeArmed = false; clearWakeTimer(); if (dashboardState.voice.recognition) try { dashboardState.voice.recognition.stop(); } catch (_error) {}
-      if (dashboardState.voice.mediaStream) { dashboardState.voice.mediaStream.getTracks().forEach((track) => track.stop()); dashboardState.voice.mediaStream = null; }
-      if (dashboardState.voice.audioContext) { dashboardState.voice.audioContext.close().catch(() => {}); dashboardState.voice.audioContext = null; }
-      dashboardState.voice.analyser = null; stopVoiceMeter(); setVoiceState("Voz pausada", "Escuta por voz pausada."); byId("voiceHint").textContent = 'A escuta pode ser religada quando voce quiser voltar a chamar o painel por "Jarvis".'; byId("voiceToggleButton").textContent = "Ativar escuta continua"; byId("voiceStopButton").disabled = true;
+      dashboardState.voice.enabled = false;
+      dashboardState.voice.wakeArmed = false;
+      clearWakeTimer();
+      if (dashboardState.voice.recognition) {
+        try {
+          dashboardState.voice.recognition.stop();
+        } catch (_error) {
+        }
+      }
+      if (dashboardState.voice.mediaStream) {
+        dashboardState.voice.mediaStream.getTracks().forEach((track) => track.stop());
+        dashboardState.voice.mediaStream = null;
+      }
+      if (dashboardState.voice.audioContext) {
+        dashboardState.voice.audioContext.close().catch(() => {});
+        dashboardState.voice.audioContext = null;
+      }
+      dashboardState.voice.analyser = null;
+      stopVoiceMeter();
+      setVoiceState("Voz pausada", "Escuta por voz pausada.");
+      byId("voiceHint").textContent = "A escuta pode ser religada quando você quiser voltar a chamar o painel por “Jarvis”.";
+      byId("voiceToggleButton").textContent = "Ativar escuta contínua";
+      byId("voiceStopButton").disabled = true;
     }
-    function alternarEscutaPorVoz() { return dashboardState.voice.enabled ? desligarEscutaPorVoz() : ativarEscutaPorVoz(); }
-    function getEvolutionLevel() { return byId("evolutionLevel").value || "historica"; }
-    async function mostrarEvolucao() { if (!window.jarvisEvolutionMap) return escreverResposta("Mapa evolutivo ainda nao inicializado."); try { await window.jarvisEvolutionMap.showEvolution(getEvolutionLevel()); escreverResposta("Mapa evolutivo cognitivo atualizado."); } catch (error) { escreverResposta(error.message); } }
-    async function analisarEvolucao() { if (!window.jarvisEvolutionMap) return escreverResposta("Mapa evolutivo ainda nao inicializado."); try { await window.jarvisEvolutionMap.analyzeEvolution(getEvolutionLevel()); escreverResposta("Analise interna da evolucao cognitiva concluida."); } catch (error) { escreverResposta(error.message); } }
-    window.atualizarResumo = atualizarResumo; window.enviarComando = enviarComando; window.executarCiclo = executarCiclo; window.salvarCredenciais = salvarCredenciais; window.alternarEscutaPorVoz = alternarEscutaPorVoz; window.desligarEscutaPorVoz = desligarEscutaPorVoz; window.mostrarEvolucao = mostrarEvolucao; window.analisarEvolucao = analisarEvolucao; window.apiFetch = apiFetch;
-    window.addEventListener("load", () => { byId("tokenInput").value = getToken(); byId("deviceInput").value = getDeviceId(); configureDashboardMode(); configureVoiceSupport(); if (SIMPLE_WEB_LOGIN || hasStoredTrustedCredentials()) atualizarResumo(); else setHero("O painel ainda precisa das credenciais do dispositivo confiavel.", "Preencha token e identificador para comecar."); });
-  </script>
-  <script type="module">
-    import { createEvolutionMap } from "/brain-avatar/evolution_map.js";
-    window.jarvisEvolutionMap = createEvolutionMap({canvas:document.getElementById("brainCanvas"),summaryTarget:document.getElementById("brainSummary"),analysisTarget:document.getElementById("brainAnalysis"),statusTarget:document.getElementById("brainStatus"),fetchJson:(path) => window.apiFetch(path)});
+
+    function alternarEscutaPorVoz() {
+      if (dashboardState.voice.enabled) {
+        desligarEscutaPorVoz();
+      } else {
+        ativarEscutaPorVoz();
+      }
+    }
+
+    window.atualizarResumo = atualizarResumo;
+    window.enviarComando = enviarComando;
+    window.executarCiclo = executarCiclo;
+    window.salvarCredenciais = salvarCredenciais;
+    window.alternarEscutaPorVoz = alternarEscutaPorVoz;
+    window.desligarEscutaPorVoz = desligarEscutaPorVoz;
+    window.mostrarEvolucao = mostrarEvolucao;
+    window.analisarEvolucao = analisarEvolucao;
+    window.ativarAba = ativarAba;
+    window.carregarDetalhesTecnicos = carregarDetalhesTecnicos;
+    window.carregarCerebro = carregarCerebro;
+
+    window.addEventListener("load", () => {
+      byId("tokenInput").value = getToken();
+      byId("deviceInput").value = getDeviceId();
+      configureDashboardMode();
+      configureVoiceSupport();
+      if (SIMPLE_WEB_LOGIN || hasStoredTrustedCredentials()) {
+        atualizarResumo(true);
+      } else {
+        setHero("O painel ainda precisa das credenciais do dispositivo confiável.", "Preencha token e identificador para começar.");
+      }
+    });
   </script>
 </body>
 </html>

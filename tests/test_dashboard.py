@@ -80,13 +80,12 @@ class JarvisDashboardTests(unittest.TestCase):
         unlocked_response = client.get("/painel")
         self.assertEqual(unlocked_response.status_code, 200)
         self.assertIn("<title>Painel JARVIS</title>", unlocked_response.text)
-        self.assertIn("Comando textual", unlocked_response.text)
-        self.assertIn("Saude do sistema", unlocked_response.text)
-        self.assertIn("Ultimas ocorrencias importantes", unlocked_response.text)
-        self.assertIn("Cerebro cognitivo evolutivo", unlocked_response.text)
+        self.assertIn("Fale com o Jarvis sem ruído", unlocked_response.text)
+        self.assertIn("Saúde do sistema", unlocked_response.text)
+        self.assertIn("Últimas ocorrências importantes", unlocked_response.text)
+        self.assertIn("Cérebro cognitivo evolutivo", unlocked_response.text)
         self.assertIn("Central de voz", unlocked_response.text)
-        self.assertIn('Ativar escuta continua', unlocked_response.text)
-        self.assertIn("/brain-avatar/evolution_map.js", unlocked_response.text)
+        self.assertIn('Ativar escuta contínua', unlocked_response.text)
 
     def test_assets_do_brain_avatar_sao_servidos_pela_api(self) -> None:
         """Confirma que os modulos JS do brain avatar ficam acessiveis pelo mesmo servidor."""
@@ -137,7 +136,7 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertEqual(unlocked_response.status_code, 200)
         self.assertIn("<title>Painel JARVIS</title>", unlocked_response.text)
         self.assertIn('"simple_web_login": true', unlocked_response.text)
-        self.assertIn("Sessao web simples ativa", unlocked_response.text)
+        self.assertIn("Sessão web simples ativa", unlocked_response.text)
         self.assertIn("Central de voz", unlocked_response.text)
 
 
