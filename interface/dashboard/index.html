@@ -38,7 +38,7 @@
         linear-gradient(180deg, #07111c 0%, #08121d 38%, #09141f 100%);
     }
 
-    body { padding: 20px; }
+    body { padding: 18px; }
 
     .app-shell { width: min(1040px, 100%); margin: 0 auto; display: grid; gap: 16px; }
 
@@ -53,8 +53,8 @@
     .topbar {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 14px;
-      padding: 20px;
+      gap: 12px;
+      padding: 18px 20px;
       background:
         linear-gradient(135deg, rgba(14, 28, 40, 0.96), rgba(12, 26, 39, 0.92)),
         linear-gradient(135deg, rgba(61, 217, 184, 0.08), rgba(104, 225, 255, 0.04));
@@ -78,13 +78,13 @@
     }
 
     .topbar h1 {
-      margin: 12px 0 8px;
-      font-size: clamp(2.3rem, 6vw, 4rem);
-      line-height: 0.98;
+      margin: 10px 0 6px;
+      font-size: clamp(2rem, 5vw, 3rem);
+      line-height: 1;
       letter-spacing: -0.06em;
     }
 
-    .topbar p { margin: 0; max-width: 760px; line-height: 1.55; color: var(--muted); font-size: 1rem; }
+    .topbar p { margin: 0; max-width: 760px; line-height: 1.5; color: var(--muted); font-size: 0.97rem; }
     .topbar-side { display: grid; gap: 12px; align-content: start; }
     .topbar-actions { display: flex; justify-content: flex-start; gap: 10px; flex-wrap: wrap; }
     .status-strip { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -168,6 +168,60 @@
     .topbar-actions button, .composer-actions button, .voice-controls button, .brain-controls button { padding: 13px 16px; }
     .assistant-layout, .message-stack { display: grid; gap: 14px; }
 
+    .chat-thread {
+      display: grid;
+      gap: 12px;
+      min-height: 280px;
+      max-height: 520px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .chat-bubble {
+      max-width: min(86%, 720px);
+      padding: 14px 16px;
+      border-radius: 22px;
+      line-height: 1.65;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .chat-bubble.user {
+      justify-self: end;
+      background: linear-gradient(135deg, rgba(61, 217, 184, 0.16), rgba(104, 225, 255, 0.1));
+      border-color: rgba(104, 225, 255, 0.18);
+    }
+
+    .chat-bubble.assistant {
+      justify-self: start;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .chat-bubble.system {
+      justify-self: center;
+      background: rgba(244, 184, 96, 0.08);
+      border-style: dashed;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .chat-meta {
+      display: block;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .chat-empty {
+      align-self: center;
+      justify-self: center;
+      text-align: center;
+      color: var(--muted);
+      max-width: 420px;
+      line-height: 1.6;
+      padding: 24px;
+    }
+
     .message-card {
       background: var(--panel-muted);
       border: 1px solid var(--line);
@@ -193,10 +247,7 @@
     .message-card.response {
       background: linear-gradient(180deg, rgba(10, 17, 28, 0.98), rgba(8, 14, 24, 0.98));
       border-color: rgba(104, 225, 255, 0.1);
-      min-height: 220px;
-      font-size: 1.05rem;
-      line-height: 1.7;
-      white-space: pre-wrap;
+      min-height: 320px;
     }
 
     .composer-card {
@@ -437,8 +488,10 @@
           <div class="assistant-layout">
             <div class="message-stack">
               <article class="message-card response">
-                <strong>Resposta do Jarvis</strong>
-                <div id="responseBox">Pronto para conversar.</div>
+                <strong>Conversa</strong>
+                <div id="responseBox" class="chat-thread">
+                  <div class="chat-empty">Comece escrevendo ou ative a voz. O Jarvis vai responder aqui em formato de conversa.</div>
+                </div>
               </article>
               <div class="minibar">
                 <article class="compact-note">
@@ -690,6 +743,10 @@
         primary: null,
         technical: null,
       },
+      chat: {
+        initialized: false,
+        messages: [],
+      },
       ui: {
         activePane: "overview",
         technicalLoaded: false,
@@ -718,6 +775,12 @@
     const getToken = () => localStorage.getItem(TOKEN_KEY) || "";
     const getDeviceId = () => localStorage.getItem(DEVICE_KEY) || "";
     const hasStoredTrustedCredentials = () => Boolean(getToken() && getDeviceId());
+    const escapeHtml = (value) =>
+      String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;");
 
     const formatDateTime = (value) => {
       if (!value) return "não informado";
@@ -754,8 +817,39 @@
     }
 
     function setResponse(text) {
-      byId("responseBox").textContent = text;
       byId("heroSubline").textContent = text;
+    }
+
+    function renderChatThread() {
+      const target = byId("responseBox");
+      if (!dashboardState.chat.messages.length) {
+        target.innerHTML = '<div class="chat-empty">Comece escrevendo ou ative a voz. O Jarvis vai responder aqui em formato de conversa.</div>';
+        return;
+      }
+
+      target.innerHTML = dashboardState.chat.messages
+        .map((message) => {
+          const meta = message.meta ? `<span class="chat-meta">${escapeHtml(message.meta)}</span>` : "";
+          return `<article class="chat-bubble ${message.role}">${escapeHtml(message.text)}${meta}</article>`;
+        })
+        .join("");
+      target.scrollTop = target.scrollHeight;
+    }
+
+    function appendChatMessage(role, text, meta = "") {
+      dashboardState.chat.messages.push({ role, text, meta });
+      renderChatThread();
+      if (role === "assistant" || role === "system") {
+        setResponse(text);
+      }
+    }
+
+    function ensureChatInitialized() {
+      if (dashboardState.chat.initialized) {
+        return;
+      }
+      dashboardState.chat.initialized = true;
+      appendChatMessage("assistant", "Pronto para conversar. Escreva o que você quiser ou ative a voz para chamar pelo Jarvis.");
     }
 
     function setPreparedCommand(text) {
@@ -906,10 +1000,10 @@
         dashboardState.cache.primary = { health, systemReport };
         renderPrimarySummary(health, systemReport);
         if (!silent) {
-          setResponse("Painel atualizado com sucesso.");
+          appendChatMessage("system", "Painel atualizado com sucesso.");
         }
       } catch (error) {
-        setResponse(error.message);
+        appendChatMessage("assistant", error.message);
       }
     }
 
@@ -939,7 +1033,7 @@
         renderJson("auditBox", auditReport);
         byId("technicalHint").textContent = "Detalhes técnicos carregados sob demanda. Eles ficam fora da frente principal para não poluir a navegação.";
       } catch (error) {
-        setResponse(error.message);
+        appendChatMessage("assistant", error.message);
       }
     }
 
@@ -947,13 +1041,13 @@
       try {
         const payload = await apiFetch("/api/ciclos/executar", { method: "POST" });
         const result = payload.resultado || {};
-        setResponse(`Ciclo executado com status ${result.status_ptbr || result.status || "desconhecido"}.`);
+        appendChatMessage("system", `Ciclo executado com status ${result.status_ptbr || result.status || "desconhecido"}.`);
         await atualizarResumo(true);
         if (dashboardState.ui.technicalLoaded) {
           await carregarDetalhesTecnicos(true);
         }
       } catch (error) {
-        setResponse(error.message);
+        appendChatMessage("assistant", error.message);
       }
     }
 
@@ -962,11 +1056,12 @@
       const voice = String(options.voice ?? byId("voiceInput").value).trim();
       const password = String(options.password ?? byId("passwordInput").value).trim();
       if (!command) {
-        setResponse("Digite um comando textual antes de enviar.");
+        appendChatMessage("assistant", "Digite um comando textual antes de enviar.");
         return;
       }
 
       try {
+        appendChatMessage("user", command, voice ? `Origem: ${voice}` : "Origem: texto");
         const payload = await apiFetch("/api/comando", {
           method: "POST",
           body: JSON.stringify({
@@ -977,15 +1072,15 @@
           }),
         });
         const responseText = payload.resposta || payload.mensagem || "Sem resposta do runtime.";
-        setResponse(responseText);
+        appendChatMessage("assistant", responseText);
         setPreparedCommand(command);
-        byId("commandInput").value = command;
+        byId("commandInput").value = "";
         await atualizarResumo(true);
         if (dashboardState.ui.technicalLoaded) {
           await carregarDetalhesTecnicos(true);
         }
       } catch (error) {
-        setResponse(error.message);
+        appendChatMessage("assistant", error.message);
       }
     }
 
@@ -1027,7 +1122,7 @@
         byId("brainPaneIntro").textContent = "Mapa cognitivo carregado sob demanda. Ele não fica ocupando espaço nem carregando o painel principal.";
         await dashboardState.brain.map.showEvolution(getEvolutionLevel());
       } catch (error) {
-        setResponse(error.message);
+        appendChatMessage("assistant", error.message);
       }
     }
 
@@ -1039,9 +1134,9 @@
       try {
         await carregarCerebro();
         await dashboardState.brain.map.showEvolution(getEvolutionLevel());
-        setResponse("Mapa evolutivo cognitivo atualizado.");
+        appendChatMessage("system", "Mapa evolutivo cognitivo atualizado.");
       } catch (error) {
-        setResponse(error.message);
+        appendChatMessage("assistant", error.message);
       }
     }
 
@@ -1049,9 +1144,9 @@
       try {
         await carregarCerebro();
         await dashboardState.brain.map.analyzeEvolution(getEvolutionLevel());
-        setResponse("Análise interna da evolução cognitiva concluída.");
+        appendChatMessage("system", "Análise interna da evolução cognitiva concluída.");
       } catch (error) {
-        setResponse(error.message);
+        appendChatMessage("assistant", error.message);
       }
     }
 
@@ -1280,7 +1375,7 @@
 
     async function ativarEscutaPorVoz() {
       if (!dashboardState.voice.supported) {
-        setResponse("Este navegador não suporta a escuta por voz deste painel.");
+        appendChatMessage("assistant", "Este navegador não suporta a escuta por voz deste painel.");
         return;
       }
 
@@ -1299,7 +1394,7 @@
       } catch (error) {
         dashboardState.voice.enabled = false;
         setVoiceState("Voz indisponível", error.message);
-        setResponse(error.message);
+        appendChatMessage("assistant", error.message);
       }
     }
 
@@ -1350,6 +1445,7 @@
     window.carregarCerebro = carregarCerebro;
 
     window.addEventListener("load", () => {
+      ensureChatInitialized();
       byId("tokenInput").value = getToken();
       byId("deviceInput").value = getDeviceId();
       configureDashboardMode();
