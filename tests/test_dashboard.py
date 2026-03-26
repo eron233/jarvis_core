@@ -84,6 +84,8 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertIn("Saude do sistema", unlocked_response.text)
         self.assertIn("Ultimas ocorrencias importantes", unlocked_response.text)
         self.assertIn("Cerebro cognitivo evolutivo", unlocked_response.text)
+        self.assertIn("Central de voz", unlocked_response.text)
+        self.assertIn('Ativar escuta continua', unlocked_response.text)
         self.assertIn("/brain-avatar/evolution_map.js", unlocked_response.text)
 
     def test_assets_do_brain_avatar_sao_servidos_pela_api(self) -> None:
@@ -136,6 +138,7 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertIn("<title>Painel JARVIS</title>", unlocked_response.text)
         self.assertIn('"simple_web_login": true', unlocked_response.text)
         self.assertIn("Sessao web simples ativa", unlocked_response.text)
+        self.assertIn("Central de voz", unlocked_response.text)
 
 
 if __name__ == "__main__":

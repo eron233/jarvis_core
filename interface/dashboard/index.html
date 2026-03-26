@@ -5,550 +5,353 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Painel JARVIS</title>
   <style>
-    :root {
-      --bg: #f4f0e7;
-      --panel: #fffaf0;
-      --ink: #15251c;
-      --accent: #2b6a4b;
-      --accent-soft: #d9eadf;
-      --line: #d6cfbf;
-      --warn: #8a5a17;
-      --mono: "Courier New", monospace;
-      --sans: "Trebuchet MS", "Segoe UI", sans-serif;
-      color-scheme: light;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: var(--sans);
-      background:
-        radial-gradient(circle at top right, rgba(43, 106, 75, 0.12), transparent 28%),
-        linear-gradient(180deg, #f8f3ea 0%, var(--bg) 100%);
-      color: var(--ink);
-    }
-
-    .shell {
-      width: min(100%, 980px);
-      margin: 0 auto;
-      padding: 16px;
-    }
-
-    .hero {
-      background: linear-gradient(135deg, rgba(21, 37, 28, 0.96), rgba(43, 106, 75, 0.9));
-      color: #f7f5ef;
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 18px 40px rgba(21, 37, 28, 0.16);
-    }
-
-    .hero h1 {
-      margin: 0 0 8px;
-      font-size: 1.7rem;
-    }
-
-    .hero p {
-      margin: 0;
-      line-height: 1.5;
-    }
-
-    .token-box,
-    .card {
-      margin-top: 14px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 14px;
-      box-shadow: 0 10px 24px rgba(21, 37, 28, 0.05);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 14px;
-      margin-top: 14px;
-    }
-
-    label {
-      display: block;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    input,
-    textarea,
-    button {
-      width: 100%;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      font: inherit;
-    }
-
-    input,
-    textarea {
-      padding: 12px;
-      background: #fffdf7;
-      color: var(--ink);
-    }
-
-    textarea {
-      min-height: 92px;
-      resize: vertical;
-    }
-
-    button {
-      padding: 12px;
-      cursor: pointer;
-      background: var(--accent);
-      color: #f8f6f0;
-      font-weight: 700;
-    }
-
-    button.secondary {
-      background: var(--accent-soft);
-      color: var(--ink);
-    }
-
-    .actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .label {
-      display: inline-block;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(217, 234, 223, 0.8);
-      color: var(--accent);
-      font-size: 0.85rem;
-      font-weight: 700;
-    }
-
-    .status-strip {
-      margin-top: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    pre {
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: var(--mono);
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-
-    .console {
-      min-height: 120px;
-      background: #171d1a;
-      color: #f3f3ec;
-      border-radius: 14px;
-      padding: 14px;
-      font-family: var(--mono);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-    }
-
-    .hint {
-      color: var(--warn);
-      font-size: 0.9rem;
-      margin-top: 8px;
-    }
-
-    .brain-card {
-      margin-top: 14px;
-      background: linear-gradient(180deg, rgba(10, 23, 38, 0.96), rgba(13, 32, 48, 0.98));
-      color: #f6f8fb;
-      border: 1px solid rgba(212, 175, 55, 0.24);
-      border-radius: 18px;
-      padding: 14px;
-      box-shadow: 0 18px 40px rgba(5, 13, 24, 0.24);
-    }
-
-    .brain-toolbar {
-      display: grid;
-      grid-template-columns: 1fr repeat(2, minmax(0, 180px));
-      gap: 10px;
-      margin-top: 12px;
-      align-items: end;
-    }
-
-    .brain-toolbar select {
-      width: 100%;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      padding: 12px;
-      font: inherit;
-      background: rgba(255, 255, 255, 0.08);
-      color: #f6f8fb;
-    }
-
-    .brain-canvas {
-      width: 100%;
-      min-height: 420px;
-      margin-top: 14px;
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: #07111d;
-      display: block;
-    }
-
-    .brain-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    .brain-status {
-      margin-top: 10px;
-      color: #f5deb3;
-      font-size: 0.92rem;
-    }
-
-    @media (max-width: 640px) {
-      .shell {
-        padding: 12px;
-      }
-
-      .actions {
-        grid-template-columns: 1fr;
-      }
-
-      .hero h1 {
-        font-size: 1.4rem;
-      }
-
-      .brain-toolbar {
-        grid-template-columns: 1fr;
-      }
-    }
+    :root{--bg:#f3eee4;--panel:#fffaf1;--ink:#17261f;--muted:#57665e;--accent:#2c6b4d;--soft:#d8eadf;--line:#d6cfbf;--warn:#a56b1a;--mono:"Courier New",monospace;--sans:"Trebuchet MS","Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;font-family:var(--sans);color:var(--ink);background:radial-gradient(circle at top right,rgba(44,107,77,.14),transparent 28%),linear-gradient(180deg,#faf6ee 0%,var(--bg) 100%)}
+    .shell{width:min(100%,1180px);margin:0 auto;padding:18px}.hero,.card,.brain{border:1px solid var(--line);border-radius:22px;box-shadow:0 18px 44px rgba(23,38,31,.08)}
+    .hero{background:linear-gradient(135deg,rgba(22,36,28,.98),rgba(44,107,77,.9));color:#f8f6f0;padding:22px}.hero h1{margin:8px 0;font-size:clamp(2rem,5vw,3.2rem)}.hero p{margin:0;max-width:820px;line-height:1.55;color:rgba(248,246,240,.92)}
+    .label,.pill{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;font-size:.86rem;font-weight:800}.label{background:rgba(216,234,223,.88);color:var(--accent)}.pill{background:rgba(255,255,255,.1);color:#f8f6f0}
+    .hero-top,.status-strip,.grid,.dual,.triples,.actions{display:grid;gap:12px}.hero-top{grid-template-columns:1.4fr .8fr}.status-strip{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:16px}
+    .grid{grid-template-columns:1.35fr .95fr;margin-top:18px}.dual{grid-template-columns:repeat(2,minmax(0,1fr))}.triples{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:14px}.actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .card,.brain{background:var(--panel);padding:16px}.card h2,.brain h2{margin:0 0 8px;font-size:1.45rem}.card p,.brain p{margin:0;color:var(--muted);line-height:1.5}.stack{display:grid;gap:16px}
+    .stat{background:#fffdf8;border:1px solid var(--line);border-radius:18px;padding:14px}.stat strong,.summary strong{display:block;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}.stat span{display:block;margin-top:8px;font-size:1.5rem;font-weight:800}
+    .summary,.listbox,.console,details pre,.voice-meter{border-radius:16px}.summary,.listbox{background:#fffdf8;border:1px solid var(--line);padding:14px;min-height:90px}.summary span{display:block;margin-top:8px;line-height:1.45}
+    .listbox ul{margin:0;padding-left:18px;display:grid;gap:8px}.listbox li{line-height:1.4}.muted{color:var(--muted)}
+    label{display:block;font-weight:800;margin-bottom:8px}input,textarea,select,button{width:100%;border-radius:14px;border:1px solid var(--line);font:inherit}
+    input,textarea,select{padding:12px;background:#fffdf8;color:var(--ink)}textarea{min-height:112px;resize:vertical}button{padding:13px;background:var(--accent);color:#f6f4ed;font-weight:800;cursor:pointer}button.secondary{background:var(--soft);color:var(--ink)}button.ghost{background:transparent;color:var(--accent);border-style:dashed}
+    .console{min-height:200px;padding:14px;background:#141a17;color:#f7f5ef;font-family:var(--mono);white-space:pre-wrap}
+    .hint{margin-top:10px;padding:12px;border-radius:16px;background:rgba(165,107,26,.08);color:var(--warn);line-height:1.45}
+    .voice{margin-top:12px;padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(44,107,77,.08),rgba(41,90,131,.06));border:1px solid rgba(44,107,77,.18)}
+    .voice-meter{margin-top:10px;height:12px;background:rgba(23,38,31,.08);overflow:hidden}.voice-meter span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#2c6b4d,#6fb68c,#d8d067);transition:width .1s linear}
+    .transcript{margin-top:10px;padding:14px;border-radius:16px;background:#fffdf8;border:1px solid var(--line);min-height:84px}
+    .brain{margin-top:18px;background:linear-gradient(180deg,rgba(9,20,34,.98),rgba(14,32,48,.98));color:#f8fbff;border-color:rgba(212,175,55,.26)}.brain p{color:rgba(248,251,255,.86)}
+    .brain-toolbar{display:grid;grid-template-columns:1fr repeat(2,minmax(0,180px));gap:10px;margin-top:14px;align-items:end}.brain-toolbar select{background:rgba(255,255,255,.08);color:#f8fbff;border-color:rgba(255,255,255,.2)}
+    .brain-canvas{width:100%;min-height:420px;margin-top:14px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:#07111d;display:block}.brain-status{margin-top:12px;color:#f5deb3}
+    details{margin-top:12px;background:rgba(21,37,28,.04);border:1px dashed rgba(21,37,28,.18);border-radius:18px;padding:12px}details summary{cursor:pointer;font-weight:800;color:#295a83}details pre{margin:10px 0 0;padding:14px;background:#141a17;color:#f6f4ed;font-family:var(--mono);font-size:.88rem;line-height:1.48;overflow:auto}
+    @media (max-width:1040px){.grid,.hero-top,.dual{grid-template-columns:1fr}}@media (max-width:720px){.shell{padding:14px}.actions,.brain-toolbar{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <main class="shell">
     <section class="hero">
-      <span class="label">Operacao real inicial</span>
-      <h1>JARVIS</h1>
-      <p>Controle o runtime, consulte memoria, acompanhe objetivos e execute ciclos do sistema por um painel pensado para celular.</p>
+      <div class="hero-top">
+        <div>
+          <span class="label">Painel interativo do runtime</span>
+          <h1>JARVIS</h1>
+          <p id="heroHeadline">Aguardando atualizacao inicial do sistema.</p>
+        </div>
+        <div class="summary" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#f8f6f0">
+          <strong style="color:rgba(248,246,240,.74)">Ultima leitura</strong>
+          <span id="heroSubline">Nenhum comando executado ainda.</span>
+        </div>
+      </div>
       <div class="status-strip">
-        <span class="label" id="healthStatus">API aguardando credenciais</span>
-        <span class="label" id="runtimeStatus">Runtime nao consultado</span>
-        <span class="label" id="deviceStatus">Dispositivo nao validado</span>
+        <span class="pill" id="healthStatus">API aguardando credenciais</span>
+        <span class="pill" id="runtimeStatus">Runtime nao consultado</span>
+        <span class="pill" id="deviceStatus">Dispositivo nao validado</span>
+        <span class="pill" id="voiceStatusPill">Voz indisponivel</span>
       </div>
     </section>
 
-    <section class="token-box" id="credentialsBox">
-      <label for="tokenInput">Token de acesso</label>
-      <input id="tokenInput" type="password" placeholder="Informe o token da API" />
-      <label for="deviceInput">Identificador do dispositivo confiavel</label>
-      <input id="deviceInput" type="text" placeholder="Informe o device id autorizado" />
-      <div class="actions">
+    <section class="grid">
+      <div class="stack">
+        <article class="card">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+            <div><span class="label">Visao geral</span><h2>Resumo do que importa</h2></div>
+            <button type="button" class="secondary" onclick="atualizarResumo()">Atualizar painel</button>
+          </div>
+          <div class="triples">
+            <div class="stat"><strong>Saude do sistema</strong><span id="quickHealth">-</span><small id="quickHealthHint" class="muted">Sem leitura ainda.</small></div>
+            <div class="stat"><strong>Tempo online</strong><span id="quickUptime">-</span><small id="quickUptimeHint" class="muted">Aguardando.</small></div>
+            <div class="stat"><strong>Fila ativa</strong><span id="quickQueue">-</span><small id="quickQueueHint" class="muted">Nenhum dado.</small></div>
+            <div class="stat"><strong>Objetivos ativos</strong><span id="quickGoals">-</span><small id="quickGoalsHint" class="muted">Nenhum dado.</small></div>
+            <div class="stat"><strong>Memoria atual</strong><span id="quickMemory">-</span><small id="quickMemoryHint" class="muted">Nenhum dado.</small></div>
+            <div class="stat"><strong>Dispositivos</strong><span id="quickDevices">-</span><small id="quickDevicesHint" class="muted">Nenhum dado.</small></div>
+          </div>
+          <div class="triples">
+            <div class="summary"><strong>Leitura humana do runtime</strong><span id="runtimeNarrative">Aguardando resumo.</span></div>
+            <div class="summary"><strong>Ultimo ciclo</strong><span id="cycleNarrative">Nenhum ciclo consultado.</span></div>
+            <div class="summary"><strong>Acesso atual</strong><span id="accessNarrative">Sem sessao ativa detectada ainda.</span></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div><span class="label">Operacao</span><h2>Comando textual</h2><p id="commandModeLabel">Resposta conversacional ativa.</p></div>
+          <div class="dual" style="margin-top:14px">
+            <div>
+              <label for="commandInput">O que voce quer que o Jarvis faca</label>
+              <textarea id="commandInput" placeholder="Exemplo: mostrar objetivos ativos"></textarea>
+              <label for="voiceInput" style="margin-top:12px">Voz identificada (opcional)</label>
+              <input id="voiceInput" type="text" placeholder="Exemplo: eron ou deixe vazio para voz web" />
+              <label for="passwordInput" style="margin-top:12px">Senha administrativa (opcional)</label>
+              <input id="passwordInput" type="password" placeholder="Use apenas quando quiser liberar acoes sensiveis." />
+              <div class="actions" style="margin-top:12px">
+                <button type="button" onclick="enviarComando()">Enviar comando</button>
+                <button type="button" class="secondary" onclick="executarCiclo()">Executar ciclo</button>
+              </div>
+              <div class="voice">
+                <span class="label">Central de voz</span>
+                <p style="margin-top:10px">Chame por "Jarvis" para iniciar a escuta. O navegador analisa a fala e transforma isso em comando. Esta camada transcreve fala; ela nao faz biometria vocal.</p>
+                <div class="actions" style="margin-top:12px">
+                  <button type="button" id="voiceToggleButton" class="secondary" onclick="alternarEscutaPorVoz()">Ativar escuta continua</button>
+                  <button type="button" id="voiceStopButton" class="ghost" onclick="desligarEscutaPorVoz()" disabled>Parar escuta</button>
+                </div>
+                <label for="voiceAutoSendToggle" style="display:flex;gap:8px;align-items:center;margin:12px 0 0"><input id="voiceAutoSendToggle" type="checkbox" checked style="width:auto" />Enviar o comando automaticamente depois que eu disser "Jarvis"</label>
+                <div class="voice-meter"><span id="voiceMeterFill"></span></div>
+                <div class="summary" style="margin-top:12px"><strong>Status da escuta</strong><span id="voiceStateText">Escuta por voz ainda nao iniciada.</span></div>
+                <div class="transcript" id="voiceTranscriptBox">Aguardando transcricao por voz.</div>
+                <div class="hint" id="voiceHint">Diga apenas "Jarvis" para acordar a escuta. Depois fale o comando em linguagem natural.</div>
+              </div>
+            </div>
+            <div>
+              <label>Resposta do JARVIS</label>
+              <div class="console" id="responseBox">Aguardando comando.</div>
+              <div class="summary" style="margin-top:12px"><strong>Leitura da ultima resposta</strong><span id="responseSummary">Sem resposta recebida ainda.</span></div>
+              <div class="summary" style="margin-top:12px"><strong>Ultimo comando preparado</strong><span id="preparedCommandBox">Nenhum comando por voz preparado.</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <span class="label">Leitura guiada</span><h2>O que esta acontecendo agora</h2>
+          <div class="triples">
+            <div class="listbox"><strong>Objetivos</strong><div id="goalsNarrative">Sem leitura ainda.</div></div>
+            <div class="listbox"><strong>Fila</strong><div id="queueNarrative">Sem leitura ainda.</div></div>
+            <div class="listbox"><strong>Memoria</strong><div id="memoryNarrative">Sem leitura ainda.</div></div>
+            <div class="listbox"><strong>Seguranca e acesso</strong><div id="securityNarrative">Sem leitura ainda.</div></div>
+          </div>
+          <div class="triples">
+            <div class="listbox"><strong>Ultimas ocorrencias importantes</strong><div id="auditList">Nenhuma ocorrencia carregada ainda.</div></div>
+            <div class="listbox"><strong>Memorias recentes</strong><div id="memoryList">Nenhuma memoria carregada ainda.</div></div>
+            <div class="listbox"><strong>Dispositivos confiaveis</strong><div id="deviceList">Nenhum dispositivo carregado ainda.</div></div>
+          </div>
+        </article>
+      </div>
+
+      <div class="stack">
+        <section class="brain">
+          <span class="label">Cerebro cognitivo evolutivo</span>
+          <h2>Mapa de evolucao da inteligencia</h2>
+          <p>Camada historica do cerebro do Jarvis para observar crescimento, plasticidade sinaptica e trilhas de aprendizado ao longo do tempo.</p>
+          <div class="brain-toolbar">
+            <label for="evolutionLevel">Zoom cognitivo
+              <select id="evolutionLevel">
+                <option value="recente">Nivel 1 - evolucao recente</option>
+                <option value="semanal">Nivel 2 - evolucao semanal</option>
+                <option value="mensal">Nivel 3 - evolucao mensal</option>
+                <option value="historica" selected>Nivel 4 - evolucao historica completa</option>
+              </select>
+            </label>
+            <button type="button" onclick="mostrarEvolucao()">Jarvis, mostre sua evolucao</button>
+            <button type="button" class="secondary" onclick="analisarEvolucao()">Jarvis, analise sua evolucao cognitiva</button>
+          </div>
+          <canvas id="brainCanvas" class="brain-canvas" width="960" height="420"></canvas>
+          <p class="brain-status" id="brainStatus">Mapa evolutivo ainda nao carregado.</p>
+          <div class="dual" style="margin-top:14px">
+            <article class="card"><label>Resumo evolutivo</label><div class="listbox" id="brainSummary">Sem dados.</div></article>
+            <article class="card"><label>Analise cognitiva</label><div class="listbox" id="brainAnalysis">Sem dados.</div></article>
+          </div>
+        </section>
+
+        <article class="card">
+          <span class="label">Detalhes tecnicos</span><h2>JSON bruto para auditoria</h2>
+          <details><summary>Resumo geral do sistema</summary><pre id="stateBox">Sem dados.</pre></details>
+          <details><summary>Relatorio de objetivos</summary><pre id="goalsBox">Sem dados.</pre></details>
+          <details><summary>Relatorio da fila</summary><pre id="tasksBox">Sem dados.</pre></details>
+          <details><summary>Relatorio de memoria</summary><pre id="memoryBox">Sem dados.</pre></details>
+          <details><summary>Saude do sistema</summary><pre id="healthBox">Sem dados.</pre></details>
+          <details><summary>Ultimas ocorrencias importantes</summary><pre id="auditBox">Sem dados.</pre></details>
+        </article>
+      </div>
+    </section>
+
+    <section class="card" id="credentialsBox">
+      <span class="label">Credenciais</span><h2>Token e dispositivo confiavel</h2>
+      <div class="dual">
+        <div><label for="tokenInput">Token de acesso</label><input id="tokenInput" type="password" placeholder="Informe o token da API" /></div>
+        <div><label for="deviceInput">Identificador do dispositivo confiavel</label><input id="deviceInput" type="text" placeholder="Informe o device id autorizado" /></div>
+      </div>
+      <div class="actions" style="margin-top:12px">
         <button type="button" onclick="salvarCredenciais()">Salvar credenciais</button>
         <button type="button" class="secondary" onclick="atualizarResumo()">Atualizar resumo</button>
       </div>
       <p class="hint" id="credentialsHint">O painel e os endpoints protegidos exigem token e identificador do dispositivo confiavel.</p>
     </section>
-
-    <section class="grid">
-      <article class="card">
-        <label for="commandInput">Comando textual</label>
-        <textarea id="commandInput" placeholder="Exemplo: mostrar objetivos ativos"></textarea>
-        <label for="voiceInput">Voz identificada (opcional)</label>
-        <input id="voiceInput" type="text" placeholder="Exemplo: eron" />
-        <label for="passwordInput">Senha administrativa (opcional)</label>
-        <input id="passwordInput" type="password" placeholder="Senha configurada no bootstrap seguro" />
-        <div class="actions">
-          <button type="button" onclick="enviarComando()">Enviar comando</button>
-          <button type="button" class="secondary" onclick="executarCiclo()">Executar ciclo</button>
-        </div>
-      </article>
-
-      <article class="card">
-        <label>Resposta do JARVIS</label>
-        <div class="console" id="responseBox">Aguardando comando.</div>
-      </article>
-    </section>
-
-    <section class="grid">
-      <article class="card">
-        <label>Resumo geral do sistema</label>
-        <pre id="stateBox">Sem dados.</pre>
-      </article>
-      <article class="card">
-        <label>Relatorio de objetivos</label>
-        <pre id="goalsBox">Sem dados.</pre>
-      </article>
-      <article class="card">
-        <label>Relatorio da fila</label>
-        <pre id="tasksBox">Sem dados.</pre>
-      </article>
-      <article class="card">
-        <label>Relatorio de memoria</label>
-        <pre id="memoryBox">Sem dados.</pre>
-      </article>
-      <article class="card">
-        <label>Saude do sistema</label>
-        <pre id="healthBox">Sem dados.</pre>
-      </article>
-      <article class="card">
-        <label>Ultimas ocorrencias importantes</label>
-        <pre id="auditBox">Sem dados.</pre>
-      </article>
-    </section>
-
-    <section class="brain-card">
-      <span class="label">Cerebro cognitivo evolutivo</span>
-      <h2>Mapa de evolucao da inteligencia</h2>
-      <p>Camada historica do cerebro do Jarvis para observar crescimento, plasticidade sinaptica e trilhas de aprendizado ao longo do tempo.</p>
-      <div class="brain-toolbar">
-        <label for="evolutionLevel">Zoom cognitivo
-          <select id="evolutionLevel">
-            <option value="recente">Nivel 1 - evolucao recente</option>
-            <option value="semanal">Nivel 2 - evolucao semanal</option>
-            <option value="mensal">Nivel 3 - evolucao mensal</option>
-            <option value="historica" selected>Nivel 4 - evolucao historica completa</option>
-          </select>
-        </label>
-        <button type="button" onclick="mostrarEvolucao()">Jarvis, mostre sua evolucao</button>
-        <button type="button" class="secondary" onclick="analisarEvolucao()">Jarvis, analise sua evolucao cognitiva</button>
-      </div>
-      <canvas id="brainCanvas" class="brain-canvas" width="960" height="420"></canvas>
-      <p class="brain-status" id="brainStatus">Mapa evolutivo ainda nao carregado.</p>
-      <div class="brain-grid">
-        <article class="card">
-          <label>Resumo evolutivo</label>
-          <pre id="brainSummary">Sem dados.</pre>
-        </article>
-        <article class="card">
-          <label>Analise cognitiva</label>
-          <pre id="brainAnalysis">Sem dados.</pre>
-        </article>
-      </div>
-    </section>
   </main>
 
   <script>
-    const DASHBOARD_CONFIG = __JARVIS_DASHBOARD_CONFIG__;
-    const SIMPLE_WEB_LOGIN = Boolean(DASHBOARD_CONFIG.simple_web_login);
-    const TOKEN_KEY = "jarvis_api_token";
-    const DEVICE_KEY = "jarvis_device_id";
-
-    function getToken() {
-      return localStorage.getItem(TOKEN_KEY) || "";
-    }
-
-    function getDeviceId() {
-      return localStorage.getItem(DEVICE_KEY) || "";
-    }
-
-    function hasStoredTrustedCredentials() {
-      return Boolean(getToken() && getDeviceId());
-    }
+    const DASHBOARD_CONFIG = __JARVIS_DASHBOARD_CONFIG__, SIMPLE_WEB_LOGIN = Boolean(DASHBOARD_CONFIG.simple_web_login), TOKEN_KEY = "jarvis_api_token", DEVICE_KEY = "jarvis_device_id", VOICE_COMMAND_SOURCE = "voz-web-local", WAKE_WORD = "jarvis", WAKE_TIMEOUT_MS = 8000;
+    const dashboardState = {voice:{supported:false,enabled:false,wakeArmed:false,wakeTimer:null,recognition:null,audioContext:null,analyser:null,mediaStream:null,meterFrame:null,lastPreparedCommand:"",lastAutoSentCommand:"",lastAutoSentAt:0}};
+    const byId = (id) => document.getElementById(id), getToken = () => localStorage.getItem(TOKEN_KEY) || "", getDeviceId = () => localStorage.getItem(DEVICE_KEY) || "", hasStoredTrustedCredentials = () => Boolean(getToken() && getDeviceId());
+    const formatDateTime = (value) => { if (!value) return "nao informado"; const d = new Date(value); return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString("pt-BR"); };
+    const formatDuration = (seconds) => { const s = Math.max(0, Math.round(Number(seconds) || 0)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60; return h > 0 ? `${h}h ${m}min` : m > 0 ? `${m}min ${r}s` : `${r}s`; };
+    const normalizeSpeechText = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\w\s-]/g, " ").replace(/\s+/g, " ").trim();
+    const renderJson = (id, payload) => { byId(id).textContent = JSON.stringify(payload, null, 2); };
+    const renderList = (targetId, items, emptyMessage) => { byId(targetId).innerHTML = !Array.isArray(items) || items.length === 0 ? `<span class="muted">${emptyMessage}</span>` : `<ul>${items.map((item) => `<li>${item}</li>`).join("")}</ul>`; };
+    const setHero = (headline, subline) => { byId("heroHeadline").textContent = headline; byId("heroSubline").textContent = subline; };
+    const escreverResposta = (texto) => { byId("responseBox").textContent = texto; byId("responseSummary").textContent = texto; byId("heroSubline").textContent = texto; };
+    const setPreparedCommand = (text) => { dashboardState.voice.lastPreparedCommand = text; byId("preparedCommandBox").textContent = text || "Nenhum comando por voz preparado."; };
+    const setVoiceState = (pill, text) => { byId("voiceStatusPill").textContent = pill; byId("voiceStateText").textContent = text; };
 
     function configureDashboardMode() {
-      const credentialsBox = document.getElementById("credentialsBox");
-      const credentialsHint = document.getElementById("credentialsHint");
       if (!SIMPLE_WEB_LOGIN) {
-        if (getDeviceId()) {
-          document.getElementById("deviceStatus").textContent = "Dispositivo " + getDeviceId();
-        }
+        if (getDeviceId()) byId("deviceStatus").textContent = "Dispositivo " + getDeviceId();
         return;
       }
-
-      credentialsBox.hidden = true;
-      credentialsHint.textContent = "Sessao web simples ativa por senha administrativa.";
-      document.getElementById("deviceStatus").textContent = "Sessao web simples ativa";
+      byId("credentialsBox").hidden = true;
+      byId("credentialsHint").textContent = "Sessao web simples ativa por senha administrativa.";
+      byId("deviceStatus").textContent = "Sessao web simples ativa";
     }
 
     function salvarCredenciais() {
-      if (SIMPLE_WEB_LOGIN) {
-        escreverResposta("As credenciais de token e dispositivo ficam desabilitadas neste modo.");
-        return;
-      }
-
-      const token = document.getElementById("tokenInput").value.trim();
-      const deviceId = document.getElementById("deviceInput").value.trim();
-      if (!token || !deviceId) {
-        escreverResposta("Informe token e identificador do dispositivo.");
-        return;
-      }
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(DEVICE_KEY, deviceId);
-      document.getElementById("deviceStatus").textContent = "Dispositivo " + deviceId;
+      if (SIMPLE_WEB_LOGIN) return escreverResposta("As credenciais de token e dispositivo ficam desabilitadas neste modo.");
+      const token = byId("tokenInput").value.trim(), deviceId = byId("deviceInput").value.trim();
+      if (!token || !deviceId) return escreverResposta("Informe token e identificador do dispositivo.");
+      localStorage.setItem(TOKEN_KEY, token); localStorage.setItem(DEVICE_KEY, deviceId);
+      byId("deviceStatus").textContent = "Dispositivo " + deviceId;
+      byId("accessNarrative").textContent = "Credenciais locais salvas para o dispositivo " + deviceId + ".";
       escreverResposta("Credenciais salvas. Voce ja pode consultar o sistema.");
       atualizarResumo();
     }
 
-    function escreverResposta(texto) {
-      document.getElementById("responseBox").textContent = texto;
-    }
-
-    function renderJson(id, payload) {
-      document.getElementById(id).textContent = JSON.stringify(payload, null, 2);
-    }
-
     async function apiFetch(path, options = {}) {
-      const headers = {
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-      };
-      const method = (options.method || "GET").toUpperCase();
-
+      const headers = {"Content-Type":"application/json", ...(options.headers || {})}, method = (options.method || "GET").toUpperCase();
       if (!SIMPLE_WEB_LOGIN) {
-        const token = getToken();
-        const deviceId = getDeviceId();
-        if (!token || !deviceId) {
-          throw new Error("Token e identificador do dispositivo sao obrigatorios.");
-        }
+        const token = getToken(), deviceId = getDeviceId();
+        if (!token || !deviceId) throw new Error("Token e identificador do dispositivo sao obrigatorios.");
         headers["X-Jarvis-Token"] = token;
         headers["X-Jarvis-Device-Id"] = deviceId;
       }
-
-      if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+      if (["POST","PUT","PATCH","DELETE"].includes(method)) {
         headers["X-Jarvis-Nonce"] = crypto.randomUUID();
         headers["X-Jarvis-Timestamp"] = new Date().toISOString();
       }
-
-      const response = await fetch(path, {
-        ...options,
-        headers,
-        credentials: "same-origin",
-      });
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(payload.detail || payload.mensagem || "Falha na comunicacao com o JARVIS.");
-      }
-
+      const response = await fetch(path, {...options, headers, credentials:"same-origin"}), payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.detail || payload.mensagem || "Falha na comunicacao com o JARVIS.");
       return payload;
+    }
+
+    function updateOverview(health, systemReport, queueReport, goalsReport, memoryReport, auditReport) {
+      const runtimeStatus = systemReport.status_runtime || {}, queue = queueReport.resumo || {}, goals = goalsReport.resumo || {}, memory = memoryReport.resumo || {}, devices = systemReport.dispositivos_autorizados || {}, latest = systemReport.ultimo_ciclo_executado || {}, auth = (health.ambiente || {}).autenticacao_configurada || {};
+      byId("healthStatus").textContent = "Saude " + (health.status_ptbr || health.status || "desconhecida");
+      byId("runtimeStatus").textContent = "Runtime " + (runtimeStatus.status_ptbr || runtimeStatus.status || "desconhecido");
+      byId("deviceStatus").textContent = SIMPLE_WEB_LOGIN ? "Sessao web simples ativa" : "Dispositivo " + (getDeviceId() || "nao informado");
+      byId("quickHealth").textContent = health.status_ptbr || health.status || "-";
+      byId("quickHealthHint").textContent = `API ${health.api_ativa ? "ativa" : "indisponivel"} e runtime ${health.runtime_ativo ? "ativo" : "parado"}.`;
+      byId("quickUptime").textContent = formatDuration(health.uptime_segundos);
+      byId("quickUptimeHint").textContent = `Inicializado em ${formatDateTime(health.runtime_iniciado_em)}.`;
+      byId("quickQueue").textContent = String(queue.tarefas_pendentes ?? 0);
+      byId("quickQueueHint").textContent = `${queue.tarefas_bloqueadas ?? 0} bloqueada(s), ${queue.tarefas_concluidas_total ?? 0} concluida(s).`;
+      byId("quickGoals").textContent = String(goals.total_objetivos_ativos ?? 0);
+      byId("quickGoalsHint").textContent = `${goals.total_metas_estrategicas ?? 0} meta(s) estrategica(s).`;
+      byId("quickMemory").textContent = String(memory.total_entradas_semanticas ?? 0);
+      byId("quickMemoryHint").textContent = `${memory.total_procedimentos ?? 0} procedimento(s) registrados.`;
+      byId("quickDevices").textContent = String(devices.total_dispositivos_confiaveis ?? 0);
+      byId("quickDevicesHint").textContent = `Principal: ${devices.dispositivo_principal || "nao definido"}.`;
+      setHero(runtimeStatus.queue_depth > 0 ? `Jarvis online com ${runtimeStatus.queue_depth} tarefa(s) na fila e ${systemReport.quantidade_objetivos_ativos || 0} objetivo(s) ativo(s).` : "Jarvis online e pronto. No momento ele esta sem tarefas pendentes e sem pressao operacional.", auth.senha_admin_source === "environment" ? "A autenticacao web simples esta usando a senha do ambiente." : "O acesso admin ainda nao veio do ambiente.");
+      byId("runtimeNarrative").textContent = `Status ${runtimeStatus.status_ptbr || runtimeStatus.status || "desconhecido"}, autonomia ${runtimeStatus.modo_autonomia || "nao informada"} e ${runtimeStatus.total_cycles_executed || systemReport.total_ciclos_executados || 0} ciclo(s) executado(s).`;
+      byId("cycleNarrative").textContent = latest.status_ptbr ? `Ultimo ciclo ficou ${latest.status_ptbr} por ${latest.reason_ptbr || latest.reason || "motivo nao informado"}.` : "Nenhum ciclo relatado ainda.";
+      byId("accessNarrative").textContent = SIMPLE_WEB_LOGIN ? "Sessao web simples ativa. O painel esta autenticado por senha administrativa." : `Painel protegido por token e dispositivo. Device atual: ${getDeviceId() || "nao informado"}.`;
+      byId("goalsNarrative").textContent = (goals.total_objetivos_ativos || 0) > 0 ? `Existem ${goals.total_objetivos_ativos} objetivo(s) ativo(s) e ${goals.objetivos_concluidos || 0} concluido(s).` : "Nao ha objetivos ativos no momento. O painel mostra um estado de espera operacional.";
+      byId("queueNarrative").textContent = (queue.total_tarefas || 0) > 0 ? `A fila tem ${queue.total_tarefas} tarefa(s), sendo ${queue.tarefas_pendentes || 0} pendente(s).` : "A fila esta vazia. Isso explica o runtime ficar ocioso.";
+      byId("memoryNarrative").textContent = `A memoria semantica tem ${memory.total_entradas_semanticas || 0} entrada(s) e a procedural ${memory.total_procedimentos || 0} procedimento(s). Ultima escrita em ${formatDateTime(memory.ultima_escrita)}.`;
+      byId("securityNarrative").textContent = `Token ${auth.token_configurado ? "configurado" : "indefinido"}, dispositivo confiavel ${auth.dispositivo_confiavel_configurado ? "configurado" : "indefinido"} e senha admin vinda de ${auth.senha_admin_source || "fonte desconhecida"}.`;
+      renderList("auditList", (systemReport.ultimos_eventos || []).slice(0, 6).map((event) => `<strong>${event.event_ptbr || event.event || "evento"}</strong>: ${event.reason_ptbr || event.reason || event.status_ptbr || event.status || "sem detalhe"}${event.timestamp ? " em " + formatDateTime(event.timestamp) : ""}`), "Nenhuma ocorrencia relevante encontrada.");
+      renderList("memoryList", (memoryReport.memorias_recentes || []).slice(0, 5).map((memoryItem) => `<strong>${memoryItem.domain || "geral"}</strong>: ${memoryItem.content || "sem conteudo"}`), "Nenhuma memoria recente carregada.");
+      renderList("deviceList", (devices.dispositivos_confiaveis || []).map((device) => `<strong>${device.nome || device.device_id}</strong> (${device.primary ? "principal" : device.tipo})`), "Nenhum dispositivo confiavel registrado.");
+      renderJson("stateBox", systemReport); renderJson("goalsBox", goalsReport); renderJson("tasksBox", queueReport); renderJson("memoryBox", memoryReport); renderJson("healthBox", health); renderJson("auditBox", auditReport);
     }
 
     async function atualizarResumo() {
       try {
-        const [health, systemReport, queueReport, goalsReport, memoryReport, auditReport] = await Promise.all([
-          apiFetch("/api/health"),
-          apiFetch("/api/relatorio/sistema"),
-          apiFetch("/api/relatorio/fila"),
-          apiFetch("/api/relatorio/objetivos"),
-          apiFetch("/api/relatorio/memoria"),
-          apiFetch("/api/relatorio/auditoria"),
-        ]);
-
-        document.getElementById("healthStatus").textContent = "Saude " + health.status_ptbr;
-        document.getElementById("runtimeStatus").textContent = "Runtime " + systemReport.status_runtime.status_ptbr;
-        document.getElementById("deviceStatus").textContent = SIMPLE_WEB_LOGIN
-          ? "Sessao web simples ativa"
-          : "Dispositivo " + getDeviceId();
-        renderJson("stateBox", systemReport);
-        renderJson("goalsBox", goalsReport);
-        renderJson("tasksBox", queueReport);
-        renderJson("memoryBox", memoryReport);
-        renderJson("healthBox", health);
-        renderJson("auditBox", auditReport);
-        if (window.jarvisEvolutionMap) {
-          await window.jarvisEvolutionMap.refresh();
-        }
-        escreverResposta("Resumo atualizado com sucesso.");
-      } catch (error) {
-        escreverResposta(error.message);
-      }
+        const [health, systemReport, queueReport, goalsReport, memoryReport, auditReport] = await Promise.all([apiFetch("/api/health"), apiFetch("/api/relatorio/sistema"), apiFetch("/api/relatorio/fila"), apiFetch("/api/relatorio/objetivos"), apiFetch("/api/relatorio/memoria"), apiFetch("/api/relatorio/auditoria")]);
+        updateOverview(health, systemReport, queueReport, goalsReport, memoryReport, auditReport);
+        if (window.jarvisEvolutionMap) await window.jarvisEvolutionMap.refresh();
+        escreverResposta("Painel atualizado com sucesso.");
+      } catch (error) { escreverResposta(error.message); }
     }
 
     async function executarCiclo() {
       try {
-        const payload = await apiFetch("/api/ciclos/executar", { method: "POST" });
-        escreverResposta("Ciclo executado com status: " + payload.resultado.status_ptbr);
+        const payload = await apiFetch("/api/ciclos/executar", {method:"POST"}), result = payload.resultado || {};
+        escreverResposta(`Ciclo executado com status ${result.status_ptbr || result.status || "desconhecido"}.`);
         await atualizarResumo();
-      } catch (error) {
-        escreverResposta(error.message);
-      }
+      } catch (error) { escreverResposta(error.message); }
     }
 
-    async function enviarComando() {
-      const command = document.getElementById("commandInput").value.trim();
-      const voice = document.getElementById("voiceInput").value.trim();
-      const password = document.getElementById("passwordInput").value.trim();
-      if (!command) {
-        escreverResposta("Digite um comando textual antes de enviar.");
-        return;
-      }
-
+    async function enviarComando(options = {}) {
+      const command = String(options.command ?? byId("commandInput").value).trim(), voice = String(options.voice ?? byId("voiceInput").value).trim(), password = String(options.password ?? byId("passwordInput").value).trim();
+      if (!command) return escreverResposta("Digite um comando textual antes de enviar.");
       try {
-        const payload = await apiFetch("/api/comando", {
-          method: "POST",
-          body: JSON.stringify({
-            texto: command,
-            voz_identificada: voice || null,
-            senha: password || null,
-            modo_resposta: "conversacional",
-          }),
-        });
+        const payload = await apiFetch("/api/comando", {method:"POST", body:JSON.stringify({texto:command, voz_identificada:voice || null, senha:password || null, modo_resposta:"conversacional"})});
         escreverResposta(payload.resposta || payload.mensagem || "Sem resposta do runtime.");
+        byId("commandInput").value = command;
+        setPreparedCommand(command);
         await atualizarResumo();
-      } catch (error) {
-        escreverResposta(error.message);
-      }
+      } catch (error) { escreverResposta(error.message); }
     }
-
-    function getEvolutionLevel() {
-      return document.getElementById("evolutionLevel").value || "historica";
+  </script>
+  <script>
+    const getSpeechRecognitionConstructor = () => window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    function configureVoiceSupport() {
+      dashboardState.voice.supported = Boolean(getSpeechRecognitionConstructor() && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function" && window.crypto && typeof window.crypto.randomUUID === "function");
+      if (!dashboardState.voice.supported) { setVoiceState("Voz indisponivel neste navegador", "Este navegador nao oferece a combinacao necessaria de microfone + reconhecimento de fala."); byId("voiceHint").textContent = "Se quiser usar voz, abra o painel em um navegador com Web Speech API e permissao de microfone."; byId("voiceToggleButton").disabled = true; return; }
+      setVoiceState("Voz pronta para ativacao", "Escuta por voz pronta. Clique para permitir o microfone.");
     }
-
-    async function mostrarEvolucao() {
-      if (!window.jarvisEvolutionMap) {
-        escreverResposta("Mapa evolutivo ainda nao inicializado.");
-        return;
-      }
-      try {
-        await window.jarvisEvolutionMap.showEvolution(getEvolutionLevel());
-        escreverResposta("Mapa evolutivo cognitivo atualizado.");
-      } catch (error) {
-        escreverResposta(error.message);
-      }
+    async function ensureVoiceAnalyser() {
+      if (dashboardState.voice.mediaStream && dashboardState.voice.analyser) return;
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true}), AudioContextClass = window.AudioContext || window.webkitAudioContext; if (!AudioContextClass) throw new Error("Este navegador nao oferece AudioContext para acompanhar a intensidade da voz.");
+      const audioContext = new AudioContextClass(), analyser = audioContext.createAnalyser(), source = audioContext.createMediaStreamSource(stream); analyser.fftSize = 1024; source.connect(analyser); Object.assign(dashboardState.voice, {mediaStream:stream, audioContext, analyser});
     }
-
-    async function analisarEvolucao() {
-      if (!window.jarvisEvolutionMap) {
-        escreverResposta("Mapa evolutivo ainda nao inicializado.");
-        return;
-      }
-      try {
-        await window.jarvisEvolutionMap.analyzeEvolution(getEvolutionLevel());
-        escreverResposta("Analise interna da evolucao cognitiva concluida.");
-      } catch (error) {
-        escreverResposta(error.message);
-      }
+    function startVoiceMeter() {
+      const analyser = dashboardState.voice.analyser, fill = byId("voiceMeterFill"); if (!analyser) return fill.style.width = "0%";
+      const data = new Uint8Array(analyser.fftSize), tick = () => { if (!dashboardState.voice.enabled || !dashboardState.voice.analyser) return fill.style.width = "0%"; analyser.getByteTimeDomainData(data); let sum = 0; for (let i = 0; i < data.length; i += 1) { const centered = (data[i] - 128) / 128; sum += centered * centered; } fill.style.width = `${Math.min(100, Math.max(2, Math.round(Math.sqrt(sum / data.length) * 280)))}%`; dashboardState.voice.meterFrame = requestAnimationFrame(tick); };
+      if (dashboardState.voice.meterFrame) cancelAnimationFrame(dashboardState.voice.meterFrame); dashboardState.voice.meterFrame = requestAnimationFrame(tick);
     }
-
-    window.apiFetch = apiFetch;
-    window.escreverResposta = escreverResposta;
-
-    window.addEventListener("load", () => {
-      document.getElementById("tokenInput").value = getToken();
-      document.getElementById("deviceInput").value = getDeviceId();
-      configureDashboardMode();
-      if (SIMPLE_WEB_LOGIN || hasStoredTrustedCredentials()) {
-        atualizarResumo();
-      }
-    });
+    function stopVoiceMeter() { if (dashboardState.voice.meterFrame) cancelAnimationFrame(dashboardState.voice.meterFrame); dashboardState.voice.meterFrame = null; byId("voiceMeterFill").style.width = "0%"; }
+    function clearWakeTimer() { if (dashboardState.voice.wakeTimer) clearTimeout(dashboardState.voice.wakeTimer); dashboardState.voice.wakeTimer = null; }
+    function armWakeWindow() { dashboardState.voice.wakeArmed = true; clearWakeTimer(); dashboardState.voice.wakeTimer = setTimeout(() => { dashboardState.voice.wakeArmed = false; byId("voiceStateText").textContent = 'Escuta continua ativa. Aguardando voce dizer "Jarvis".'; }, WAKE_TIMEOUT_MS); byId("voiceStateText").textContent = 'Palavra de ativacao detectada. Agora diga o comando.'; }
+    function prepareVoiceCommand(commandText, rawTranscript) {
+      const normalizedCommand = String(commandText || "").trim(); if (!normalizedCommand) return;
+      byId("commandInput").value = normalizedCommand; if (!byId("voiceInput").value.trim()) byId("voiceInput").value = VOICE_COMMAND_SOURCE; setPreparedCommand(normalizedCommand); byId("voiceTranscriptBox").textContent = `Transcricao final: ${rawTranscript}`; dashboardState.voice.wakeArmed = false; clearWakeTimer();
+      const autoSend = byId("voiceAutoSendToggle").checked, now = Date.now();
+      if (autoSend && (dashboardState.voice.lastAutoSentCommand !== normalizedCommand || now - dashboardState.voice.lastAutoSentAt > 7000)) { dashboardState.voice.lastAutoSentCommand = normalizedCommand; dashboardState.voice.lastAutoSentAt = now; enviarComando({command:normalizedCommand, voice:VOICE_COMMAND_SOURCE}); } else { byId("voiceStateText").textContent = `Comando preparado: ${normalizedCommand}`; }
+    }
+    function processFinalSpeechChunk(chunk) {
+      const normalized = normalizeSpeechText(chunk); if (!normalized) return; byId("voiceTranscriptBox").textContent = `Ultima fala: ${chunk}`;
+      const wakeIndex = normalized.indexOf(WAKE_WORD), hasWakeWord = wakeIndex >= 0;
+      if (hasWakeWord) { armWakeWindow(); const rawLower = chunk.toLowerCase(), rawIndex = rawLower.indexOf(WAKE_WORD), afterWake = rawIndex >= 0 ? chunk.slice(rawIndex + WAKE_WORD.length).replace(/^[\\s,.;:-]+/, "").trim() : ""; if (afterWake) prepareVoiceCommand(afterWake, chunk); return; }
+      if (dashboardState.voice.wakeArmed) prepareVoiceCommand(chunk.trim(), chunk);
+    }
+    function createRecognition() {
+      if (dashboardState.voice.recognition) return dashboardState.voice.recognition;
+      const SpeechRecognition = getSpeechRecognitionConstructor(); if (!SpeechRecognition) throw new Error("Reconhecimento de fala indisponivel neste navegador.");
+      const recognition = new SpeechRecognition(); recognition.lang = "pt-BR"; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 1;
+      recognition.onstart = () => setVoiceState("Ouvindo por voz", 'Escuta continua ativa. Diga "Jarvis" para acordar o painel.');
+      recognition.onerror = (event) => { setVoiceState("Falha na voz", `A escuta encontrou o erro ${(event && event.error) || "erro_desconhecido"}.`); byId("voiceHint").textContent = "Se o navegador bloquear o microfone, libere a permissao e tente novamente."; };
+      recognition.onend = () => { if (!dashboardState.voice.enabled) return setVoiceState("Voz pausada", "Escuta por voz pausada."); setTimeout(() => { if (dashboardState.voice.enabled) try { recognition.start(); } catch (_error) {} }, 450); };
+      recognition.onresult = (event) => { let interim = "", finals = []; for (let i = event.resultIndex; i < event.results.length; i += 1) { const result = event.results[i], transcript = result[0]?.transcript?.trim() || ""; if (!transcript) continue; if (result.isFinal) finals.push(transcript); else interim += (interim ? " " : "") + transcript; } if (interim) byId("voiceTranscriptBox").textContent = `Ouvindo: ${interim}`; finals.forEach(processFinalSpeechChunk); };
+      dashboardState.voice.recognition = recognition; return recognition;
+    }
+    async function ativarEscutaPorVoz() {
+      if (!dashboardState.voice.supported) return escreverResposta("Este navegador nao suporta a escuta por voz desse painel.");
+      try { await ensureVoiceAnalyser(); const recognition = createRecognition(); dashboardState.voice.enabled = true; byId("voiceToggleButton").textContent = "Escuta ativa"; byId("voiceStopButton").disabled = false; setVoiceState("Preparando a voz", "Microfone liberado. Inicializando escuta continua."); startVoiceMeter(); try { recognition.start(); } catch (_error) {} } catch (error) { dashboardState.voice.enabled = false; setVoiceState("Voz indisponivel", error.message); escreverResposta(error.message); }
+    }
+    function desligarEscutaPorVoz() {
+      dashboardState.voice.enabled = false; dashboardState.voice.wakeArmed = false; clearWakeTimer(); if (dashboardState.voice.recognition) try { dashboardState.voice.recognition.stop(); } catch (_error) {}
+      if (dashboardState.voice.mediaStream) { dashboardState.voice.mediaStream.getTracks().forEach((track) => track.stop()); dashboardState.voice.mediaStream = null; }
+      if (dashboardState.voice.audioContext) { dashboardState.voice.audioContext.close().catch(() => {}); dashboardState.voice.audioContext = null; }
+      dashboardState.voice.analyser = null; stopVoiceMeter(); setVoiceState("Voz pausada", "Escuta por voz pausada."); byId("voiceHint").textContent = 'A escuta pode ser religada quando voce quiser voltar a chamar o painel por "Jarvis".'; byId("voiceToggleButton").textContent = "Ativar escuta continua"; byId("voiceStopButton").disabled = true;
+    }
+    function alternarEscutaPorVoz() { return dashboardState.voice.enabled ? desligarEscutaPorVoz() : ativarEscutaPorVoz(); }
+    function getEvolutionLevel() { return byId("evolutionLevel").value || "historica"; }
+    async function mostrarEvolucao() { if (!window.jarvisEvolutionMap) return escreverResposta("Mapa evolutivo ainda nao inicializado."); try { await window.jarvisEvolutionMap.showEvolution(getEvolutionLevel()); escreverResposta("Mapa evolutivo cognitivo atualizado."); } catch (error) { escreverResposta(error.message); } }
+    async function analisarEvolucao() { if (!window.jarvisEvolutionMap) return escreverResposta("Mapa evolutivo ainda nao inicializado."); try { await window.jarvisEvolutionMap.analyzeEvolution(getEvolutionLevel()); escreverResposta("Analise interna da evolucao cognitiva concluida."); } catch (error) { escreverResposta(error.message); } }
+    window.atualizarResumo = atualizarResumo; window.enviarComando = enviarComando; window.executarCiclo = executarCiclo; window.salvarCredenciais = salvarCredenciais; window.alternarEscutaPorVoz = alternarEscutaPorVoz; window.desligarEscutaPorVoz = desligarEscutaPorVoz; window.mostrarEvolucao = mostrarEvolucao; window.analisarEvolucao = analisarEvolucao; window.apiFetch = apiFetch;
+    window.addEventListener("load", () => { byId("tokenInput").value = getToken(); byId("deviceInput").value = getDeviceId(); configureDashboardMode(); configureVoiceSupport(); if (SIMPLE_WEB_LOGIN || hasStoredTrustedCredentials()) atualizarResumo(); else setHero("O painel ainda precisa das credenciais do dispositivo confiavel.", "Preencha token e identificador para comecar."); });
   </script>
   <script type="module">
     import { createEvolutionMap } from "/brain-avatar/evolution_map.js";
-
-    window.jarvisEvolutionMap = createEvolutionMap({
-      canvas: document.getElementById("brainCanvas"),
-      summaryTarget: document.getElementById("brainSummary"),
-      analysisTarget: document.getElementById("brainAnalysis"),
-      statusTarget: document.getElementById("brainStatus"),
-      fetchJson: (path) => window.apiFetch(path),
-    });
+    window.jarvisEvolutionMap = createEvolutionMap({canvas:document.getElementById("brainCanvas"),summaryTarget:document.getElementById("brainSummary"),analysisTarget:document.getElementById("brainAnalysis"),statusTarget:document.getElementById("brainStatus"),fetchJson:(path) => window.apiFetch(path)});
   </script>
 </body>
 </html>
