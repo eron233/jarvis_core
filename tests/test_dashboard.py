@@ -63,7 +63,7 @@ class JarvisDashboardTests(unittest.TestCase):
 
         self.assertEqual(locked_response.status_code, 200)
         self.assertIn("Acesso restrito por dispositivo confiavel", locked_response.text)
-        self.assertNotIn("Converse com o Jarvis", locked_response.text)
+        self.assertNotIn("Fale com o Jarvis", locked_response.text)
 
         session_response = client.post(
             "/api/auth/device-session",
@@ -80,11 +80,11 @@ class JarvisDashboardTests(unittest.TestCase):
         unlocked_response = client.get("/painel")
         self.assertEqual(unlocked_response.status_code, 200)
         self.assertIn("<title>Painel JARVIS</title>", unlocked_response.text)
-        self.assertIn("Converse com o Jarvis", unlocked_response.text)
-        self.assertIn("Abrir visão do sistema", unlocked_response.text)
+        self.assertIn("Fale com o Jarvis", unlocked_response.text)
+        self.assertIn("Abrir bastidores", unlocked_response.text)
         self.assertIn("Cérebro cognitivo evolutivo", unlocked_response.text)
         self.assertIn("Central de voz", unlocked_response.text)
-        self.assertIn("Ativar voz", unlocked_response.text)
+        self.assertIn("Usar voz", unlocked_response.text)
 
     def test_assets_do_brain_avatar_sao_servidos_pela_api(self) -> None:
         """Confirma que os modulos JS do brain avatar ficam acessiveis pelo mesmo servidor."""
@@ -106,7 +106,7 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertEqual(locked_response.status_code, 200)
         self.assertIn('"simple_web_login": true', locked_response.text)
         self.assertIn("adminPasswordInput", locked_response.text)
-        self.assertNotIn("Converse com o Jarvis", locked_response.text)
+        self.assertNotIn("Fale com o Jarvis", locked_response.text)
 
         denied_response = client.post(
             "/api/auth/device-session",
@@ -135,7 +135,7 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertEqual(unlocked_response.status_code, 200)
         self.assertIn("<title>Painel JARVIS</title>", unlocked_response.text)
         self.assertIn('"simple_web_login": true', unlocked_response.text)
-        self.assertIn("Sessão web simples ativa", unlocked_response.text)
+        self.assertIn("Sessao web simples ativa", unlocked_response.text)
         self.assertIn("Central de voz", unlocked_response.text)
 
 
