@@ -880,6 +880,22 @@ def create_app(
         runtime = _ensure_runtime_initialized(request)
         return runtime.market_websocket_feed.fetch_live_tick()
 
+    @app.post("/api/modulos/arvore-quantica/explorar", dependencies=[Depends(require_trusted_device)])
+    def explore_quantum_tree_hypotheses(request: Request, objetivo: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Explora centenas de hipóteses em árvore paralela e submete à validação dos 11 pilares socráticos."""
+        runtime = _ensure_runtime_initialized(request)
+        initial_hypotheses = [
+            {"nome": f"Hipótese Open-Source A", "open_source": True, "custo_estimado_brl": 0.0, "diferencial_inovacao_0_10": 9.2},
+            {"nome": f"Hipótese Híbrida Cripto B", "open_source": True, "custo_estimado_brl": 20.0, "diferencial_inovacao_0_10": 9.8},
+            {"nome": f"Hipótese Legada C", "open_source": False, "custo_estimado_brl": 200.0, "diferencial_inovacao_0_10": 5.0},
+        ]
+        res = runtime.quantum_tree_search_engine.explore_hypotheses_tree(
+            domain_goal=objetivo,
+            initial_hypotheses=initial_hypotheses,
+            available_crypto_budget_brl=100.0,
+        )
+        return {"mensagem": "Exploração de árvore paralela concluída.", "resultado_colapsado": res}
+
     return app
 
 

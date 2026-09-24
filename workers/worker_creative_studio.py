@@ -14,6 +14,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from runtime.quantum_tree_search_engine import QuantumTreeSearchEngine
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_STUDIO_DIR = PROJECT_ROOT / "data" / "creative_studio"
 
@@ -24,6 +26,7 @@ class CreativeStudioWorker:
     def __init__(self, studio_dir: Optional[Path] = None) -> None:
         self.studio_dir = Path(studio_dir) if studio_dir else DEFAULT_STUDIO_DIR
         self.studio_dir.mkdir(parents=True, exist_ok=True)
+        self.quantum_search_engine = QuantumTreeSearchEngine()
 
     def incubate_project(
         self,
@@ -60,7 +63,19 @@ class CreativeStudioWorker:
                 "oportunidade_jarvis": f"Transformar as falhas de {c_name} em diferenciais do projeto.",
             })
 
-        # 3. Roteiro de Execução e Refinamento
+        # 3. Exploração em Árvore Paralela e Validação Socrática dos 11 Pilares
+        initial_hypotheses = [
+            {"nome": f"{project_name} - Open Source Puro", "open_source": True, "custo_estimado_brl": 0.0, "diferencial_inovacao_0_10": 9.0},
+            {"nome": f"{project_name} - Modelo Híbrido Cripto", "open_source": True, "custo_estimado_brl": 50.0, "diferencial_inovacao_0_10": 9.5},
+            {"nome": f"{project_name} - Solução Proprietária", "open_source": False, "custo_estimado_brl": 500.0, "diferencial_inovacao_0_10": 6.0},
+        ]
+        quantum_tree_results = self.quantum_search_engine.explore_hypotheses_tree(
+            domain_goal=concept,
+            initial_hypotheses=initial_hypotheses,
+            available_crypto_budget_brl=100.0,
+        )
+
+        # 4. Roteiro de Execução e Refinamento
         execution_plan = [
             "Fase 1: Mapeamento de componentes Open-Source essenciais.",
             "Fase 2: Arquitetura modular e design estético de alto padrão.",
@@ -81,6 +96,7 @@ class CreativeStudioWorker:
                 "ativado": kill_switch_triggered,
                 "motivo": kill_switch_reason,
             },
+            "analise_arvore_quantica": quantum_tree_results,
             "analise_concorrencia": identified_weaknesses,
             "diferenciais_unicos": [
                 "Execução determinística e autônoma sem lock-in.",

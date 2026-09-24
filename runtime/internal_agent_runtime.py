@@ -345,6 +345,10 @@ class InternalAgentRuntime:
             self.universal_file_extractor = UniversalFileExtractor(knowledge_engine=self.research_knowledge_engine)
             self.market_websocket_feed = MarketWebSocketFeed()
 
+            # Motor de Busca em Árvore Paralela e Interrogação Socrática
+            from runtime.quantum_tree_search_engine import QuantumTreeSearchEngine
+            self.quantum_tree_search_engine = QuantumTreeSearchEngine()
+
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
             if getattr(semantic_memory, "storage_path", None) is None:
