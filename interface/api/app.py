@@ -790,6 +790,60 @@ def create_app(
             "armazenamento_transacional": tx_store.get_stats(),
         }
 
+    # --- Endpoints dos 6 Módulos Especializados ---
+
+    @app.post("/api/modulos/autoevolução/ciclo", dependencies=[Depends(require_trusted_device)])
+    def run_auto_evolution_cycle(request: Request) -> Dict[str, Any]:
+        """Módulo 1: Executa ciclo de autoevolução e ataque simulado no gêmeo."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.auto_evolution_engine.run_evolution_cycle()
+        return {"mensagem": "Ciclo de autoevolução executado com sucesso.", "relatorio": res}
+
+    @app.get("/api/modulos/ferramentas", dependencies=[Depends(require_trusted_device)])
+    def list_developed_tools(request: Request) -> Dict[str, Any]:
+        """Módulo 2: Lista ferramentas e conectores desenvolvidos autonomamente."""
+        runtime = _ensure_runtime_initialized(request)
+        tools = runtime.tool_developer_engine.list_developed_tools()
+        return {"mensagem": "Ferramentas recuperadas com sucesso.", "ferramentas": tools}
+
+    @app.get("/api/modulos/conhecimento", dependencies=[Depends(require_trusted_device)])
+    def search_knowledge_base(request: Request, q: str = Query(default="")) -> Dict[str, Any]:
+        """Módulo 3: Consulta base de conhecimento comprimida."""
+        runtime = _ensure_runtime_initialized(request)
+        results = runtime.research_knowledge_engine.search_knowledge(q)
+        return {"mensagem": "Pesquisa de conhecimento concluída.", "resultados": results}
+
+    @app.post("/api/modulos/mercado/analisar", dependencies=[Depends(require_trusted_device)])
+    def analyze_market_session(request: Request) -> Dict[str, Any]:
+        """Módulo 4: Análise de mercado (Mini Dólar / Mini Índice) e fluxo de ordens."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.market_analysis_worker.analyze_market_session(
+            asset="WDO",
+            price_history=[{"price": 5.15}, {"price": 5.22}],
+            flow_data=[{"side": "buy", "volume": 1200}, {"side": "sell", "volume": 800}],
+            news_events=[{"timestamp": "10:00", "titulo": "Divulgação Payroll"}],
+        )
+        return {"mensagem": "Análise de mercado realizada com sucesso.", "analise": res}
+
+    @app.post("/api/modulos/estudio/incubar", dependencies=[Depends(require_trusted_device)])
+    def incubate_creative_project(request: Request) -> Dict[str, Any]:
+        """Módulo 5: Incuba projeto criativo open-source autossustentável."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.creative_studio_worker.incubate_project(
+            project_name="Jarvis Core Open",
+            concept="Agente cognitivo determinístico",
+            target_market="Desenvolvedores e Empresas",
+            competitors=[{"nome": "Framework X", "falhas": ["Falta de determinação", "Código complexo"]}],
+        )
+        return {"mensagem": "Projeto incubado com sucesso.", "projeto": res}
+
+    @app.get("/api/modulos/dispositivo/perfil", dependencies=[Depends(require_trusted_device)])
+    def get_device_profile(request: Request) -> Dict[str, Any]:
+        """Módulo 6: Leitura de hardware, perfil do usuário e otimizações simuladas."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.device_profiler.analyze_device_and_profile()
+        return {"mensagem": "Perfil do dispositivo gerado com sucesso.", "perfil": res}
+
     return app
 
 
