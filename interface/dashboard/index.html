@@ -5,20 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>JARVIS — Sistema Cognitivo Operacional</title>
   <style>
+    /* Estética Anthropic Claude Desktop / Claude Code */
     :root {
-      --bg-deep: #080B11;
-      --bg-surface: rgba(15, 23, 42, 0.75);
-      --bg-card: rgba(30, 41, 59, 0.55);
+      --bg-app: #181715;
+      --bg-sidebar: #1E1C1A;
+      --bg-card: #242220;
+      --bg-input: #2A2825;
       --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-active: rgba(16, 185, 129, 0.35);
-      --text-main: #F1F5F9;
-      --text-muted: #94A3B8;
-      --accent-emerald: #10B981;
-      --accent-cyan: #38BDF8;
-      --accent-purple: #A855F7;
-      --shadow-soft: 0 20px 50px rgba(0, 0, 0, 0.45);
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      --font-mono: 'JetBrains Mono', 'Cascadia Code', monospace;
+      --border-active: rgba(217, 119, 87, 0.4);
+      --text-primary: #ECEBE8;
+      --text-secondary: #B0AEA8;
+      --text-muted: #85837D;
+      --accent-claude: #D97757; /* Laranja Terroso característico do Claude */
+      --accent-claude-hover: #E28769;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      --font-mono: "JetBrains Mono", "Cascadia Code", monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,475 +29,375 @@
       height: 100%;
       overflow: hidden;
       font-family: var(--font-sans);
-      background-color: var(--bg-deep);
-      color: var(--text-main);
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Avatar do Cérebro Vivo em Segundo Plano (Background Canvas) */
-    #brainBackgroundCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 0;
-      opacity: 0.28;
-      pointer-events: none;
-    }
-
-    /* Container Principal - Claude Desktop / AppBrain Style */
-    .app-viewport {
-      position: relative;
-      z-index: 1;
+    .app-layout {
       display: grid;
-      grid-template-columns: 280px minmax(0, 1fr);
+      grid-template-columns: 260px minmax(0, 1fr);
       width: 100vw;
       height: 100vh;
-      backdrop-filter: blur(24px);
     }
 
-    /* Barra Lateral Esquerda (Sidebar) */
+    /* Sidebar Esquerda Minimalista estilo Claude */
     .sidebar {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 20px 16px;
-      background: var(--bg-surface);
+      padding: 16px;
+      background-color: var(--bg-sidebar);
       border-right: 1px solid var(--border-subtle);
     }
 
-    .brand-header {
+    .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .brand-logo {
-      width: 36px;
-      height: 36px;
-    }
-
-    .brand-title h1 {
-      font-size: 1.2rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      background: linear-gradient(135deg, var(--accent-emerald), var(--accent-cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .brand-title p {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .nav-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 20px;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: transparent;
-      border: 1px solid transparent;
-    }
-
-    .nav-item:hover, .nav-item.active {
-      color: var(--text-main);
-      background: var(--bg-card);
-      border-color: var(--border-subtle);
-    }
-
-    .sidebar-footer {
-      display: flex;
-      flex-direction: column;
       gap: 10px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border-subtle);
-    }
-
-    .status-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 20px;
-      font-size: 0.78rem;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      color: var(--accent-emerald);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-emerald);
-      box-shadow: 0 0 10px var(--accent-emerald);
-    }
-
-    /* Área Principal de Trabalho (Stage) */
-    .main-stage {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-      background: rgba(8, 11, 17, 0.6);
-    }
-
-    .stage-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 28px;
+      padding: 8px 4px 16px;
       border-bottom: 1px solid var(--border-subtle);
     }
 
-    .stage-title h2 {
-      font-size: 1.1rem;
-      font-weight: 700;
-    }
-
-    .stage-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .btn {
-      padding: 9px 16px;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: 1px solid var(--border-subtle);
-      background: var(--bg-card);
-      color: var(--text-main);
-    }
-
-    .btn:hover {
-      border-color: var(--border-active);
-      transform: translateY(-1px);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent-emerald), var(--accent-cyan));
-      color: #04131A;
-      font-weight: 700;
-      border: none;
-    }
-
-    /* Feed da Conversa */
-    .chat-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .chat-message {
-      display: flex;
-      gap: 16px;
-      max-width: 880px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .chat-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+    .brand-icon {
+      width: 24px;
+      height: 24px;
+      background-color: var(--accent-claude);
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
       font-size: 0.85rem;
-      flex-shrink: 0;
+      color: #181715;
     }
 
-    .chat-message.user .chat-avatar {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      color: var(--accent-cyan);
+    .brand-name {
+      font-size: 0.98rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
     }
 
-    .chat-message.assistant .chat-avatar {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid var(--border-active);
-      color: var(--accent-emerald);
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 16px;
     }
 
-    .chat-body {
-      flex: 1;
-      line-height: 1.65;
-      font-size: 0.95rem;
-      padding-top: 4px;
-    }
-
-    /* Caixa de Inserção de Mensagem (Composer) */
-    .composer-area {
-      padding: 20px 28px 28px;
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-secondary);
       background: transparent;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s ease, color 0.15s ease;
     }
 
-    .composer-box {
-      max-width: 880px;
-      margin: 0 auto;
-      background: var(--bg-surface);
+    .nav-btn:hover, .nav-btn.active {
+      background-color: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .sidebar-status {
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--accent-claude);
+    }
+
+    /* Área Principal estilo Chat Claude Desktop */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: var(--bg-app);
+      position: relative;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .header-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background-color: var(--bg-card);
       border: 1px solid var(--border-subtle);
-      border-radius: 18px;
-      padding: 14px 18px;
-      box-shadow: var(--shadow-soft);
-      transition: border-color 0.2s ease;
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
 
-    .composer-box:focus-within {
+    .btn-action:hover {
+      color: var(--text-primary);
       border-color: var(--border-active);
     }
 
-    .composer-input {
+    .chat-stream {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .msg-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .msg-author {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .msg-content {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+
+    .msg-group.user .msg-content {
+      color: #F7F6F3;
+      background-color: var(--bg-card);
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Composer de Texto estilo Claude */
+    .composer-container {
+      padding: 16px 24px 24px;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .composer-wrapper {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.15s ease;
+    }
+
+    .composer-wrapper:focus-within {
+      border-color: var(--border-active);
+    }
+
+    .composer-textarea {
       width: 100%;
       background: transparent;
       border: none;
       outline: none;
-      color: var(--text-main);
-      font-size: 0.98rem;
-      resize: none;
-      min-height: 52px;
-      max-height: 180px;
+      color: var(--text-primary);
       font-family: inherit;
+      font-size: 0.95rem;
+      resize: none;
+      min-height: 48px;
+      max-height: 200px;
     }
 
-    .composer-toolbar {
+    .composer-controls {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
     }
 
-    .composer-tools {
+    .quick-tools {
       display: flex;
-      gap: 10px;
+      gap: 6px;
     }
 
-    .tool-icon-btn {
+    .tool-btn {
       background: transparent;
-      border: none;
+      border: 1px solid transparent;
       color: var(--text-muted);
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 4px;
       cursor: pointer;
-      font-size: 0.85rem;
-      padding: 6px 10px;
-      border-radius: 8px;
-      transition: background 0.2s ease;
     }
 
-    .tool-icon-btn:hover {
-      background: var(--bg-card);
-      color: var(--text-main);
+    .tool-btn:hover {
+      background-color: var(--bg-input);
+      color: var(--text-primary);
     }
 
-    /* Painéis de Bastidores e Grafos */
-    .drawer-modal {
+    .btn-send {
+      background-color: var(--accent-claude);
+      color: #181715;
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .btn-send:hover {
+      background-color: var(--accent-claude-hover);
+    }
+
+    /* Modal Discreto */
+    .modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      z-index: 100;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(12px);
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.6);
       align-items: center;
       justify-content: center;
     }
 
-    .drawer-modal.active { display: flex; }
+    .modal-overlay.active { display: flex; }
 
-    .modal-card {
-      width: min(900px, 92vw);
-      max-height: 85vh;
-      background: #0F172A;
+    .modal-content {
+      width: min(720px, 90vw);
+      background-color: var(--bg-sidebar);
       border: 1px solid var(--border-subtle);
-      border-radius: 20px;
-      padding: 24px;
+      border-radius: 8px;
+      padding: 20px;
+      max-height: 80vh;
       overflow-y: auto;
-      box-shadow: var(--shadow-soft);
     }
 
-    .modal-header {
+    .modal-header-clean {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 18px;
       padding-bottom: 12px;
       border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 14px;
     }
   </style>
 </head>
 <body>
-  <!-- Canvas Animado do Cérebro Cognitivo (Background Avatar) -->
-  <canvas id="brainBackgroundCanvas"></canvas>
-
-  <main class="app-viewport">
-    <!-- Sidebar / Navegação Principal -->
+  <div class="app-layout">
+    <!-- Sidebar estilo Claude Code/Desktop -->
     <aside class="sidebar">
       <div>
-        <div class="brand-header">
-          <div class="brand-logo">
-            <svg viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="34" fill="none" stroke="#10B981" stroke-width="2" opacity="0.6" />
-              <path d="M 58 28 L 58 56 C 58 66 50 72 40 72 C 32 72 26 66 26 58" fill="none" stroke="#38BDF8" stroke-width="5" stroke-linecap="round" />
-            </svg>
-          </div>
-          <div class="brand-title">
-            <h1>JARVIS</h1>
-            <p>Sistema Cognitivo</p>
-          </div>
+        <div class="brand">
+          <div class="brand-icon">J</div>
+          <div class="brand-name">JARVIS</div>
         </div>
 
-        <nav class="nav-list">
-          <button class="nav-item active" onclick="switchView('chat')">Conversa Principal</button>
-          <button class="nav-item" onclick="switchView('graphify')">Graphify Topológico</button>
-          <button class="nav-item" onclick="openThoughtStreamModal()">Pensamentos do Dono</button>
-          <button class="nav-item" onclick="switchView('modules')">Módulos & Sensores</button>
+        <nav class="nav-group">
+          <button class="nav-btn active" onclick="switchTab('chat')">Conversa Principal</button>
+          <button class="nav-btn" onclick="switchTab('graphify')">Graphify Topológico</button>
+          <button class="nav-btn" onclick="openThoughtModal()">Pensamentos do Dono</button>
+          <button class="nav-btn" onclick="switchTab('system')">Sensores & Módulos</button>
         </nav>
       </div>
 
-      <div class="sidebar-footer">
-        <div class="status-badge">
-          <span class="status-dot"></span>
-          <span>JARVIS Online & Ativo</span>
-        </div>
+      <div class="sidebar-status">
+        <span class="status-dot"></span>
+        <span>JARVIS Operacional</span>
       </div>
     </aside>
 
-    <!-- Estágio Principal de Interação -->
-    <section class="main-stage">
-      <header class="stage-header">
-        <div class="stage-title">
-          <h2 id="currentStageTitle">Conversa com JARVIS</h2>
-        </div>
-        <div class="stage-actions">
-          <button class="btn" onclick="clearChat()">Nova Sessão</button>
-          <button class="btn btn-primary" onclick="triggerAutoEvolution()">Autoevolução</button>
+    <!-- Área Principal de Chat -->
+    <main class="main-content">
+      <header class="header">
+        <div class="header-title" id="tabTitle">Sessão Atual</div>
+        <div class="header-actions">
+          <button class="btn-action" onclick="clearStream()">Limpar Chat</button>
+          <button class="btn-action" onclick="runAutoEvolution()">Autoevolução</button>
         </div>
       </header>
 
-      <div class="chat-container" id="chatFeed">
-        <div class="chat-message assistant">
-          <div class="chat-avatar">J</div>
-          <div class="chat-body">
-            Olá! Sou o JARVIS. Estou operacional com todos os motores ativos, análise topológica Graphify e escuta ativa. Como posso ajudar agora?
-          </div>
+      <div class="chat-stream" id="chatStream">
+        <div class="msg-group assistant">
+          <div class="msg-author">JARVIS</div>
+          <div class="msg-content">Olá. O sistema está operacional com todos os módulos, análise topológica Graphify, busca web e voz local ativos. Como posso ajudar?</div>
         </div>
       </div>
 
-      <footer class="composer-area">
-        <div class="composer-box">
-          <textarea id="composerInput" class="composer-input" placeholder="Escreva uma mensagem ou peça uma análise de projeto..." rows="1"></textarea>
-          <div class="composer-toolbar">
-            <div class="composer-tools">
-              <button class="tool-icon-btn" onclick="triggerGraphifyAnalysis()">Graphify</button>
-              <button class="tool-icon-btn" onclick="triggerWebSearch()">Pesquisa Web</button>
-              <button class="tool-icon-btn" onclick="triggerVoiceSpeak()">Voz</button>
+      <div class="composer-container">
+        <div class="composer-wrapper">
+          <textarea id="composerInput" class="composer-textarea" placeholder="Envie uma mensagem ou solicite uma análise..." rows="1"></textarea>
+          <div class="composer-controls">
+            <div class="quick-tools">
+              <button class="tool-btn" onclick="runGraphify()">Graphify</button>
+              <button class="tool-btn" onclick="runWebSearch()">Pesquisar Web</button>
+              <button class="tool-btn" onclick="runVoice()">Voz Local</button>
             </div>
-            <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+            <button class="btn-send" onclick="sendMsg()">Enviar</button>
           </div>
         </div>
-      </footer>
-    </section>
-  </main>
+      </div>
+    </main>
+  </div>
 
   <!-- Modal de Pensamentos Privados do Dono -->
-  <div class="drawer-modal" id="thoughtStreamModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>Stream de Pensamentos Privados do Dono</h3>
-        <button class="btn" onclick="closeThoughtStreamModal()">Fechar</button>
+  <div class="modal-overlay" id="thoughtModal">
+    <div class="modal-content">
+      <div class="modal-header-clean">
+        <h4 style="font-size:0.95rem; font-weight:600;">Stream de Pensamentos Privados do Dono</h4>
+        <button class="btn-action" onclick="closeThoughtModal()">Fechar</button>
       </div>
-      <div id="thoughtStreamContent" style="font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.6; color: var(--accent-cyan);">
-        Aguardando carregamento dos pensamentos internos do JARVIS...
-      </div>
+      <pre id="thoughtContent" style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-secondary); white-space:pre-wrap;"></pre>
     </div>
   </div>
 
   <script>
-    // Canvas Background Animado do Cérebro
-    const canvas = document.getElementById('brainBackgroundCanvas');
-    const ctx = canvas.getContext('2d');
-    let width, height, particles = [];
-
-    function resizeCanvas() {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    for (let i = 0; i < 45; i++) {
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        radius: Math.random() * 2 + 1,
-      });
-    }
-
-    function animateBrain() {
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = '#10B981';
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
-
-      particles.forEach((p, i) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0 || p.x > width) p.vx *= -1;
-        if (p.y < 0 || p.y > height) p.vy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        for (let j = i + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
-          if (dist < 140) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          }
-        }
-      });
-      requestAnimationFrame(animateBrain);
-    }
-    animateBrain();
-
-    // Funções de Interação e Comunicação
-    function sendMessage() {
+    function sendMsg() {
       const input = document.getElementById('composerInput');
       const text = input.value.trim();
       if (!text) return;
 
-      appendMessage('user', text);
+      appendMsg('user', 'Você', text);
       input.value = '';
 
       fetch('/api/comando', {
@@ -504,81 +405,68 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texto: text })
       })
-      .then(res => res.json())
-      .then(data => {
-        appendMessage('assistant', data.resposta || data.mensagem || 'Comando processado.');
-      })
-      .catch(err => {
-        appendMessage('assistant', 'Erro de comunicação: ' + err.message);
-      });
+      .then(r => r.json())
+      .then(d => appendMsg('assistant', 'JARVIS', d.resposta || d.mensagem || 'Comando executado.'))
+      .catch(e => appendMsg('assistant', 'JARVIS', 'Erro: ' + e.message));
     }
 
-    function appendMessage(role, text) {
-      const feed = document.getElementById('chatFeed');
-      const msg = document.createElement('div');
-      msg.className = `chat-message ${role}`;
-      msg.innerHTML = `
-        <div class="chat-avatar">${role === 'user' ? 'Você' : 'J'}</div>
-        <div class="chat-body">${text}</div>
-      `;
-      feed.appendChild(msg);
-      feed.scrollTop = feed.scrollHeight;
+    function appendMsg(role, author, text) {
+      const stream = document.getElementById('chatStream');
+      const group = document.createElement('div');
+      group.className = `msg-group ${role}`;
+      group.innerHTML = `<div class="msg-author">${author}</div><div class="msg-content">${text}</div>`;
+      stream.appendChild(group);
+      stream.scrollTop = stream.scrollHeight;
     }
 
-    function triggerGraphifyAnalysis() {
-      appendMessage('user', 'JARVIS, faça uma análise Graphify do projeto atual.');
-      fetch('/api/graphify/estruturar?titulo=Projeto_JARVIS&descricao=Arquitetura_Modular', { method: 'POST' })
-      .then(res => res.json())
-      .then(data => {
-        const resText = data.resultado?.resumo_topologico_ptbr || 'Análise Graphify concluída.';
-        appendMessage('assistant', resText);
-      });
+    function runGraphify() {
+      appendMsg('user', 'Você', 'Executar análise Graphify.');
+      fetch('/api/graphify/estruturar?titulo=Projeto_JARVIS&descricao=Topologia', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => appendMsg('assistant', 'JARVIS', d.resultado?.resumo_topologico_ptbr || 'Análise Graphify gerada.'));
     }
 
-    function openThoughtStreamModal() {
-      document.getElementById('thoughtStreamModal').classList.add('active');
-      fetch('/api/dono/pensamentos-privados')
-      .then(res => res.json())
-      .then(data => {
-        const content = document.getElementById('thoughtStreamContent');
-        if (data.status === 'sucesso') {
-          content.textContent = JSON.stringify(data.ultimos_pensamentos, null, 2);
-        } else {
-          content.textContent = data.motivo || 'Acesso restrito.';
-        }
-      });
-    }
-
-    function closeThoughtStreamModal() {
-      document.getElementById('thoughtStreamModal').classList.remove('active');
-    }
-
-    function switchView(view) {
-      document.getElementById('currentStageTitle').textContent = view.toUpperCase();
-    }
-
-    function clearChat() {
-      document.getElementById('chatFeed').innerHTML = '';
-      appendMessage('assistant', 'Nova conversa iniciada.');
-    }
-
-    function triggerAutoEvolution() {
-      fetch('/api/modulos/autoevolucao/ciclo', { method: 'POST' })
-      .then(res => res.json())
-      .then(data => appendMessage('assistant', 'Ciclo de Autoevolução executado. Resistência atualizada.'));
-    }
-
-    function triggerWebSearch() {
-      appendMessage('user', 'Pesquisar novidades na web.');
+    function runWebSearch() {
+      appendMsg('user', 'Você', 'Pesquisar na web.');
       fetch('/api/web/pesquisar?q=JARVIS+AI')
-      .then(res => res.json())
-      .then(data => appendMessage('assistant', `Pesquisa concluída. ${data.total_fontes_encontradas || 0} fontes consultadas.`));
+      .then(r => r.json())
+      .then(d => appendMsg('assistant', 'JARVIS', `Pesquisa web concluída. ${d.total_fontes_encontradas || 0} fontes consultadas.`));
     }
 
-    function triggerVoiceSpeak() {
-      fetch('/api/voz/falar?texto=JARVIS+online+e+pronto', { method: 'POST' })
-      .then(res => res.json())
-      .then(data => appendMessage('assistant', 'Áudio de voz gerado localmente.'));
+    function runVoice() {
+      fetch('/api/voz/falar?texto=JARVIS+online', { method: 'POST' })
+      .then(r => r.json())
+      .then(() => appendMsg('assistant', 'JARVIS', 'Áudio de voz gerado localmente.'));
+    }
+
+    function runAutoEvolution() {
+      fetch('/api/modulos/autoevolucao/ciclo', { method: 'POST' })
+      .then(r => r.json())
+      .then(() => appendMsg('assistant', 'JARVIS', 'Ciclo de autoevolução executado.'));
+    }
+
+    function openThoughtModal() {
+      document.getElementById('thoughtModal').classList.add('active');
+      fetch('/api/dono/pensamentos-privados')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('thoughtContent').textContent = d.status === 'sucesso'
+          ? JSON.stringify(d.ultimos_pensamentos, null, 2)
+          : d.motivo || 'Acesso restrito.';
+      });
+    }
+
+    function closeThoughtModal() {
+      document.getElementById('thoughtModal').classList.remove('active');
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tabTitle').textContent = tab.toUpperCase();
+    }
+
+    function clearStream() {
+      document.getElementById('chatStream').innerHTML = '';
+      appendMsg('assistant', 'JARVIS', 'Chat limpo.');
     }
   </script>
 </body>
