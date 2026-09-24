@@ -745,6 +745,51 @@ def create_app(
         runtime = _ensure_runtime_initialized(request)
         return runtime.build_audit_report()
 
+    @app.get("/api/seguranca/relatorio-semanal", dependencies=[Depends(require_trusted_device)])
+    def get_weekly_security_report(request: Request) -> Dict[str, Any]:
+        """
+        Retorna o relatorio semanal consolidado de seguranca (Bloco 12.6).
+        """
+        from security.security_report_engine import WeeklySecurityReportEngine
+        engine = WeeklySecurityReportEngine()
+        latest = engine.load_latest_report()
+        if not latest:
+            # Gera um no momento se nao existir
+            runtime = _ensure_runtime_initialized(request)
+            sd_report = runtime.run_self_defense_audit() if hasattr(runtime, "run_self_defense_audit") else {}
+            latest = engine.generate_report(self_defense_report=sd_report)
+        return {
+            "mensagem": "Relatorio semanal de seguranca recuperado com sucesso.",
+            "relatorio": latest,
+        }
+
+    @app.post("/api/seguranca/relatorio-semanal/gerar", dependencies=[Depends(require_trusted_device)])
+    def generate_weekly_security_report(request: Request) -> Dict[str, Any]:
+        """
+        Forca a geracao de um novo relatorio semanal de seguranca.
+        """
+        from security.security_report_engine import WeeklySecurityReportEngine
+        runtime = _ensure_runtime_initialized(request)
+        sd_report = runtime.run_self_defense_audit() if hasattr(runtime, "run_self_defense_audit") else {}
+        engine = WeeklySecurityReportEngine()
+        report = engine.generate_report(self_defense_report=sd_report)
+        return {
+            "mensagem": "Relatorio semanal de seguranca gerado e persistido com sucesso.",
+            "relatorio": report,
+        }
+
+    @app.get("/api/armazenamento/status", dependencies=[Depends(require_trusted_device)])
+    def get_storage_status(request: Request) -> Dict[str, Any]:
+        """
+        Retorna o status do armazenamento transacional SQLite e fallback JSON.
+        """
+        from executive_planner.transactional_store import TransactionalStore
+        tx_store = TransactionalStore()
+        return {
+            "mensagem": "Status do armazenamento recuperado com sucesso.",
+            "armazenamento_transacional": tx_store.get_stats(),
+        }
+
     return app
 
 
