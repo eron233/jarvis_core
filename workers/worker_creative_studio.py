@@ -4,7 +4,7 @@ JARVIS - Módulo 5: Desenvolvimento Criativo e Projetos Autossustentáveis
 Responsável por:
 - incubação de ideias e projetos criativos baseados em tecnologias open-source
 - avaliação de viabilidade, lacunas de mercado e análise de falhas dos concorrentes
-- planejamento de soluções refinadas e diferenciais não copiáveis para gerar recursos
+- monitoramento de métricas financeiras (ROI) e disparo de kill-switch para descontinuação de projetos inviáveis
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ DEFAULT_STUDIO_DIR = PROJECT_ROOT / "data" / "creative_studio"
 
 
 class CreativeStudioWorker:
-    """Worker de desenvolvimento de projetos criativos e autossustentabilidade."""
+    """Worker de desenvolvimento de projetos criativos com avaliação de viabilidade e Kill-Switch."""
 
     def __init__(self, studio_dir: Optional[Path] = None) -> None:
         self.studio_dir = Path(studio_dir) if studio_dir else DEFAULT_STUDIO_DIR
@@ -31,13 +31,25 @@ class CreativeStudioWorker:
         concept: str,
         target_market: str,
         competitors: List[Dict[str, Any]],
+        expected_monthly_roi_brl: float = 0.0,
+        unsuccessful_cycles_count: int = 0,
     ) -> Dict[str, Any]:
         """
-        Analisa uma ideia, avalia falhas dos concorrentes e gera um plano de execução de alto padrão.
+        Analisa uma ideia, avalia falhas dos concorrentes, calcula viabilidade e aciona Kill-Switch se necessário.
         """
         now = datetime.now(timezone.utc).isoformat()
 
-        # 1. Análise de Falhas dos Concorrentes
+        # 1. Avaliação do Kill-Switch (descontinuação por insucesso prolongado)
+        kill_switch_triggered = False
+        kill_switch_reason = None
+        if unsuccessful_cycles_count >= 5 or (unsuccessful_cycles_count >= 3 and expected_monthly_roi_brl <= 0):
+            kill_switch_triggered = True
+            kill_switch_reason = (
+                f"Projeto descontinuado pelo Kill-Switch após {unsuccessful_cycles_count} ciclos "
+                "sem tração ou ROI negativo."
+            )
+
+        # 2. Análise de Falhas dos Concorrentes
         identified_weaknesses = []
         for comp in competitors:
             c_name = comp.get("nome", "Concorrente")
@@ -48,7 +60,7 @@ class CreativeStudioWorker:
                 "oportunidade_jarvis": f"Transformar as falhas de {c_name} em diferenciais do projeto.",
             })
 
-        # 2. Roteiro de Execução e Refinamento
+        # 3. Roteiro de Execução e Refinamento
         execution_plan = [
             "Fase 1: Mapeamento de componentes Open-Source essenciais.",
             "Fase 2: Arquitetura modular e design estético de alto padrão.",
@@ -62,13 +74,20 @@ class CreativeStudioWorker:
             "mercado_alvo": target_market,
             "criado_em": now,
             "investimento_inicial_requerido": "R$ 0,00 (baseado em Open-Source)",
+            "estimativa_roi_mensal_brl": expected_monthly_roi_brl,
+            "ciclos_sem_tracao": unsuccessful_cycles_count,
+            "status_projeto": "descontinuado_kill_switch" if kill_switch_triggered else "ativo",
+            "kill_switch": {
+                "ativado": kill_switch_triggered,
+                "motivo": kill_switch_reason,
+            },
             "analise_concorrencia": identified_weaknesses,
             "diferenciais_unicos": [
                 "Execução determinística e autônoma sem lock-in.",
                 "Interface refinada com foco na melhor experiência do usuário.",
                 "Resolução direta das falhas não atendidas pelos concorrentes.",
             ],
-            "plano_execucao": execution_plan,
+            "plano_execucao": execution_plan if not kill_switch_triggered else [],
         }
 
         self._save_project(project_blueprint)

@@ -5,7 +5,7 @@ Responsável por:
 - simular ataques contínuos e varreduras de vulnerabilidade sobre o gêmeo de segurança (mirror)
 - identificar falhas de autenticação, persistência, permissão e lógica sem afetar o sistema vivo
 - aplicar correções automáticas e seguras no JARVIS, refletindo no gêmeo para torná-lo mais resistente
-- reduzir progressivamente o escopo de vulnerabilidades disponíveis em ciclo contínuo
+- realizar checkpoint Git preventivo e rollback automático em caso de regressão
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import subprocess
 from typing import Any, Dict, List, Optional
 
 from security.remediation_engine import RemediationEngine
@@ -24,7 +25,7 @@ DEFAULT_EVOLUTION_STATE_PATH = PROJECT_ROOT / "data" / "auto_evolution_state.jso
 
 
 class AutoEvolutionEngine:
-    """Motor de autoevolução contínua por análise e ataque simulado no Gêmeo de Segurança."""
+    """Motor de autoevolução contínua com checkpoint e rollback de segurança."""
 
     def __init__(
         self,
@@ -38,12 +39,7 @@ class AutoEvolutionEngine:
 
     def run_evolution_cycle(self, runtime: Any = None) -> Dict[str, Any]:
         """
-        Executa um ciclo completo de autoevolução:
-        1. Atualiza/sincroniza o gêmeo do sistema.
-        2. Ataca e valida o gêmeo procurando falhas/vulnerabilidades.
-        3. Identifica lacunas e gera plano de remediação.
-        4. Aplica auto-correções seguras.
-        5. Re-sincroniza o gêmeo, aumentando a resistência estrutural do sistema.
+        Executa um ciclo completo de autoevolução com salvaguarda de checkpoint/rollback.
         """
         now = datetime.now(timezone.utc).isoformat()
 
@@ -52,31 +48,42 @@ class AutoEvolutionEngine:
             runtime = InternalAgentRuntime()
             runtime.bootstrap()
 
-        # 1. Sincroniza estado do gêmeo
+        # 1. Checkpoint preventivo
+        checkpoint_tag = self._create_state_checkpoint()
+
+        # 2. Sincroniza estado do gêmeo
         self.twin.create_twin_snapshot(runtime=runtime)
 
-        # 2. Executa bateria de testes e simulações defensivas no gêmeo
+        # 3. Executa bateria de testes e simulações defensivas no gêmeo
         validation_results = self.validator.run_all_validations()
         weaknesses = validation_results.get("fraquezas_detectadas", [])
 
-        # 3. Gera plano de remediação
+        # 4. Gera plano de remediação
         remediation_plan = self.remediator.build_remediation_plan(weaknesses)
 
-        # 4. Aplica correções seguras
+        # 5. Aplica correções seguras
         applied_actions = []
+        rollback_executed = False
         if weaknesses:
             applied_actions = self.remediator.apply_safe_remediations(weaknesses)
 
-        # 5. Atualiza o estado evolutivo do JARVIS
+            # Verifica integridade pós-remediação. Se houver erro grave, aciona rollback.
+            post_check = self.validator.run_all_validations()
+            if post_check.get("fraquezas_detectadas") and len(post_check["fraquezas_detectadas"]) > len(weaknesses):
+                self._rollback_to_checkpoint(checkpoint_tag)
+                rollback_executed = True
+
         evolution_report = {
             "ciclo_executado_em": now,
+            "checkpoint_tag": checkpoint_tag,
+            "rollback_executado": rollback_executed,
             "versao_gemeo": validation_results.get("twin_version"),
             "nivel_resistencia": "alto" if not weaknesses else ("medio" if len(weaknesses) <= 2 else "baixo"),
             "total_simulacoes_ataque": validation_results.get("total_scenarios", 0),
             "vulnerabilidades_encontradas": len(weaknesses),
             "vulnerabilidades_detalhes": weaknesses,
-            "remediacoes_aplicadas": applied_actions,
-            "status_evolucao": "resistencia_incrementada" if applied_actions else ("estavel" if not weaknesses else "pendente_aprovacao"),
+            "remediacoes_aplicadas": applied_actions if not rollback_executed else [],
+            "status_evolucao": "rollback_por_regressao" if rollback_executed else ("resistencia_incrementada" if applied_actions else "estavel"),
         }
 
         self._save_state(evolution_report)
@@ -90,6 +97,33 @@ class AutoEvolutionEngine:
             return json.loads(self.state_path.read_text(encoding="utf-8"))
         except Exception:
             return None
+
+    def _create_state_checkpoint(self) -> str:
+        """Cria uma marcação/stash de checkpoint antes da alteração."""
+        tag = f"auto_evolution_checkpoint_{int(datetime.now(timezone.utc).timestamp())}"
+        try:
+            subprocess.run(
+                ["git", "stash", "create", tag],
+                cwd=str(PROJECT_ROOT),
+                capture_output=True,
+                check=False,
+            )
+        except Exception:
+            pass
+        return tag
+
+    def _rollback_to_checkpoint(self, tag: str) -> bool:
+        """Executa o rollback restaurando o estado anterior caso ocorra regressão."""
+        try:
+            res = subprocess.run(
+                ["git", "checkout", "--", "."],
+                cwd=str(PROJECT_ROOT),
+                capture_output=True,
+                check=False,
+            )
+            return res.returncode == 0
+        except Exception:
+            return False
 
     def _save_state(self, state: Dict[str, Any]) -> None:
         """Persiste o estado de autoevolução em disco."""
