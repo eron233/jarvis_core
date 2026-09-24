@@ -792,11 +792,11 @@ def create_app(
 
     # --- Endpoints dos 6 Módulos Especializados ---
 
-    @app.post("/api/modulos/autoevolução/ciclo", dependencies=[Depends(require_trusted_device)])
+    @app.post("/api/modulos/autoevolucao/ciclo", dependencies=[Depends(require_trusted_device)])
     def run_auto_evolution_cycle(request: Request) -> Dict[str, Any]:
         """Módulo 1: Executa ciclo de autoevolução e ataque simulado no gêmeo."""
         runtime = _ensure_runtime_initialized(request)
-        res = runtime.auto_evolution_engine.run_evolution_cycle()
+        res = runtime.auto_evolution_engine.run_evolution_cycle(runtime=runtime)
         return {"mensagem": "Ciclo de autoevolução executado com sucesso.", "relatorio": res}
 
     @app.get("/api/modulos/ferramentas", dependencies=[Depends(require_trusted_device)])
@@ -843,6 +843,42 @@ def create_app(
         runtime = _ensure_runtime_initialized(request)
         res = runtime.device_profiler.analyze_device_and_profile()
         return {"mensagem": "Perfil do dispositivo gerado com sucesso.", "perfil": res}
+
+    # --- Endpoints de Voz, Automação do SO, Pesquisa Web, Extrator Universal e Feed em Tempo Real ---
+
+    @app.post("/api/voz/falar", dependencies=[Depends(require_trusted_device)])
+    def speak_text(request: Request, texto: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Sintetiza voz local para resposta audível."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.voice_engine.speak(texto)
+
+    @app.get("/api/sistema/metricas", dependencies=[Depends(require_trusted_device)])
+    def get_system_automation_metrics(request: Request) -> Dict[str, Any]:
+        """Lê métricas e sensores do SO hospedeiro."""
+        runtime = _ensure_runtime_initialized(request)
+        return {
+            "mensagem": "Métricas do sistema recuperadas.",
+            "metricas": runtime.system_automation_engine.get_system_metrics(),
+            "processos": runtime.system_automation_engine.list_running_processes(limit=5),
+        }
+
+    @app.get("/api/web/pesquisar", dependencies=[Depends(require_trusted_device)])
+    def active_web_search(request: Request, q: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Realiza pesquisa web ativa e extrai resumos."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.web_browser_engine.search_and_extract(q)
+
+    @app.post("/api/ingestao/universal", dependencies=[Depends(require_trusted_device)])
+    def ingest_universal_file(request: Request, caminho_arquivo: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Extrai texto e ingere QUALQUER tipo de arquivo no banco SQLite."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.universal_file_extractor.extract_and_ingest_file(caminho_arquivo)
+
+    @app.get("/api/mercado/feed/live", dependencies=[Depends(require_trusted_device)])
+    def get_live_market_tick(request: Request) -> Dict[str, Any]:
+        """Retorna cotação em tempo real do feed de mercado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.market_websocket_feed.fetch_live_tick()
 
     return app
 

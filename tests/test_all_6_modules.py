@@ -51,15 +51,17 @@ class AllSixModulesTests(unittest.TestCase):
         knowledge_dir = self.tmp_path / "knowledge"
         engine = ResearchKnowledgeEngine(knowledge_dir=knowledge_dir)
 
+        import uuid
+        unique_term = f"Determinismo_{uuid.uuid4().hex[:8]}"
         item = engine.ingest_source(
             title="Livro de Arquitetura",
             source_type="livro",
-            raw_text="Princípio 1: Determinismo.\nPrincípio 2: Resiliência.",
+            raw_text=f"Princípio 1: {unique_term}.\nPrincípio 2: Resiliência.",
             topics=["arquitetura"],
         )
 
         self.assertIn("taxa_compressao_pct", item)
-        search_res = engine.search_knowledge("Determinismo")
+        search_res = engine.search_knowledge(unique_term)
         self.assertEqual(len(search_res), 1)
 
     def test_modulo_4_market_analysis_worker(self) -> None:

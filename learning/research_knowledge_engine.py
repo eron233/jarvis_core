@@ -77,7 +77,8 @@ class ResearchKnowledgeEngine:
         compressed_size = len(compressed_summary)
         compression_ratio = round((1 - (compressed_size / max(original_size, 1))) * 100, 2)
 
-        item_id = f"know_{int(datetime.now(timezone.utc).timestamp())}"
+        import uuid
+        item_id = f"know_{int(datetime.now(timezone.utc).timestamp())}_{uuid.uuid4().hex[:6]}"
         topics_list = topics or ["geral"]
         topics_json = json.dumps(topics_list, ensure_ascii=False)
 

@@ -332,6 +332,19 @@ class InternalAgentRuntime:
             self.creative_studio_worker = CreativeStudioWorker()
             self.device_profiler = DeviceProfiler()
 
+            # Motores de Voz Local, Automação do SO, Navegação Web, Extrator Universal e Feed em Tempo Real
+            from runtime.voice_engine import LocalVoiceEngine
+            from runtime.system_automation import SystemAutomationEngine
+            from runtime.web_browser_engine import WebBrowserEngine
+            from learning.universal_file_extractor import UniversalFileExtractor
+            from workers.market_websocket_feed import MarketWebSocketFeed
+
+            self.voice_engine = LocalVoiceEngine()
+            self.system_automation_engine = SystemAutomationEngine()
+            self.web_browser_engine = WebBrowserEngine()
+            self.universal_file_extractor = UniversalFileExtractor(knowledge_engine=self.research_knowledge_engine)
+            self.market_websocket_feed = MarketWebSocketFeed()
+
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
             if getattr(semantic_memory, "storage_path", None) is None:
