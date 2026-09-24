@@ -358,6 +358,10 @@ class InternalAgentRuntime:
             self.image_vision_engine = ImageVisionEngine()
             self.thought_stream_engine = ThoughtStreamEngine()
 
+            # Motor Graphify de Análise Topológica de Projetos
+            from runtime.graphify_engine import GraphifyEngine
+            self.graphify_engine = GraphifyEngine()
+
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
             if getattr(semantic_memory, "storage_path", None) is None:

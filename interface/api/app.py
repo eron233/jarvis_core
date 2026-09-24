@@ -933,6 +933,13 @@ def create_app(
         )
         return runtime.thought_stream_engine.get_owner_thoughts_stream(is_authenticated_owner=is_owner)
 
+    @app.post("/api/graphify/estruturar", dependencies=[Depends(require_trusted_device)])
+    def graphify_project_analysis(request: Request, titulo: str = Query(min_length=1), descricao: str = Query(default="")) -> Dict[str, Any]:
+        """Estrutura a análise de um projeto em grafo topológico de nós e arestas."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.graphify_engine.analyze_and_graphify(project_title=titulo, description=descricao)
+        return {"mensagem": "Análise topológica Graphify gerada com sucesso.", "resultado": res}
+
     return app
 
 
