@@ -1148,6 +1148,14 @@
 
               <section class="pane active" id="overviewPane">
                 <article class="insight-card">
+                  <strong>Relatório Semanal de Segurança (Bloco 12.6)</strong>
+                  <div id="securityReportNarrative">Sem leitura ainda.</div>
+                </article>
+                <article class="insight-card">
+                  <strong>Armazenamento Transacional (SQLite WAL)</strong>
+                  <div id="storageNarrative">Sem leitura ainda.</div>
+                </article>
+                <article class="insight-card">
                   <strong>Objetivos e fila</strong>
                   <div id="goalsNarrative">Sem leitura ainda.</div>
                 </article>
@@ -1520,12 +1528,23 @@
 
     async function atualizarResumo(silent = false) {
       try {
-        const [health, systemReport] = await Promise.all([
+        const [health, systemReport, secReportRes, storageRes] = await Promise.all([
           apiFetch("/api/health"),
           apiFetch("/api/relatorio/sistema"),
+          apiFetch("/api/seguranca/relatorio-semanal").catch(() => null),
+          apiFetch("/api/armazenamento/status").catch(() => null),
         ]);
         dashboardState.cache.primary = { health, systemReport };
         renderPrimarySummary(health, systemReport);
+
+        if (secReportRes && secReportRes.relatorio) {
+          byId("securityReportNarrative").textContent = secReportRes.relatorio.resumo_ptbr || "Relatório semanal disponível.";
+        }
+        if (storageRes && storageRes.armazenamento_transacional) {
+          const tx = storageRes.armazenamento_transacional;
+          byId("storageNarrative").textContent = `Modo: ${tx.tipo} (${tx.modo}). Tarefas transacionais: ${tx.total_tarefas_transacionais}. Auditoria transacional: ${tx.total_eventos_auditoria_transacionais}.`;
+        }
+
         if (!silent) {
           appendChatMessage("system", "Painel atualizado com sucesso.");
         }

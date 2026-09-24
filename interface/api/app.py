@@ -745,6 +745,141 @@ def create_app(
         runtime = _ensure_runtime_initialized(request)
         return runtime.build_audit_report()
 
+    @app.get("/api/seguranca/relatorio-semanal", dependencies=[Depends(require_trusted_device)])
+    def get_weekly_security_report(request: Request) -> Dict[str, Any]:
+        """
+        Retorna o relatorio semanal consolidado de seguranca (Bloco 12.6).
+        """
+        from security.security_report_engine import WeeklySecurityReportEngine
+        engine = WeeklySecurityReportEngine()
+        latest = engine.load_latest_report()
+        if not latest:
+            # Gera um no momento se nao existir
+            runtime = _ensure_runtime_initialized(request)
+            sd_report = runtime.run_self_defense_audit() if hasattr(runtime, "run_self_defense_audit") else {}
+            latest = engine.generate_report(self_defense_report=sd_report)
+        return {
+            "mensagem": "Relatorio semanal de seguranca recuperado com sucesso.",
+            "relatorio": latest,
+        }
+
+    @app.post("/api/seguranca/relatorio-semanal/gerar", dependencies=[Depends(require_trusted_device)])
+    def generate_weekly_security_report(request: Request) -> Dict[str, Any]:
+        """
+        Forca a geracao de um novo relatorio semanal de seguranca.
+        """
+        from security.security_report_engine import WeeklySecurityReportEngine
+        runtime = _ensure_runtime_initialized(request)
+        sd_report = runtime.run_self_defense_audit() if hasattr(runtime, "run_self_defense_audit") else {}
+        engine = WeeklySecurityReportEngine()
+        report = engine.generate_report(self_defense_report=sd_report)
+        return {
+            "mensagem": "Relatorio semanal de seguranca gerado e persistido com sucesso.",
+            "relatorio": report,
+        }
+
+    @app.get("/api/armazenamento/status", dependencies=[Depends(require_trusted_device)])
+    def get_storage_status(request: Request) -> Dict[str, Any]:
+        """
+        Retorna o status do armazenamento transacional SQLite e fallback JSON.
+        """
+        from executive_planner.transactional_store import TransactionalStore
+        tx_store = TransactionalStore()
+        return {
+            "mensagem": "Status do armazenamento recuperado com sucesso.",
+            "armazenamento_transacional": tx_store.get_stats(),
+        }
+
+    # --- Endpoints dos 6 Módulos Especializados ---
+
+    @app.post("/api/modulos/autoevolucao/ciclo", dependencies=[Depends(require_trusted_device)])
+    def run_auto_evolution_cycle(request: Request) -> Dict[str, Any]:
+        """Módulo 1: Executa ciclo de autoevolução e ataque simulado no gêmeo."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.auto_evolution_engine.run_evolution_cycle(runtime=runtime)
+        return {"mensagem": "Ciclo de autoevolução executado com sucesso.", "relatorio": res}
+
+    @app.get("/api/modulos/ferramentas", dependencies=[Depends(require_trusted_device)])
+    def list_developed_tools(request: Request) -> Dict[str, Any]:
+        """Módulo 2: Lista ferramentas e conectores desenvolvidos autonomamente."""
+        runtime = _ensure_runtime_initialized(request)
+        tools = runtime.tool_developer_engine.list_developed_tools()
+        return {"mensagem": "Ferramentas recuperadas com sucesso.", "ferramentas": tools}
+
+    @app.get("/api/modulos/conhecimento", dependencies=[Depends(require_trusted_device)])
+    def search_knowledge_base(request: Request, q: str = Query(default="")) -> Dict[str, Any]:
+        """Módulo 3: Consulta base de conhecimento comprimida."""
+        runtime = _ensure_runtime_initialized(request)
+        results = runtime.research_knowledge_engine.search_knowledge(q)
+        return {"mensagem": "Pesquisa de conhecimento concluída.", "resultados": results}
+
+    @app.post("/api/modulos/mercado/analisar", dependencies=[Depends(require_trusted_device)])
+    def analyze_market_session(request: Request) -> Dict[str, Any]:
+        """Módulo 4: Análise de mercado (Mini Dólar / Mini Índice) e fluxo de ordens."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.market_analysis_worker.analyze_market_session(
+            asset="WDO",
+            price_history=[{"price": 5.15}, {"price": 5.22}],
+            flow_data=[{"side": "buy", "volume": 1200}, {"side": "sell", "volume": 800}],
+            news_events=[{"timestamp": "10:00", "titulo": "Divulgação Payroll"}],
+        )
+        return {"mensagem": "Análise de mercado realizada com sucesso.", "analise": res}
+
+    @app.post("/api/modulos/estudio/incubar", dependencies=[Depends(require_trusted_device)])
+    def incubate_creative_project(request: Request) -> Dict[str, Any]:
+        """Módulo 5: Incuba projeto criativo open-source autossustentável."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.creative_studio_worker.incubate_project(
+            project_name="Jarvis Core Open",
+            concept="Agente cognitivo determinístico",
+            target_market="Desenvolvedores e Empresas",
+            competitors=[{"nome": "Framework X", "falhas": ["Falta de determinação", "Código complexo"]}],
+        )
+        return {"mensagem": "Projeto incubado com sucesso.", "projeto": res}
+
+    @app.get("/api/modulos/dispositivo/perfil", dependencies=[Depends(require_trusted_device)])
+    def get_device_profile(request: Request) -> Dict[str, Any]:
+        """Módulo 6: Leitura de hardware, perfil do usuário e otimizações simuladas."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.device_profiler.analyze_device_and_profile()
+        return {"mensagem": "Perfil do dispositivo gerado com sucesso.", "perfil": res}
+
+    # --- Endpoints de Voz, Automação do SO, Pesquisa Web, Extrator Universal e Feed em Tempo Real ---
+
+    @app.post("/api/voz/falar", dependencies=[Depends(require_trusted_device)])
+    def speak_text(request: Request, texto: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Sintetiza voz local para resposta audível."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.voice_engine.speak(texto)
+
+    @app.get("/api/sistema/metricas", dependencies=[Depends(require_trusted_device)])
+    def get_system_automation_metrics(request: Request) -> Dict[str, Any]:
+        """Lê métricas e sensores do SO hospedeiro."""
+        runtime = _ensure_runtime_initialized(request)
+        return {
+            "mensagem": "Métricas do sistema recuperadas.",
+            "metricas": runtime.system_automation_engine.get_system_metrics(),
+            "processos": runtime.system_automation_engine.list_running_processes(limit=5),
+        }
+
+    @app.get("/api/web/pesquisar", dependencies=[Depends(require_trusted_device)])
+    def active_web_search(request: Request, q: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Realiza pesquisa web ativa e extrai resumos."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.web_browser_engine.search_and_extract(q)
+
+    @app.post("/api/ingestao/universal", dependencies=[Depends(require_trusted_device)])
+    def ingest_universal_file(request: Request, caminho_arquivo: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Extrai texto e ingere QUALQUER tipo de arquivo no banco SQLite."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.universal_file_extractor.extract_and_ingest_file(caminho_arquivo)
+
+    @app.get("/api/mercado/feed/live", dependencies=[Depends(require_trusted_device)])
+    def get_live_market_tick(request: Request) -> Dict[str, Any]:
+        """Retorna cotação em tempo real do feed de mercado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.market_websocket_feed.fetch_live_tick()
+
     return app
 
 

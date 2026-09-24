@@ -106,11 +106,22 @@ class SecurityValidationEngine:
             "executado_em": executed_at,
             "somente_ambiente_isolado": True,
             "twin_id": snapshot.get("twin_id"),
+            "twin_version": snapshot.get("version", "0.1.0"),
+            "total_scenarios": len(scenario_results),
             "integridade_do_gemeo": integrity_report,
             "resultados_de_cenario": scenario_results,
+            "fraquezas_detectadas": weaknesses,
             "fraquezas": weaknesses,
             "resumo": self._build_summary(weaknesses, scenario_results),
         }
+
+    def run_all_validations(
+        self,
+        twin_snapshot: Dict[str, Any] | None = None,
+        snapshot_path: str | None = None,
+    ) -> Dict[str, Any]:
+        """Alias conveniente para executar toda a suíte de validação."""
+        return self.run_validation_suite(twin_snapshot=twin_snapshot, snapshot_path=snapshot_path)
 
     def _validate_authentication_and_identity(
         self,

@@ -170,7 +170,7 @@ class TaskQueue:
 
     def save_to_disk(self) -> Dict[str, Any]:
         """
-        Persiste o snapshot atual da fila em disco.
+        Persiste o snapshot atual da fila em disco (JSON e SQLite transacional).
 
         Parametros:
         - nenhum.
@@ -179,13 +179,23 @@ class TaskQueue:
         - snapshot serializado que foi gravado.
 
         Efeitos no sistema:
-        - escreve o arquivo JSON da fila persistente.
+        - escreve o arquivo JSON da fila persistente e espelha no banco transacional.
         """
 
         with self._lock:
             snapshot = self._build_snapshot()
             self.storage_path.parent.mkdir(parents=True, exist_ok=True)
             self._write_snapshot_atomic(snapshot)
+
+            # Espelhamento transacional SQLite
+            try:
+                from executive_planner.transactional_store import TransactionalStore
+                db_path = self.storage_path.parent / "jarvis_transactional.db"
+                tx_store = TransactionalStore(db_path=db_path)
+                tx_store.save_queue_tasks(list(self.items))
+            except Exception:
+                pass
+
             return snapshot
 
     def load_from_disk(self) -> Dict[str, Any]:

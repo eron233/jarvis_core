@@ -218,6 +218,16 @@ class AuditLogger:
                 "payload": payload_normalizado,
             }
             self.entries.append(entry)
+
+            # Espelhamento transacional SQLite
+            try:
+                from executive_planner.transactional_store import TransactionalStore
+                db_path = self.storage_path.parent / "jarvis_transactional.db"
+                tx_store = TransactionalStore(db_path=db_path)
+                tx_store.append_audit_event(entry)
+            except Exception:
+                pass
+
             if self.auto_persist:
                 self.save_to_disk()
             return deepcopy(entry)

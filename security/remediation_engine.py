@@ -31,7 +31,7 @@ class RemediationEngine:
         weakness_plans: List[Dict[str, Any]] = []
         automatic_actions: List[Dict[str, Any]] = []
         pending_actions: List[Dict[str, Any]] = []
-        weaknesses = validation_report.get("fraquezas", [])
+        weaknesses = validation_report.get("fraquezas_detectadas", validation_report.get("fraquezas", [])) if isinstance(validation_report, dict) else (validation_report if isinstance(validation_report, list) else [])
 
         for weakness in weaknesses:
             solutions = self._build_solution_set(weakness)
@@ -100,6 +100,21 @@ class RemediationEngine:
             "acoes_automaticas_realizadas": automatic_actions,
             "acoes_pendentes_de_aprovacao": pending_actions,
         }
+
+    def apply_safe_remediations(
+        self,
+        weaknesses: List[Dict[str, Any]],
+        runtime: Any | None = None,
+        config: Any | None = None,
+    ) -> List[Dict[str, Any]]:
+        """Aplica apenas as remediações automáticas consideradas seguras."""
+        plan = self.build_remediation_plan(
+            validation_report={"fraquezas": weaknesses},
+            runtime=runtime,
+            config=config,
+            auto_apply_safe=True,
+        )
+        return plan.get("acoes_automaticas_realizadas", [])
 
     def _build_solution_set(self, weakness: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Monta solution set para o fluxo atual."""

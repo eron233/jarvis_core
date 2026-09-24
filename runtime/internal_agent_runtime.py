@@ -317,6 +317,34 @@ class InternalAgentRuntime:
                 ProceduralMemory(storage_path=deployment_config.procedural_storage_path),
             )
 
+            # Inicializa os 6 Módulos Especializados
+            from security.auto_evolution_engine import AutoEvolutionEngine
+            from runtime.tool_developer_engine import ToolDeveloperEngine
+            from learning.research_knowledge_engine import ResearchKnowledgeEngine
+            from workers.worker_market_analysis import MarketAnalysisWorker
+            from workers.worker_creative_studio import CreativeStudioWorker
+            from device.device_profiler import DeviceProfiler
+
+            self.auto_evolution_engine = AutoEvolutionEngine()
+            self.tool_developer_engine = ToolDeveloperEngine()
+            self.research_knowledge_engine = ResearchKnowledgeEngine()
+            self.market_analysis_worker = MarketAnalysisWorker()
+            self.creative_studio_worker = CreativeStudioWorker()
+            self.device_profiler = DeviceProfiler()
+
+            # Motores de Voz Local, Automação do SO, Navegação Web, Extrator Universal e Feed em Tempo Real
+            from runtime.voice_engine import LocalVoiceEngine
+            from runtime.system_automation import SystemAutomationEngine
+            from runtime.web_browser_engine import WebBrowserEngine
+            from learning.universal_file_extractor import UniversalFileExtractor
+            from workers.market_websocket_feed import MarketWebSocketFeed
+
+            self.voice_engine = LocalVoiceEngine()
+            self.system_automation_engine = SystemAutomationEngine()
+            self.web_browser_engine = WebBrowserEngine()
+            self.universal_file_extractor = UniversalFileExtractor(knowledge_engine=self.research_knowledge_engine)
+            self.market_websocket_feed = MarketWebSocketFeed()
+
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
             if getattr(semantic_memory, "storage_path", None) is None:
