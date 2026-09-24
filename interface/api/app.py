@@ -896,6 +896,43 @@ def create_app(
         )
         return {"mensagem": "Exploração de árvore paralela concluída.", "resultado_colapsado": res}
 
+    # --- Endpoints de Arquivos, Visão e Stream de Pensamentos Privados do Dono ---
+
+    @app.post("/api/arquivos/compactar", dependencies=[Depends(require_trusted_device)])
+    def compress_files_endpoint(request: Request, caminho: str = Query(min_length=1), formato: str = Query(default="zip")) -> Dict[str, Any]:
+        """Compacta arquivos/pastas para .zip, .tar.gz, etc."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.file_archive_engine.compress_files(source_paths=[caminho], format_type=formato)
+
+    @app.post("/api/arquivos/descompactar", dependencies=[Depends(require_trusted_device)])
+    def decompress_archive_endpoint(request: Request, caminho: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Descompacta e extrai arquivos compactados."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.file_archive_engine.decompress_archive(archive_path=caminho)
+
+    @app.post("/api/visao/analisar-imagem", dependencies=[Depends(require_trusted_device)])
+    def analyze_image_endpoint(request: Request, caminho_imagem: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Analisa imagem/print, extrai textos (OCR) e cria pré-contexto visual."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.image_vision_engine.analyze_image_and_build_context(image_path=caminho_imagem)
+
+    @app.get("/api/dono/pensamentos-privados")
+    def get_owner_private_thoughts(
+        request: Request,
+        x_jarvis_token: Annotated[str | None, Header(alias=TOKEN_HEADER)] = None,
+        x_jarvis_device_id: Annotated[str | None, Header(alias=DEVICE_HEADER)] = None,
+    ) -> Dict[str, Any]:
+        """
+        Retorna o stream de pensamentos privados do JARVIS.
+        EXCLUSIVO PARA O DONO AUTENTICADO.
+        """
+        runtime = _ensure_runtime_initialized(request)
+        is_owner = (
+            x_jarvis_token == request.app.state.api_token
+            and x_jarvis_device_id == request.app.state.trusted_device_id
+        )
+        return runtime.thought_stream_engine.get_owner_thoughts_stream(is_authenticated_owner=is_owner)
+
     return app
 
 

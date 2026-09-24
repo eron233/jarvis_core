@@ -349,6 +349,15 @@ class InternalAgentRuntime:
             from runtime.quantum_tree_search_engine import QuantumTreeSearchEngine
             self.quantum_tree_search_engine = QuantumTreeSearchEngine()
 
+            # Motores de Arquivos, Visão e Pensamentos do Dono
+            from runtime.file_archive_engine import FileArchiveEngine
+            from learning.image_vision_engine import ImageVisionEngine
+            from runtime.thought_stream_engine import ThoughtStreamEngine
+
+            self.file_archive_engine = FileArchiveEngine()
+            self.image_vision_engine = ImageVisionEngine()
+            self.thought_stream_engine = ThoughtStreamEngine()
+
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
             if getattr(semantic_memory, "storage_path", None) is None:
