@@ -5,17 +5,117 @@ Responsável por:
 - extrair dados estruturados de HTML/Páginas Web sem depender de seletores CSS/XPath rígidos
 - construir um grafo de nós conceituais para mapeamento semântico de elementos
 - adaptar automaticamente a extração mesmo quando a estrutura do DOM for alterada
+
+A extração usa `html.parser` (stdlib) para ler de verdade o HTML recebido:
+título, cabeçalhos, parágrafos, itens de lista, links e números presentes no
+texto. Quando um campo do schema não pode ser encontrado no HTML, o valor
+retornado é vazio/None (nunca um valor fixo inventado).
 """
 
 from __future__ import annotations
 
+from html.parser import HTMLParser
 import json
 import logging
 from pathlib import Path
+import re
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 LOGGER = logging.getLogger("jarvis.learning.scrapegraph")
+
+_NUMBER_PATTERN = re.compile(r"\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?")
+
+
+def _parse_number(raw: str) -> Optional[float]:
+    """Converte um trecho numérico textual (ex.: '1.234,56' ou '29.99') em float."""
+    cleaned = raw.strip()
+    if not cleaned:
+        return None
+    # Se tiver tanto ponto quanto vírgula, assume o último separador como decimal.
+    if "," in cleaned and "." in cleaned:
+        if cleaned.rfind(",") > cleaned.rfind("."):
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        else:
+            cleaned = cleaned.replace(",", "")
+    elif "," in cleaned:
+        # Vírgula única: trata como separador decimal se tiver 1-2 dígitos após.
+        parts = cleaned.split(",")
+        if len(parts[-1]) in (1, 2):
+            cleaned = cleaned.replace(",", ".")
+        else:
+            cleaned = cleaned.replace(",", "")
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+class _StructuredHTMLParser(HTMLParser):
+    """Extrai elementos estruturais reais de um HTML: títulos, cabeçalhos, listas, links e texto."""
+
+    _SKIP_TAGS = {"script", "style", "noscript"}
+    _CAPTURE_TAGS = {"title", "h1", "h2", "h3", "p", "li", "a"}
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._skip_depth = 0
+        self._current_tag: Optional[str] = None
+        self._buffer: List[str] = []
+
+        self.title: Optional[str] = None
+        self.headings: List[str] = []
+        self.paragraphs: List[str] = []
+        self.list_items: List[str] = []
+        self.links: List[str] = []
+        self.full_text_chunks: List[str] = []
+
+    def handle_starttag(self, tag: str, attrs) -> None:  # noqa: ANN001
+        if tag in self._SKIP_TAGS:
+            self._skip_depth += 1
+            return
+        if tag in self._CAPTURE_TAGS:
+            self._current_tag = tag
+            self._buffer = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in self._SKIP_TAGS and self._skip_depth > 0:
+            self._skip_depth -= 1
+            return
+        if tag == self._current_tag:
+            text = re.sub(r"\s+", " ", "".join(self._buffer)).strip()
+            if text:
+                if tag == "title" and self.title is None:
+                    self.title = text
+                elif tag in ("h1", "h2", "h3"):
+                    self.headings.append(text)
+                elif tag == "p":
+                    self.paragraphs.append(text)
+                elif tag == "li":
+                    self.list_items.append(text)
+                elif tag == "a":
+                    self.links.append(text)
+            self._current_tag = None
+            self._buffer = []
+
+    def handle_data(self, data: str) -> None:
+        if self._skip_depth != 0:
+            return
+        if self._current_tag:
+            self._buffer.append(data)
+        if data.strip():
+            self.full_text_chunks.append(data.strip())
+
+    def get_full_text(self) -> str:
+        return re.sub(r"\s+", " ", " ".join(self.full_text_chunks)).strip()
+
+    def extract_numbers(self) -> List[float]:
+        numeros: List[float] = []
+        for match in _NUMBER_PATTERN.findall(self.get_full_text()):
+            valor = _parse_number(match)
+            if valor is not None:
+                numeros.append(valor)
+        return numeros
 
 
 class ScrapeGraphEngine:
@@ -34,25 +134,28 @@ class ScrapeGraphEngine:
         """
         Converte o HTML bruto em um Grafo de Dados Estruturados adaptativo.
         Exemplo de schema: {"titulo": "str", "precos": "list[float]", "links_relacionados": "list[str]"}
+
+        A extração é real: usa html.parser para ler o documento e preencher
+        cada campo do schema com dados efetivamente encontrados. Campos sem
+        correspondência no HTML retornam vazio/None, nunca valores inventados.
         """
         parsed_url = urlparse(target_url)
         domain = parsed_url.netloc or "local"
 
-        # 1. Construção do Grafo de Elementos Semânticos
-        graph_nodes = []
-        edges = []
+        parser = _StructuredHTMLParser()
+        parser.feed(html_content or "")
 
-        # Extração heurística simulada de elementos estruturados baseados no schema
+        graph_nodes: List[Dict[str, Any]] = []
+        edges: List[Dict[str, Any]] = []
         extracted_data: Dict[str, Any] = {}
 
-        lines = [line.strip() for line in html_content.splitlines() if line.strip()]
-
-        # Mapeamento do nó raiz (Domain Node)
         graph_nodes.append({
             "id": "node_root",
             "label": f"SiteRoot:{domain}",
             "tipo": "dominio",
         })
+
+        numeros_encontrados = parser.extract_numbers()
 
         for key, field_type in extraction_schema.items():
             node_id = f"node_{key}"
@@ -63,15 +166,38 @@ class ScrapeGraphEngine:
             })
             edges.append({"origem": "node_root", "destino": node_id, "relacao": "contem_campo"})
 
-            # Preenchimento heurístico adaptativo dos dados
             if field_type == "list[str]":
-                items = [line for line in lines if len(line) > 5 and not line.startswith("<")][:5]
-                extracted_data[key] = items or ["Item extraído 1", "Item extraído 2"]
+                if parser.list_items:
+                    itens = parser.list_items
+                elif parser.headings:
+                    itens = parser.headings
+                elif parser.links:
+                    itens = [text for text in parser.links if len(text) > 1]
+                else:
+                    itens = []
+                extracted_data[key] = itens
+                graph_nodes[-1]["itens_encontrados"] = len(itens)
+            elif field_type == "list[float]":
+                extracted_data[key] = numeros_encontrados
+                graph_nodes[-1]["itens_encontrados"] = len(numeros_encontrados)
             elif field_type in ("int", "float"):
-                extracted_data[key] = 100.0
-            else:
-                text_matches = [line for line in lines if not line.startswith("<") and len(line) > 3]
-                extracted_data[key] = text_matches[0] if text_matches else f"Valor adaptativo para {key}"
+                if numeros_encontrados:
+                    valor = numeros_encontrados[0]
+                    extracted_data[key] = int(valor) if field_type == "int" else valor
+                else:
+                    extracted_data[key] = None
+            else:  # "str" e qualquer outro tipo textual
+                if parser.headings:
+                    texto = parser.headings[0]
+                elif parser.title:
+                    texto = parser.title
+                elif parser.paragraphs:
+                    texto = parser.paragraphs[0]
+                else:
+                    texto = None
+                extracted_data[key] = texto
+
+        campos_preenchidos = sum(1 for v in extracted_data.values() if v not in (None, [], ""))
 
         result = {
             "url_alvo": target_url,
@@ -85,7 +211,7 @@ class ScrapeGraphEngine:
             "adaptabilidade_status": "sucesso_sem_dependencia_css",
             "resumo_ptbr": (
                 f"Extração adaptativa por grafo concluída para '{target_url}'. "
-                f"{len(extracted_data)} campo(s) estruturado(s) mapeado(s) sem seletores rígidos."
+                f"{campos_preenchidos}/{len(extracted_data)} campo(s) preenchido(s) com dados reais do HTML."
             ),
         }
 

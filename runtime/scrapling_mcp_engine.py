@@ -5,6 +5,12 @@ Responsável por:
 - raspagem stealth de alta precisão com rotação de headers, fingerprinting e bypass de verificações anti-bot
 - seletores adaptativos e tolerantes a alterações na estrutura DOM
 - conformidade nativa com o protocolo MCP (Model Context Protocol) para fornecer dados web estruturados
+
+O conteúdo raspado é real: a busca da página é delegada ao WebBrowserEngine
+(runtime/web_browser_engine.py), que faz a extração de texto limpo de
+verdade. Para testes, aceita-se `html_content` (injeta o HTML da página, sem
+rede) e/ou `browser_engine` (injeta um motor substituto, útil para simular
+falhas sem depender de rede real).
 """
 
 from __future__ import annotations
@@ -15,6 +21,8 @@ import logging
 from pathlib import Path
 import random
 from typing import Any, Dict, List, Optional
+
+from runtime.web_browser_engine import WebBrowserEngine
 
 LOGGER = logging.getLogger("jarvis.runtime.scrapling_mcp")
 
@@ -31,9 +39,16 @@ class ScraplingMCPEngine:
         target_url: str,
         mcp_tool_name: str = "scrapling_fetch_page",
         stealth_level: str = "high",
+        html_content: Optional[str] = None,
+        browser_engine: Optional[WebBrowserEngine] = None,
     ) -> Dict[str, Any]:
         """
         Executa raspagem stealth e empacota o resultado no formato padronizado do protocolo MCP.
+
+        O conteúdo é obtido de verdade via WebBrowserEngine.fetch_page_content.
+        - `html_content`: injeta o HTML da página diretamente (sem rede), útil em testes.
+        - `browser_engine`: injeta um motor substituto (ex.: um dublê que levanta
+          exceção), permitindo testar o caminho de erro sem depender de rede real.
         """
         now = datetime.now(timezone.utc).isoformat()
 
@@ -53,6 +68,40 @@ class ScraplingMCPEngine:
             "Sec-Fetch-Mode": "navigate",
         }
 
+        engine = browser_engine or WebBrowserEngine(user_agent=selected_ua)
+
+        try:
+            fetch_result = engine.fetch_page_content(target_url, html_content=html_content)
+        except Exception as e:  # motor injetado pode levantar exceção diretamente
+            fetch_result = {"status": "erro", "motivo": str(e)}
+
+        is_error = fetch_result.get("status") != "sucesso"
+
+        if is_error:
+            motivo = fetch_result.get("motivo", "falha desconhecida ao raspar a página")
+            content: List[Dict[str, Any]] = [
+                {
+                    "type": "text",
+                    "text": f"Falha ao raspar '{target_url}' de forma stealth: {motivo}",
+                },
+            ]
+        else:
+            texto_real = fetch_result.get("conteudo_texto_limpo", "")
+            content = [
+                {
+                    "type": "text",
+                    "text": texto_real,
+                },
+                {
+                    "type": "resource",
+                    "resource": {
+                        "uri": target_url,
+                        "mimeType": "text/plain",
+                        "text": texto_real,
+                    },
+                },
+            ]
+
         # Formato de resposta em conformidade com o Protocolo MCP (Model Context Protocol)
         mcp_response = {
             "mcp_protocol_version": "2024-11-05",
@@ -64,21 +113,8 @@ class ScraplingMCPEngine:
                 "headers_utilized": stealth_headers,
                 "anti_bot_bypass": True,
             },
-            "content": [
-                {
-                    "type": "text",
-                    "text": f"Conteúdo raspado com sucesso de '{target_url}'. Proteções anti-bot contornadas com fingerprint stealth.",
-                },
-                {
-                    "type": "resource",
-                    "resource": {
-                        "uri": target_url,
-                        "mimeType": "text/html",
-                        "text": f"<html><body><h1>Conteúdo Extraído de {target_url}</h1><p>Página capturada de forma stealth pelo Scrapling MCP do JARVIS.</p></body></html>",
-                    },
-                },
-            ],
-            "is_error": False,
+            "content": content,
+            "is_error": is_error,
         }
 
         self._save_mcp_record(mcp_tool_name, mcp_response)

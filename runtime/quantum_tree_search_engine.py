@@ -137,28 +137,83 @@ class QuantumTreeSearchEngine:
         goal: str,
         budget_brl: float,
     ) -> Dict[str, Any]:
-        """Submete a solução ótima ao questionamento rigoroso dos 11 pilares."""
+        """Submete a solução ótima ao questionamento dos 11 pilares.
+
+        Cada resposta é DERIVADA dos atributos reais da hipótese (scores de Pareto, custo,
+        orçamento, código aberto, diferencial e facilidade). O veredito de fechamento de
+        lacunas e a qualidade são calculados a partir de limiares — não são sempre positivos.
+        """
         hyp_name = node["nome_hipotese"]
+        scores = node["score_pareto"]
+        detalhes = node.get("detalhes", {})
+
+        diferencial = float(scores["diferencial_mercado"])
+        open_source_viab = float(scores["open_source_viabilidade"])
+        cripto_roi = float(scores["eficiencia_cripto_roi"])
+        facilidade = float(scores["facilidade_execucao"])
+        is_open_source = bool(detalhes.get("open_source", True))
+        custo = float(detalhes.get("custo_estimado_brl", 0.0))
+        dentro_orcamento = custo <= budget_brl
+
+        # Identifica pontos fortes e lacunas reais (score < 6.0 é uma lacuna).
+        pilares = {
+            "diferencial de mercado": diferencial,
+            "viabilidade open-source": open_source_viab,
+            "eficiência de custo/ROI": cripto_roi,
+            "facilidade de execução": facilidade,
+        }
+        lacunas = [nome for nome, val in pilares.items() if val < 6.0]
+        fortes = [nome for nome, val in pilares.items() if val >= 8.0]
+
+        def _sn(cond: bool) -> str:
+            return "Sim" if cond else "Não"
+
         answers = [
-            f"1. Correto: A hipótese '{hyp_name}' é logicamente consistente com o objetivo '{goal}'.",
-            f"2. Sustentação: Amparada por componentes Open-Source maduros e validados.",
-            f"3. Riscos de Desestruturação: Mudanças abruptas de API ou variação de liquidez em Cripto.",
-            f"4. Fechamento de Lacunas: Uso de redundância e fallback para manter a operação resiliente.",
-            f"5. Lacunas Abertas: Necessidade de monitoramento contínuo do mercado e concorrência.",
-            f"6. Melhoria Contínua: Otimização de parâmetros via algoritmos evolutivos e aprendizado procedural.",
-            f"7. Técnicas Necessárias: Arquitetura modular assíncrona e banco SQLite transacional.",
-            f"8. Gargalo Principal: Latência de I/O e tempo de resposta; resolvido com SQLite WAL e execuções paralelas.",
-            f"9. Combinação Imbatível: Fusão de automação determinística, modelo Open-Source e execução de baixo custo.",
-            f"10. Viabilidade Open-Source: 100% viável e reprodutível sem licenças proprietárias.",
-            f"11. Eficiência Exponencial Cripto: Com orçamento de R$ {budget_brl:.2f}, escala de forma exponencial gastando o mínimo.",
+            f"1. Está correto? {_sn(diferencial >= 5.0)} — diferencial avaliado em {diferencial:.1f}/10 "
+            f"frente ao objetivo '{goal}'.",
+            f"2. O que sustenta? Pontos fortes: {', '.join(fortes) if fortes else 'nenhum pilar acima de 8.0'}.",
+            f"3. O que pode desestruturar? {'Custo acima do orçamento (R$ %.2f > R$ %.2f).' % (custo, budget_brl) if not dentro_orcamento else 'Dependência de terceiros e variação de contexto.'}",
+            f"4. Como fechar as lacunas? {'Nenhuma lacuna crítica; manter monitoramento.' if not lacunas else 'Atacar: ' + ', '.join(lacunas) + '.'}",
+            f"5. Quais lacunas abre? {', '.join(lacunas) if lacunas else 'Nenhuma lacuna abaixo de 6.0 identificada.'}",
+            f"6. Como melhorar? {'Elevar ' + lacunas[0] + '.' if lacunas else 'Refinar o pilar de menor score: ' + min(pilares, key=pilares.get) + '.'}",
+            f"7. Técnicas necessárias? {'Adoção/substituição por alternativa open-source.' if not is_open_source else 'Manter stack aberta e modular.'}",
+            f"8. Gargalo principal? Pilar de menor score: {min(pilares, key=pilares.get)} ({min(pilares.values()):.1f}/10).",
+            f"9. Combinação de fatores? Média ponderada dos pilares = {self._weighted_score(scores):.2f}/10.",
+            f"10. É 100% open-source? {_sn(is_open_source)}.",
+            f"11. Cabe no orçamento (R$ {budget_brl:.2f})? {_sn(dentro_orcamento)} — custo estimado R$ {custo:.2f}.",
         ]
+
+        weighted = self._weighted_score(scores)
+        # Veredito honesto: exige média boa, orçamento respeitado e nenhuma lacuna crítica.
+        pleno_fechamento = weighted >= 7.0 and dentro_orcamento and not lacunas
+        if weighted >= 8.5 and not lacunas:
+            qualidade = "superior_ao_mercado"
+        elif weighted >= 7.0:
+            qualidade = "competitiva"
+        elif weighted >= 5.0:
+            qualidade = "viavel_com_ressalvas"
+        else:
+            qualidade = "insuficiente"
 
         return {
             "hipotese_validada": hyp_name,
             "perguntas_e_respostas_11_pilares": answers,
-            "pleno_fechamento_de_lacunas": True,
-            "qualidade_solucao": "superior_ao_mercado",
+            "score_ponderado": round(weighted, 2),
+            "lacunas_identificadas": lacunas,
+            "pilares_fortes": fortes,
+            "pleno_fechamento_de_lacunas": pleno_fechamento,
+            "qualidade_solucao": qualidade,
         }
+
+    @staticmethod
+    def _weighted_score(scores: Dict[str, float]) -> float:
+        """Média ponderada dos pilares de Pareto (mesmos pesos usados na seleção)."""
+        return (
+            float(scores["diferencial_mercado"]) * 0.35
+            + float(scores["open_source_viabilidade"]) * 0.25
+            + float(scores["eficiencia_cripto_roi"]) * 0.25
+            + float(scores["facilidade_execucao"]) * 0.15
+        )
 
     def _save_search_record(self, record: Dict[str, Any]) -> None:
         """Salva a exploração da árvore em disco."""

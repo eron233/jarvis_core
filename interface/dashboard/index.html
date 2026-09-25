@@ -421,10 +421,19 @@
 
   <script>
     function getAuthHeaders() {
+      // Nunca embute credenciais de teste no cliente. Usa apenas o que o dono
+      // salvou neste navegador; sem token, a requisição falha a autenticação
+      // (comportamento correto) em vez de enviar um segredo adivinhável.
+      var token = '';
+      var deviceId = '';
+      try {
+        token = localStorage.getItem('jarvis_token') || '';
+        deviceId = localStorage.getItem('jarvis_device_id') || '';
+      } catch (e) { /* localStorage indisponível */ }
       return {
         'Content-Type': 'application/json',
-        'X-Jarvis-Token': localStorage.getItem('jarvis_token') || 'test-token',
-        'X-Jarvis-Device-Id': localStorage.getItem('jarvis_device_id') || 'test-device-id',
+        'X-Jarvis-Token': token,
+        'X-Jarvis-Device-Id': deviceId,
         'X-Jarvis-Nonce': 'nonce-' + Math.random().toString(36).substring(2, 10),
         'X-Jarvis-Timestamp': Date.now().toString()
       };

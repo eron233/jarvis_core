@@ -46,6 +46,51 @@ class ArchiveVisionAndThoughtsTests(unittest.TestCase):
         res = vision_engine.analyze_image_and_build_context(image_path=img_file, user_hint="Print de teste")
         self.assertEqual(res["status"], "sucesso")
         self.assertIn("pre_contexto_visual", res)
+        # A imagem de teste é um PNG 1x1 -> dimensões devem ser lidas de verdade do cabeçalho IHDR
+        self.assertEqual(res["largura_px"], 1)
+        self.assertEqual(res["altura_px"], 1)
+        self.assertIn("ocr_disponivel", res)
+        self.assertFalse(res["ocr_disponivel"])  # sem pytesseract instalado no ambiente de teste
+        self.assertEqual(res["texto_extraido_ocr"], "")
+
+    def test_image_vision_engine_png_5x3_dimensions(self) -> None:
+        """PNG maior (5x3) gerado manualmente, para confirmar o parsing correto do cabeçalho IHDR."""
+        import struct
+        import zlib
+
+        vision_engine = ImageVisionEngine()
+
+        width, height = 5, 3
+        png_signature = b"\x89PNG\r\n\x1a\n"
+
+        def chunk(tag: bytes, data: bytes) -> bytes:
+            return (
+                struct.pack(">I", len(data))
+                + tag
+                + data
+                + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+            )
+
+        ihdr_data = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)  # RGB, 8 bits
+        raw_scanlines = b""
+        for _ in range(height):
+            raw_scanlines += b"\x00" + b"\x00\x00\x00" * width  # filtro None + pixels pretos
+        idat_data = zlib.compress(raw_scanlines)
+
+        png_bytes = (
+            png_signature
+            + chunk(b"IHDR", ihdr_data)
+            + chunk(b"IDAT", idat_data)
+            + chunk(b"IEND", b"")
+        )
+
+        img_file = self.tmp_path / "generated.png"
+        img_file.write_bytes(png_bytes)
+
+        res = vision_engine.analyze_image_and_build_context(image_path=img_file)
+        self.assertEqual(res["status"], "sucesso")
+        self.assertEqual(res["largura_px"], width)
+        self.assertEqual(res["altura_px"], height)
 
     def test_thought_stream_engine(self) -> None:
         thought_engine = ThoughtStreamEngine(thoughts_dir=self.tmp_path)
