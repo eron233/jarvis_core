@@ -87,6 +87,16 @@ class DeviceProfiler:
         return profile_report
 
     def _save_profile(self, profile: Dict[str, Any]) -> None:
-        """Salva o relatório de perfil em disco."""
+        """
+        Salva o relatorio de perfil em disco.
+
+        Usa o mesmo padrao de escrita atomica do restante da persistencia: um
+        arquivo temporario trocado de nome ao final, para que uma queda no meio
+        da gravacao nao deixe um JSON truncado no lugar do perfil anterior.
+        """
+
         file_path = self.profiler_dir / "current_device_profile.json"
-        file_path.write_text(json.dumps(profile, indent=2, ensure_ascii=False), encoding="utf-8")
+        temp_path = file_path.with_name(f"{file_path.name}.tmp")
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
+        temp_path.write_text(json.dumps(profile, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temp_path, file_path)

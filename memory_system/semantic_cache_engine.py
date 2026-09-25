@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -121,6 +122,16 @@ class SemanticCacheEngine:
                 self.cache_entries = []
 
     def _save_cache(self) -> None:
-        """Persiste as entradas do cache no arquivo JSON."""
+        """
+        Persiste as entradas do cache no arquivo JSON.
+
+        A gravacao passa por um arquivo temporario trocado de nome ao final, o
+        mesmo padrao do restante da persistencia do projeto. Escrever direto no
+        destino deixa um JSON truncado quando o processo cai no meio da escrita.
+        """
+
         payload = {"entries": self.cache_entries}
-        self.storage_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        temp_path = self.storage_path.with_name(f"{self.storage_path.name}.tmp")
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
+        temp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temp_path, self.storage_path)
