@@ -18,6 +18,8 @@ import zipfile
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARCHIVE_DIR = PROJECT_ROOT / "data" / "file_archives"
+MAX_ARCHIVE_ENTRIES = 10_000
+MAX_ARCHIVE_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024  # 2 GiB: barreira contra zip bomb
 
 
 class FileArchiveEngine:
@@ -44,7 +46,8 @@ class FileArchiveEngine:
             ext = fmt
             fmt = fmt.lstrip(".")
 
-        out_name = archive_name if archive_name.endswith(ext) else f"{archive_name}{ext}"
+        safe_name = Path(archive_name).name or "archive"
+        out_name = safe_name if safe_name.endswith(ext) else f"{safe_name}{ext}"
         out_path = self.archive_dir / out_name
 
         try:
@@ -97,12 +100,23 @@ class FileArchiveEngine:
             extracted_files = []
             if zipfile.is_zipfile(src_path):
                 with zipfile.ZipFile(src_path, "r") as zipf:
+                    members = zipf.infolist()
+                    self._check_archive_limits(len(members), sum(m.file_size for m in members))
+                    for member in members:
+                        self._safe_destination(target_dir, member.filename)
                     zipf.extractall(target_dir)
-                    extracted_files = zipf.namelist()
+                    extracted_files = [m.filename for m in members]
             elif tarfile.is_tarfile(src_path):
                 with tarfile.open(src_path, "r:*") as tarf:
-                    tarf.extractall(target_dir)
-                    extracted_files = tarf.getnames()
+                    members = tarf.getmembers()
+                    self._check_archive_limits(len(members), sum(m.size for m in members))
+                    for member in members:
+                        # Links, dispositivos e FIFOs podem escapar do destino ou travar a extracao.
+                        if not (member.isfile() or member.isdir()):
+                            raise ValueError(f"Entrada nao permitida no arquivo: {member.name}")
+                        self._safe_destination(target_dir, member.name)
+                    tarf.extractall(target_dir, members=members)
+                    extracted_files = [m.name for m in members]
             else:
                 return {"status": "erro", "motivo": "Formato de arquivo compactado não reconhecido."}
 
@@ -115,3 +129,20 @@ class FileArchiveEngine:
             }
         except Exception as e:
             return {"status": "erro", "motivo": str(e)}
+
+    @staticmethod
+    def _safe_destination(target_dir: Path, member_name: str) -> Path:
+        """Garante que a entrada do arquivo compactado nao escape do diretorio destino."""
+
+        root = target_dir.resolve()
+        destination = (root / member_name).resolve()
+        if destination != root and root not in destination.parents:
+            raise ValueError(f"Entrada tenta escapar do destino: {member_name}")
+        return destination
+
+    @staticmethod
+    def _check_archive_limits(entries: int, uncompressed_bytes: int) -> None:
+        if entries > MAX_ARCHIVE_ENTRIES:
+            raise ValueError(f"Arquivo com entradas demais ({entries}).")
+        if uncompressed_bytes > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
+            raise ValueError("Arquivo descompactado excederia o limite de 2 GiB.")

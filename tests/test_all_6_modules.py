@@ -103,7 +103,10 @@ class AllSixModulesTests(unittest.TestCase):
 
         self.assertIn("hardware", profile)
         self.assertIn("otimizacoes_simuladas", profile)
-        self.assertEqual(profile["status_simulacao"], "simulado_com_sucesso")
+        self.assertEqual(profile["status_simulacao"], "recomendacoes_genericas")
+        self.assertEqual(profile["perfil_usuario"]["aplicativos_informados"], ["GameA", "Discord"])
+        for item in profile["otimizacoes_simuladas"]:
+            self.assertNotIn("%", item["ganho_estimado"])
 
     def test_runtime_integration_of_all_six_modules(self) -> None:
         runtime = InternalAgentRuntime()

@@ -41,17 +41,19 @@ class SystemAutomationEngine:
 
         now = datetime.now(timezone.utc).isoformat()
         try:
+            pid = None
             if platform.system() == "Windows":
-                proc = subprocess.Popen(["cmd.exe", "/c", "start", "", app_command], shell=True)
+                # startfile nao passa pelo cmd.exe: sem interpretacao de &, |, > etc.
+                os.startfile(app_command)  # type: ignore[attr-defined]
             elif platform.system() == "Darwin":
-                proc = subprocess.Popen(["open", "-a", app_command])
+                pid = subprocess.Popen(["open", "-a", app_command]).pid
             else:
-                proc = subprocess.Popen(["xdg-open", app_command])
+                pid = subprocess.Popen(["xdg-open", app_command]).pid
 
             return {
                 "status": "sucesso",
                 "comando": app_command,
-                "pid_estimado": proc.pid,
+                "pid": pid,
                 "lancado_em": now,
             }
         except Exception as e:

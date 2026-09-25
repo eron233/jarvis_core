@@ -48,12 +48,13 @@ class DeviceProfiler:
         }
 
         # 2. Perfil de Utilização do Usuário
-        apps = installed_apps or ["Steam", "Discord", "Spotify", "Telegram", "VS Code"]
-        usages = observed_usages or ["Jogos", "Redes Sociais", "Programacao", "Musica"]
+        # Nada e "detectado" automaticamente: so entra no perfil o que foi informado.
+        apps = list(installed_apps or [])
+        usages = list(observed_usages or [])
 
         user_profile = {
-            "aplicativos_detectados": apps,
-            "foco_uso_principal": usages[0] if usages else "Geral",
+            "aplicativos_informados": apps,
+            "foco_uso_principal": usages[0] if usages else "nao informado",
             "categorias_frequentes": usages,
         }
 
@@ -70,7 +71,7 @@ class DeviceProfiler:
                 "parametro": rec["parametro"],
                 "sugestao": rec["sugestao"],
                 "nivel_risco": rec["risco"],
-                "simulacao_resultado": "Ganhos de 8% a 15% em latencia e taxa de quadros sem impacto de temperatura.",
+                "ganho_estimado": "nao medido (recomendacao generica, sem benchmark neste dispositivo)",
                 "aprovacao_usuario_requerida": True,
             })
 
@@ -80,7 +81,7 @@ class DeviceProfiler:
             "hardware": hardware_info,
             "perfil_usuario": user_profile,
             "otimizacoes_simuladas": simulated_optimizations,
-            "status_simulacao": "simulado_com_sucesso",
+            "status_simulacao": "recomendacoes_genericas",
         }
 
         self._save_profile(profile_report)

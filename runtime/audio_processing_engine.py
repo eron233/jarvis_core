@@ -1,11 +1,11 @@
 """
-JARVIS - Motor de Gravação de Áudio, Limpeza de Ruído (DSP/Spectral Gating) e Decodificação de Sinais (Morse/Baudot)
+JARVIS - Processamento de arquivos WAV: noise gate e deteccao de codigo Morse
 
-Responsável por:
-- gravação de áudio por tempo intermitente via microfone local
-- filtragem digital de sinais (DSP): redução de ruídos de fundo, conversas secundárias e interferências
-- identificação e decodificação automática de código Morse / sinais de rádio (Baudot/RTTY)
-- geração de áudio limpo para reprodução/download e transcrição em texto
+Responsavel por:
+- aplicar um noise gate simples em WAV PCM 16-bit e medir o efeito real (RMS antes/depois)
+- detectar e decodificar codigo Morse por envelope de amplitude (tom continuo on/off)
+- informar com clareza o que NAO existe: captura de microfone e transcricao de fala
+  dependem de backends que nao fazem parte deste projeto
 """
 
 from __future__ import annotations
@@ -36,30 +36,25 @@ MORSE_CODE_DICT = {
 
 
 class AudioProcessingEngine:
-    """Motor de gravação, filtragem de ruído (DSP/Spectral Suppression) e decodificação de áudio/sinais."""
+    """Processa WAVs existentes; nao grava microfone nem transcreve fala."""
 
     def __init__(self, recordings_dir: Optional[Path] = None) -> None:
         self.recordings_dir = Path(recordings_dir) if recordings_dir else DEFAULT_RECORDINGS_DIR
         self.recordings_dir.mkdir(parents=True, exist_ok=True)
         self.is_recording = False
-        self.current_recording_id = None
+        self.current_recording_id: Optional[str] = None
 
     def start_intermittent_recording(self, context_title: str = "aula_professor") -> Dict[str, Any]:
-        """
-        Inicia a gravação de áudio do microfone por tempo intermitente.
-        """
-        now = datetime.now(timezone.utc).isoformat()
-        file_id = f"recording_{int(datetime.now(timezone.utc).timestamp())}_{context_title}.wav"
-        output_file = self.recordings_dir / file_id
-
-        self.is_recording = True
-        self.current_recording_id = file_id
+        """Captura de microfone nao esta disponivel: informa em vez de fingir que grava."""
 
         return {
-            "status": "gravando",
-            "contexto": context_title,
-            "arquivo_destino": str(output_file),
-            "iniciado_em": now,
+            "status": "indisponivel",
+            "contexto": re.sub(r"[^A-Za-z0-9_-]", "_", context_title)[:40],
+            "motivo": (
+                "Captura de microfone nao implementada neste servidor. Grave o audio no aparelho "
+                "e envie o arquivo WAV para processamento."
+            ),
+            "diretorio_de_entrada": str(self.recordings_dir),
         }
 
     def stop_and_clean_recording(
@@ -67,105 +62,136 @@ class AudioProcessingEngine:
         audio_file_path: Optional[str | Path] = None,
         noise_reduction_level: float = 0.8,
     ) -> Dict[str, Any]:
-        """
-        Para a gravação, aplica filtragem de ruído digital (DSP/Noise Gate) e gera versão limpa + texto.
-        """
+        """Aplica noise gate e deteccao de Morse sobre um WAV existente."""
+
         now = datetime.now(timezone.utc).isoformat()
         self.is_recording = False
+        if audio_file_path is None:
+            candidates = sorted(
+                (p for p in self.recordings_dir.glob("*.wav") if not p.name.startswith("clean_")),
+                key=lambda p: p.stat().st_mtime,
+            )
+            if not candidates:
+                return {"status": "erro", "motivo": "Nenhum arquivo WAV disponivel para processar.", "concluido_em": now}
+            path = candidates[-1]
+        else:
+            path = Path(audio_file_path)
+        if not path.is_file():
+            return {"status": "erro", "motivo": f"Arquivo nao encontrado: {path.name}", "concluido_em": now}
 
-        path = Path(audio_file_path) if audio_file_path else (self.recordings_dir / (self.current_recording_id or "recording_latest.wav"))
+        try:
+            samples, framerate, n_channels = self._read_pcm16_mono(path)
+        except ValueError as exc:
+            return {"status": "erro", "motivo": str(exc), "concluido_em": now}
+
+        level = min(max(float(noise_reduction_level), 0.0), 1.0)
         clean_file_path = self.recordings_dir / f"clean_{path.name}"
-
-        # Se o arquivo não existir fisicamente, gera um WAV válido tratado de amostra
-        if not path.exists():
-            self._generate_sample_wav(path)
-
-        # Processamento DSP (Digital Signal Processing) de Limpeza de Ruído
-        processed_stats = self._apply_dsp_noise_cancellation(path, clean_file_path, noise_reduction_level)
-
-        # Checa presença de sinais de rádio / código Morse
-        signal_decoding = self._detect_and_decode_radio_signals(path)
+        gate_stats = self._apply_noise_gate(samples, framerate, clean_file_path, level)
 
         return {
             "status": "sucesso",
             "audio_original": str(path),
             "audio_limpo": str(clean_file_path),
-            "limpeza_ruido": {
-                "nivel_reducao": f"{int(noise_reduction_level * 100)}%",
-                "snr_melhoria_db": processed_stats["snr_improvement_db"],
-                "frequencias_filtradas": "Ruídos de fundo < 150Hz e zumbidos > 8000Hz removidos",
-            },
-            "sinais_radio_detectados": signal_decoding,
-            "transcricao_texto": (
-                f"Transcrição limpa: 'A explicação do professor está salva e sem ruídos.' "
-                f"{signal_decoding['texto_decodificado'] if signal_decoding['sinal_encontrado'] else ''}"
-            ),
+            "canais_originais": n_channels,
+            "limpeza_ruido": gate_stats,
+            "sinais_radio_detectados": self._detect_and_decode_morse(samples, framerate),
+            "transcricao_texto": None,
+            "transcricao_status": "indisponivel: nenhum motor de reconhecimento de fala instalado",
             "concluido_em": now,
         }
 
-    def _apply_dsp_noise_cancellation(
-        self,
-        src_path: Path,
-        dst_path: Path,
-        reduction_level: float,
-    ) -> Dict[str, Any]:
-        """
-        Aplica filtro passa-banda e gating de ruído espectral sobre as amostras WAV.
-        """
+    @staticmethod
+    def _read_pcm16_mono(path: Path) -> tuple[List[int], int, int]:
         try:
-            with wave.open(str(src_path), "rb") as wf_in:
+            with wave.open(str(path), "rb") as wf_in:
                 n_channels = wf_in.getnchannels()
                 sampwidth = wf_in.getsampwidth()
                 framerate = wf_in.getframerate()
-                n_frames = wf_in.getnframes()
-                raw_frames = wf_in.readframes(n_frames)
+                raw_frames = wf_in.readframes(wf_in.getnframes())
+        except (wave.Error, EOFError) as exc:
+            raise ValueError(f"WAV invalido: {exc}") from exc
+        if sampwidth != 2:
+            raise ValueError("Somente WAV PCM 16-bit e suportado.")
+        count = len(raw_frames) // 2
+        interleaved = struct.unpack(f"<{count}h", raw_frames[: count * 2])
+        return list(interleaved[::n_channels]), framerate, n_channels
 
-            # Processamento de atenuação de ruído
-            samples = struct.unpack(f"<{len(raw_frames) // 2}h", raw_frames)
-            threshold = int(300 * (1.0 - reduction_level))
-            cleaned_samples = [s if abs(s) > threshold else 0 for s in samples]
+    @staticmethod
+    def _rms(samples: List[int]) -> float:
+        return math.sqrt(sum(s * s for s in samples) / len(samples)) if samples else 0.0
 
-            cleaned_bytes = struct.pack(f"<{len(cleaned_samples)}h", *cleaned_samples)
+    def _apply_noise_gate(self, samples: List[int], framerate: int, dst_path: Path, level: float) -> Dict[str, Any]:
+        """Zera amostras abaixo de um limiar relativo ao pico; mede o efeito real."""
 
-            with wave.open(str(dst_path), "wb") as wf_out:
-                wf_out.setnchannels(n_channels)
-                wf_out.setsampwidth(sampwidth)
-                wf_out.setframerate(framerate)
-                wf_out.writeframes(cleaned_bytes)
-
-            return {"snr_improvement_db": round(14.5 * reduction_level, 2)}
-        except Exception:
-            # Fallback se a leitura wave falhar
-            dst_path.write_bytes(src_path.read_bytes() if src_path.exists() else b"RIFF_CLEAN_WAV")
-            return {"snr_improvement_db": 12.0}
-
-    def _detect_and_decode_radio_signals(self, path: Path) -> Dict[str, Any]:
-        """
-        Inspeciona o áudio procurando sinais de rádio/código Morse ou Baudot.
-        """
-        # Exemplo de verificação de pulso Morse / RTTY
-        morse_pattern = ".... .- .--. .--. -.--" # "HAPPY" em morse
-        decoded_text = "".join(MORSE_CODE_DICT.get(code, "") for code in morse_pattern.split())
-
+        peak = max((abs(s) for s in samples), default=0)
+        threshold = int(peak * 0.05 * level)
+        cleaned = [s if abs(s) > threshold else 0 for s in samples]
+        with wave.open(str(dst_path), "wb") as wf_out:
+            wf_out.setnchannels(1)
+            wf_out.setsampwidth(2)
+            wf_out.setframerate(framerate)
+            wf_out.writeframes(struct.pack(f"<{len(cleaned)}h", *cleaned))
+        zeroed = sum(1 for before, after in zip(samples, cleaned) if before != after)
         return {
-            "sinal_encontrado": True,
-            "tipo_sinal": "Código Morse / Sinais de Rádio",
-            "frequencia_sinal_hz": 700,
-            "codigo_morse_raw": morse_pattern,
-            "texto_decodificado": f"[Sinal Rádio Decodificado: {decoded_text}]",
+            "metodo": "noise_gate_por_amplitude",
+            "limiar_amostra": threshold,
+            "amostras_zeradas_pct": round(100.0 * zeroed / len(samples), 2) if samples else 0.0,
+            "rms_antes": round(self._rms(samples), 1),
+            "rms_depois": round(self._rms(cleaned), 1),
         }
 
-    def _generate_sample_wav(self, path: Path) -> None:
-        """Gera um arquivo de áudio WAV de amostra válido para testes e fallback."""
-        path.parent.mkdir(parents=True, exist_ok=True)
-        framerate = 16000
-        duration_sec = 1
-        n_samples = framerate * duration_sec
-        samples = [int(1000 * math.sin(2 * math.pi * 440 * i / framerate)) for i in range(n_samples)]
-        raw_bytes = struct.pack(f"<{len(samples)}h", *samples)
+    def _detect_and_decode_morse(self, samples: List[int], framerate: int) -> Dict[str, Any]:
+        """Detecta pulsos on/off no envelope e decodifica Morse quando o padrao e plausivel."""
 
-        with wave.open(str(path), "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(framerate)
-            wf.writeframes(raw_bytes)
+        window = max(1, framerate // 100)  # 10 ms
+        envelope = [
+            sum(abs(s) for s in samples[i:i + window]) / window
+            for i in range(0, len(samples) - window + 1, window)
+        ]
+        not_found = {"sinal_encontrado": False, "tipo_sinal": None, "codigo_morse_raw": "", "texto_decodificado": ""}
+        if not envelope or max(envelope) < 200:
+            return not_found
+
+        threshold = max(envelope) * 0.5
+        runs: List[tuple[bool, int]] = []
+        for value in envelope:
+            on = value >= threshold
+            if runs and runs[-1][0] == on:
+                runs[-1] = (on, runs[-1][1] + 1)
+            else:
+                runs.append((on, 1))
+        while runs and not runs[0][0]:
+            runs.pop(0)
+        while runs and not runs[-1][0]:
+            runs.pop()
+        on_lengths = sorted(length for on, length in runs if on)
+        if len(on_lengths) < 3:
+            return not_found
+
+        unit = on_lengths[max(0, len(on_lengths) // 4 - 1)]
+        dots = [n for n in on_lengths if n < 2 * unit]
+        dashes = [n for n in on_lengths if n >= 2 * unit]
+        if dashes and not (2.0 <= (sorted(dashes)[len(dashes) // 2] / max(unit, 1)) <= 4.5):
+            return not_found
+
+        symbols = []
+        for on, length in runs:
+            if on:
+                symbols.append("." if length < 2 * unit else "-")
+            elif length >= 5 * unit:
+                symbols.append(" / ")
+            elif length >= 2 * unit:
+                symbols.append(" ")
+        raw = "".join(symbols).strip()
+        words = [w.split() for w in raw.split(" / ")]
+        decoded_letters = [MORSE_CODE_DICT.get(code, "?") for word in words for code in word]
+        if not decoded_letters or decoded_letters.count("?") / len(decoded_letters) > 0.2:
+            return not_found
+        text = " ".join("".join(MORSE_CODE_DICT.get(code, "?") for code in word) for word in words)
+        return {
+            "sinal_encontrado": True,
+            "tipo_sinal": "codigo_morse",
+            "unidade_ms": unit * 10,
+            "codigo_morse_raw": raw,
+            "texto_decodificado": text,
+        }

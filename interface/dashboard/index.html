@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>JARVIS — Sistema Cognitivo Operacional</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23D97757%22/%3E%3C/svg%3E" />
   <style>
     /* Estética Anthropic Claude Desktop / Claude Code */
     :root {
@@ -23,6 +24,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
 
     html, body {
       width: 100%;
@@ -39,6 +41,7 @@
       grid-template-columns: 260px minmax(0, 1fr);
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
     }
 
     /* Sidebar Esquerda Minimalista estilo Claude */
@@ -102,9 +105,16 @@
       transition: background 0.15s ease, color 0.15s ease;
     }
 
-    .nav-btn:hover, .nav-btn.active {
+    .nav-btn.active {
       background-color: var(--bg-card);
       color: var(--text-primary);
+    }
+
+    @media (hover: hover) {
+      .nav-btn:hover {
+        background-color: var(--bg-card);
+        color: var(--text-primary);
+      }
     }
 
     .sidebar-status {
@@ -128,7 +138,8 @@
     .main-content {
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      min-height: 0;
+      height: 100%;
       background-color: var(--bg-app);
       position: relative;
     }
@@ -348,11 +359,53 @@
       border-bottom: 1px solid var(--border-subtle);
       margin-bottom: 14px;
     }
-  </style>
+  
+    .panel { display: none; flex: 1; min-height: 0; flex-direction: column; }
+    .panel.active { display: flex; }
+    .panel-scroll { flex: 1; overflow-y: auto; padding: 24px; max-width: 900px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .card h2 { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+    .card p, .card li { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.5; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 0.78rem; color: var(--text-muted); }
+    .field input, .field textarea { background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: 6px; color: var(--text-primary); font: inherit; font-size: 0.9rem; padding: 8px 10px; }
+    .field input:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--accent-claude); outline-offset: 1px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 0.84rem; }
+    .kv dt { color: var(--text-muted); }
+    .kv dd { color: var(--text-primary); font-family: var(--font-mono); overflow-wrap: anywhere; }
+    .badge { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: rgba(217, 119, 87, 0.15); color: var(--accent-claude); }
+    .badge.ok { background: rgba(120, 190, 140, 0.15); color: #8FD19E; }
+    .badge.warn { background: rgba(230, 180, 80, 0.15); color: #E6C06A; }
+    .result { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow-y: auto; background: var(--bg-app); border-radius: 6px; padding: 10px; }
+    .result:empty { display: none; }
+    .msg-group.error .msg-content { color: #F2A38C; }
+    .msg-group.pending .msg-content { color: var(--text-muted); font-style: italic; }
+    button[disabled] { opacity: 0.55; cursor: progress; }
+    .status-dot.offline { background-color: #C0584A; }
+    .status-dot.ok { background-color: #8FD19E; }
+    .edge-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .edge-list li { font-family: var(--font-mono); font-size: 0.8rem; }
+
+    @media (max-width: 760px) {
+      .app-layout { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+      .sidebar { flex-direction: row; align-items: center; gap: 8px; padding: 8px 12px; border-right: none; border-bottom: 1px solid var(--border-subtle); overflow-x: auto; }
+      .sidebar > div:first-child { display: flex; align-items: center; gap: 8px; }
+      .brand { padding: 0; border-bottom: none; }
+      .brand-name { display: none; }
+      .nav-group { flex-direction: row; margin-top: 0; }
+      .nav-btn { white-space: nowrap; padding: 6px 10px; font-size: 0.82rem; }
+      .sidebar-status { border-top: none; padding-top: 0; white-space: nowrap; }
+      .sidebar-status .status-text { display: none; }
+      .header { padding: 10px 12px; }
+      .chat-stream, .panel-scroll { padding: 14px 12px; }
+      .composer-container { padding: 10px 12px 14px; }
+      .quick-tools { flex-wrap: wrap; }
+    }
+</style>
 </head>
 <body>
   <div class="app-layout">
-    <!-- Sidebar estilo Claude Code/Desktop -->
     <aside class="sidebar">
       <div>
         <div class="brand">
@@ -361,99 +414,175 @@
         </div>
 
         <nav class="nav-group" aria-label="Navegação principal">
-          <button type="button" class="nav-btn active" aria-current="page" onclick="switchTab('chat', this)">Conversa Principal</button>
-          <button type="button" class="nav-btn" onclick="switchTab('graphify', this)">Graphify Topológico</button>
-          <button type="button" class="nav-btn" aria-haspopup="dialog" aria-controls="thoughtModal" onclick="openThoughtModal()">Pensamentos do Dono</button>
-          <button type="button" class="nav-btn" onclick="switchTab('system', this)">Sensores & Módulos</button>
+          <button type="button" class="nav-btn active" aria-current="page" data-tab="chat">Conversa</button>
+          <button type="button" class="nav-btn" data-tab="graphify">Graphify</button>
+          <button type="button" class="nav-btn" data-tab="system">Sistema</button>
+          <button type="button" class="nav-btn" id="openThoughts" aria-haspopup="dialog" aria-controls="thoughtModal">Pensamentos</button>
         </nav>
       </div>
 
       <div class="sidebar-status" role="status" aria-live="polite">
-        <span class="status-dot" aria-hidden="true"></span>
-        <span>JARVIS Operacional</span>
+        <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+        <span class="status-text" id="statusText">Verificando…</span>
       </div>
     </aside>
 
-    <!-- Área Principal de Chat -->
     <main class="main-content">
       <header class="header">
-        <h1 class="header-title" id="tabTitle">Sessão Atual</h1>
+        <h1 class="header-title" id="tabTitle">Conversa</h1>
         <div class="header-actions">
-          <button type="button" class="btn-action" onclick="clearStream()">Limpar Chat</button>
-          <button type="button" class="btn-action" onclick="runAutoEvolution()">Autoevolução</button>
+          <button type="button" class="btn-action" id="clearChat">Limpar</button>
+          <button type="button" class="btn-action" id="logoutButton">Sair</button>
         </div>
       </header>
 
-      <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-atomic="false" aria-label="Conversa com o JARVIS" tabindex="0">
-        <div class="msg-group assistant">
-          <div class="msg-author">JARVIS</div>
-          <div class="msg-content">Olá. O sistema está operacional com todos os módulos, análise topológica Graphify, busca web e voz local ativos. Como posso ajudar?</div>
-        </div>
-      </div>
-
-      <div class="composer-container">
-        <div class="composer-wrapper">
-          <label for="composerInput" class="sr-only">Mensagem para o JARVIS</label>
-          <textarea id="composerInput" class="composer-textarea" placeholder="Envie uma mensagem ou solicite uma análise..." rows="1"></textarea>
-          <div class="composer-controls">
-            <div class="quick-tools" role="group" aria-label="Ferramentas rápidas">
-              <button type="button" class="tool-btn" onclick="runGraphify()">Graphify</button>
-              <button type="button" class="tool-btn" onclick="runWebSearch()">Pesquisar Web</button>
-              <button type="button" class="tool-btn" onclick="runVoice()">Voz Local</button>
-            </div>
-            <button type="button" class="btn-send" onclick="sendMsg()">Enviar</button>
+      <section class="panel active" id="panel-chat" aria-labelledby="tabTitle">
+        <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-atomic="false" aria-label="Conversa com o JARVIS" tabindex="0">
+          <div class="msg-group assistant">
+            <div class="msg-author">JARVIS</div>
+            <div class="msg-content">Olá. Envie um comando, ou digite um termo e use “Pesquisar web” / “Falar” abaixo.</div>
           </div>
         </div>
-      </div>
+
+        <div class="composer-container">
+          <div class="composer-wrapper">
+            <label for="composerInput" class="sr-only">Mensagem para o JARVIS</label>
+            <textarea id="composerInput" class="composer-textarea" placeholder="Envie uma mensagem ou digite o que pesquisar…" rows="1" maxlength="4000"></textarea>
+            <div class="composer-controls">
+              <div class="quick-tools" role="group" aria-label="Ferramentas rápidas">
+                <button type="button" class="tool-btn" id="toolSearch">Pesquisar web</button>
+                <button type="button" class="tool-btn" id="toolVoice">Falar</button>
+              </div>
+              <button type="button" class="btn-send" id="sendButton">Enviar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-graphify" aria-labelledby="tabTitle" hidden>
+        <div class="panel-scroll">
+          <form class="card" id="graphifyForm">
+            <h2>Mapa de conceitos</h2>
+            <p>Os nós são os termos mais frequentes do texto; as arestas ligam termos que aparecem na mesma frase.</p>
+            <div class="field">
+              <label for="graphTitle">Título</label>
+              <input id="graphTitle" required maxlength="200" placeholder="Ex.: Lançamento do app" />
+            </div>
+            <div class="field">
+              <label for="graphText">Descrição</label>
+              <textarea id="graphText" rows="5" maxlength="8000" placeholder="Descreva o projeto em frases curtas."></textarea>
+            </div>
+            <div class="row"><button type="submit" class="btn-send">Gerar grafo</button></div>
+          </form>
+          <div class="card" id="graphResult" hidden>
+            <h2 id="graphSummary"></h2>
+            <ul class="edge-list" id="graphEdges"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-system" aria-labelledby="tabTitle" hidden>
+        <div class="panel-scroll">
+          <div class="card">
+            <h2>Saúde <span class="badge" id="healthBadge">…</span></h2>
+            <dl class="kv" id="healthList"></dl>
+            <div class="row"><button type="button" class="btn-action" id="refreshSystem">Atualizar</button></div>
+          </div>
+
+          <div class="card">
+            <h2>Máquina</h2>
+            <dl class="kv" id="metricsList"></dl>
+          </div>
+
+          <div class="card">
+            <h2>Varredura de segurança do código</h2>
+            <p>Análise estática heurística dos arquivos Python do projeto (shell, eval, desserialização insegura, comparação de segredos…).</p>
+            <div class="field">
+              <label for="scanPath">Pasta relativa à raiz</label>
+              <input id="scanPath" value="." maxlength="200" />
+            </div>
+            <div class="row"><button type="button" class="btn-action" id="runScan">Varrer</button></div>
+            <pre class="result" id="scanResult"></pre>
+          </div>
+
+          <div class="card">
+            <h2>Pesquisa multi-fonte</h2>
+            <div class="field">
+              <label for="reachTopic">Tópico</label>
+              <input id="reachTopic" maxlength="200" placeholder="Ex.: energia solar residencial" />
+            </div>
+            <div class="row"><button type="button" class="btn-action" id="runReach">Pesquisar</button></div>
+            <pre class="result" id="reachResult"></pre>
+          </div>
+
+          <div class="card">
+            <h2>Módulos de demonstração <span class="badge warn">Simulado</span></h2>
+            <p>Estes módulos rodam sobre dados fixos ou aleatórios. Servem para testar a interface — não para decisões reais.</p>
+            <div class="row">
+              <button type="button" class="btn-action" data-demo="/api/mercado/feed/live" data-method="GET">Feed de mercado</button>
+              <button type="button" class="btn-action" data-demo="/api/modulos/mercado/analisar" data-method="POST">Análise de mercado</button>
+              <button type="button" class="btn-action" data-demo="/api/modulos/autoevolucao/ciclo" data-method="POST">Ciclo de autoevolução</button>
+            </div>
+            <pre class="result" id="demoResult"></pre>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
-  <!-- Modal de Pensamentos Privados do Dono -->
   <div class="modal-overlay" id="thoughtModal" role="dialog" aria-modal="true" aria-labelledby="thoughtModalTitle" aria-hidden="true">
     <div class="modal-content">
       <div class="modal-header-clean">
-        <h2 id="thoughtModalTitle" style="font-size:0.95rem; font-weight:600;">Stream de Pensamentos Privados do Dono</h2>
-        <button type="button" class="btn-action" onclick="closeThoughtModal()">Fechar</button>
+        <h2 id="thoughtModalTitle" style="font-size:0.95rem; font-weight:600;">Pensamentos privados</h2>
+        <button type="button" class="btn-action" id="closeThoughts">Fechar</button>
       </div>
       <pre id="thoughtContent" aria-live="polite" style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-secondary); white-space:pre-wrap;"></pre>
     </div>
   </div>
 
   <script>
-    function getAuthHeaders() {
-      return {
-        'Content-Type': 'application/json',
-        'X-Jarvis-Token': localStorage.getItem('jarvis_token') || 'test-token',
-        'X-Jarvis-Device-Id': localStorage.getItem('jarvis_device_id') || 'test-device-id',
-        'X-Jarvis-Nonce': 'nonce-' + Math.random().toString(36).substring(2, 10),
-        'X-Jarvis-Timestamp': Date.now().toString()
-      };
+    const DASHBOARD_CONFIG = __JARVIS_DASHBOARD_CONFIG__;
+    const TAB_TITLES = { chat: 'Conversa', graphify: 'Graphify', system: 'Sistema & Módulos' };
+    const $ = (id) => document.getElementById(id);
+
+    class ApiError extends Error {
+      constructor(message, status) { super(message); this.status = status; }
     }
 
-    function apiFetch(url, options = {}) {
-      const headers = Object.assign(getAuthHeaders(), options.headers || {});
-      return fetch(url, Object.assign({}, options, { headers }));
+    // A sessão vive num cookie HttpOnly; o navegador nunca guarda o token.
+    async function api(url, { method = 'GET', body } = {}) {
+      const headers = { 'Accept': 'application/json' };
+      if (method !== 'GET') headers['X-Jarvis-Csrf'] = '1';
+      if (body !== undefined) headers['Content-Type'] = typeof body === 'string' ? 'text/plain' : 'application/json';
+      let response;
+      try {
+        response = await fetch(url, {
+          method, headers, credentials: 'same-origin',
+          body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body)),
+        });
+      } catch (error) {
+        throw new ApiError('Sem conexão com o servidor do JARVIS.', 0);
+      }
+      if (response.status === 401) {
+        window.location.reload(); // sessão expirada: volta para a tela de acesso
+        throw new ApiError('Sessão expirada.', 401);
+      }
+      let data = null;
+      try { data = await response.json(); } catch (_) { /* resposta sem JSON */ }
+      if (!response.ok) {
+        const detail = data && (data.detail || data.mensagem);
+        throw new ApiError(typeof detail === 'string' ? detail : `Erro HTTP ${response.status}`, response.status);
+      }
+      return data || {};
     }
 
-    function sendMsg() {
-      const input = document.getElementById('composerInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      appendMsg('user', 'Você', text);
-      input.value = '';
-
-      apiFetch('/api/comando', {
-        method: 'POST',
-        body: JSON.stringify({ texto: text })
-      })
-      .then(r => r.json())
-      .then(d => appendMsg('assistant', 'JARVIS', d.resposta || d.mensagem || 'Comando executado.'))
-      .catch(e => appendMsg('assistant', 'JARVIS', 'Erro: ' + e.message));
+    async function withBusy(button, task) {
+      if (button) button.disabled = true;
+      try { return await task(); } finally { if (button) button.disabled = false; }
     }
 
     function appendMsg(role, author, text) {
-      const stream = document.getElementById('chatStream');
+      const stream = $('chatStream');
       const group = document.createElement('div');
       group.className = `msg-group ${role}`;
       const authorEl = document.createElement('div');
@@ -465,87 +594,287 @@
       group.append(authorEl, contentEl);
       stream.appendChild(group);
       stream.scrollTop = stream.scrollHeight;
+      return group;
     }
 
-    function runGraphify() {
-      appendMsg('user', 'Você', 'Executar análise Graphify.');
-      apiFetch('/api/graphify/estruturar?titulo=Projeto_JARVIS&descricao=Topologia', { method: 'POST' })
-      .then(r => r.json())
-      .then(d => appendMsg('assistant', 'JARVIS', d.resultado?.resumo_topologico_ptbr || 'Análise Graphify gerada.'));
+    function resolvePending(pending, role, text) {
+      pending.className = `msg-group ${role}`;
+      pending.querySelector('.msg-content').textContent = text;
     }
 
-    function runWebSearch() {
-      appendMsg('user', 'Você', 'Pesquisar na web.');
-      apiFetch('/api/web/pesquisar?q=JARVIS+AI')
-      .then(r => r.json())
-      .then(d => appendMsg('assistant', 'JARVIS', `Pesquisa web concluída. ${d.total_fontes_encontradas || 0} fontes consultadas.`));
+    function takeComposerText() {
+      const input = $('composerInput');
+      const text = input.value.trim();
+      if (!text) { input.focus(); return null; }
+      input.value = '';
+      autoResize();
+      return text;
     }
 
-    function runVoice() {
-      apiFetch('/api/voz/falar?texto=JARVIS+online', { method: 'POST' })
-      .then(r => r.json())
-      .then(() => appendMsg('assistant', 'JARVIS', 'Áudio de voz gerado localmente.'));
+    async function sendMsg() {
+      const text = takeComposerText();
+      if (!text) return;
+      appendMsg('user', 'Você', text);
+      const pending = appendMsg('pending', 'JARVIS', 'Processando…');
+      await withBusy($('sendButton'), async () => {
+        try {
+          const data = await api('/api/comando', { method: 'POST', body: { texto: text } });
+          resolvePending(pending, 'assistant', data.resposta || 'Comando recebido, sem resposta textual.');
+        } catch (error) {
+          if (error.status !== 401) resolvePending(pending, 'error', `Erro: ${error.message}`);
+        }
+      });
     }
 
-    function runAutoEvolution() {
-      apiFetch('/api/modulos/autoevolucao/ciclo', { method: 'POST' })
-      .then(r => r.json())
-      .then(() => appendMsg('assistant', 'JARVIS', 'Ciclo de autoevolução executado.'));
+    async function runWebSearch() {
+      const query = takeComposerText();
+      if (!query) return;
+      appendMsg('user', 'Você', `Pesquisar: ${query}`);
+      const pending = appendMsg('pending', 'JARVIS', 'Pesquisando…');
+      await withBusy($('toolSearch'), async () => {
+        try {
+          const data = await api(`/api/web/pesquisar?q=${encodeURIComponent(query)}`);
+          if (!data.fontes || data.fontes.length === 0) {
+            resolvePending(pending, 'assistant', data.motivo || 'Nenhum resultado encontrado.');
+            return;
+          }
+          const lines = data.fontes.map((f) => `${f.posicao}. ${f.titulo || f.url}\n   ${f.url}\n   ${f.resumo_snippet}`);
+          resolvePending(pending, 'assistant', lines.join('\n\n'));
+        } catch (error) {
+          if (error.status !== 401) resolvePending(pending, 'error', `Erro: ${error.message}`);
+        }
+      });
+    }
+
+    async function runVoice() {
+      const text = takeComposerText();
+      if (!text) return;
+      await withBusy($('toolVoice'), async () => {
+        try {
+          const data = await api(`/api/voz/falar?texto=${encodeURIComponent(text)}`, { method: 'POST' });
+          appendMsg('assistant', 'JARVIS', data.status === 'sucesso'
+            ? `Áudio gerado no servidor (${data.metodo_sintese}).`
+            : `Voz indisponível: ${data.motivo}`);
+        } catch (error) {
+          if (error.status !== 401) appendMsg('error', 'JARVIS', `Erro: ${error.message}`);
+        }
+      });
+    }
+
+    async function runGraphify(event) {
+      event.preventDefault();
+      const title = $('graphTitle').value.trim();
+      if (!title) return;
+      const button = event.submitter || $('graphifyForm').querySelector('button');
+      await withBusy(button, async () => {
+        try {
+          const params = new URLSearchParams({ titulo: title, descricao: $('graphText').value.trim() });
+          const data = await api(`/api/graphify/estruturar?${params}`, { method: 'POST' });
+          const graph = data.resultado.grafo;
+          const labels = Object.fromEntries(graph.nos.map((n) => [n.id, n.label]));
+          $('graphSummary').textContent = data.resultado.resumo_topologico_ptbr;
+          const list = $('graphEdges');
+          list.replaceChildren(...(graph.arestas.length ? graph.arestas : [null]).map((edge) => {
+            const li = document.createElement('li');
+            li.textContent = edge
+              ? `${labels[edge.origem]} — ${labels[edge.destino]}  (${edge.peso}×)`
+              : 'Nenhuma relação: escreva frases que mencionem mais de um conceito.';
+            return li;
+          }));
+          $('graphResult').hidden = false;
+        } catch (error) {
+          if (error.status !== 401) { $('graphSummary').textContent = `Erro: ${error.message}`; $('graphResult').hidden = false; }
+        }
+      });
+    }
+
+    function fillKv(list, entries) {
+      list.replaceChildren(...entries.flatMap(([key, value]) => {
+        const dt = document.createElement('dt'); dt.textContent = key;
+        const dd = document.createElement('dd'); dd.textContent = value;
+        return [dt, dd];
+      }));
+    }
+
+    const yesNo = (value) => (value ? 'sim' : 'não');
+
+    async function refreshSystem() {
+      await withBusy($('refreshSystem'), async () => {
+        try {
+          const [health, metrics] = await Promise.all([api('/api/health'), api('/api/sistema/metricas')]);
+          const badge = $('healthBadge');
+          badge.textContent = health.status_ptbr || health.status;
+          badge.className = `badge ${health.status === 'ok' ? 'ok' : 'warn'}`;
+          fillKv($('healthList'), [
+            ['Runtime ativo', yesNo(health.runtime_ativo)],
+            ['Fila carregada', yesNo(health.fila_carregada)],
+            ['Memória carregada', yesNo(health.memoria_carregada)],
+            ['Objetivos carregados', yesNo(health.objetivos_carregados)],
+            ['Configuração mínima', yesNo(health.configuracao_minima_valida)],
+            ['Uptime', `${Math.round(health.uptime_segundos || 0)} s`],
+          ]);
+          const m = metrics.metricas || {};
+          fillKv($('metricsList'), [
+            ['Sistema', m.sistema || '—'],
+            ['CPUs lógicas', m.cpus_logicos ?? '—'],
+            ['Carga média (1/5/15)', Array.isArray(m.carga_media_1_5_15_min) ? m.carga_media_1_5_15_min.map((v) => v.toFixed(2)).join(' / ') : '—'],
+            ['PID do JARVIS', m.pid_jarvis ?? '—'],
+          ]);
+        } catch (error) {
+          if (error.status !== 401) fillKv($('healthList'), [['Erro', error.message]]);
+        }
+      });
+    }
+
+    async function runScan() {
+      await withBusy($('runScan'), async () => {
+        const out = $('scanResult');
+        try {
+          const params = new URLSearchParams({ nome_alvo: 'painel', caminho_alvo: $('scanPath').value.trim() || '.' });
+          const data = await api(`/api/seguranca/caca-vulnerabilidades/campanha?${params}`, { method: 'POST' });
+          const report = data.relatorio_campanha;
+          if (report.status !== 'sucesso') { out.textContent = report.motivo; return; }
+          const lines = report.achados_vulnerabilidades.slice(0, 50).map(
+            (f) => `[${f.severidade}] ${f.arquivo}:${f.linha} ${f.regra}\n    ${f.trecho}`);
+          out.textContent = `${report.resumo_campanha_ptbr}\n\n${lines.join('\n') || 'Nenhum achado.'}`;
+        } catch (error) {
+          if (error.status !== 401) out.textContent = `Erro: ${error.message}`;
+        }
+      });
+    }
+
+    async function runReach() {
+      const topic = $('reachTopic').value.trim();
+      if (!topic) { $('reachTopic').focus(); return; }
+      await withBusy($('runReach'), async () => {
+        const out = $('reachResult');
+        try {
+          const data = await api(`/api/learning/agent-reach/contexto?topico=${encodeURIComponent(topic)}`, { method: 'POST' });
+          const report = data.relatorio_alcance;
+          const lines = report.resultados_agregados.map((r) => `• ${r.titulo || r.dominio}\n  ${r.url}`);
+          out.textContent = `${report.sintese_alcance_ptbr}\n\n${lines.join('\n')}`;
+        } catch (error) {
+          if (error.status !== 401) out.textContent = `Erro: ${error.message}`;
+        }
+      });
+    }
+
+    async function runDemo(button) {
+      await withBusy(button, async () => {
+        const out = $('demoResult');
+        try {
+          const data = await api(button.dataset.demo, { method: button.dataset.method });
+          out.textContent = JSON.stringify(data, null, 2);
+        } catch (error) {
+          if (error.status !== 401) out.textContent = `Erro: ${error.message}`;
+        }
+      });
+    }
+
+    async function refreshStatusDot() {
+      try {
+        const response = await fetch('/api/saude', { credentials: 'same-origin' });
+        const data = await response.json();
+        const ok = response.ok && data.status === 'ok';
+        $('statusDot').className = `status-dot ${ok ? 'ok' : ''}`;
+        $('statusText').textContent = ok ? 'Operacional' : 'Degradado';
+      } catch (_) {
+        $('statusDot').className = 'status-dot offline';
+        $('statusText').textContent = 'Offline';
+      }
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.nav-btn[data-tab]').forEach((b) => {
+        const active = b.dataset.tab === tab;
+        b.classList.toggle('active', active);
+        if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+      });
+      document.querySelectorAll('.panel').forEach((panel) => {
+        const active = panel.id === `panel-${tab}`;
+        panel.classList.toggle('active', active);
+        panel.hidden = !active;
+      });
+      $('tabTitle').textContent = TAB_TITLES[tab];
+      $('clearChat').hidden = tab !== 'chat';
+      if (tab === 'system') refreshSystem();
+      try { localStorage.setItem('jarvis_tab', tab); } catch (_) { /* armazenamento indisponível */ }
     }
 
     let lastFocusBeforeModal = null;
 
-    function openThoughtModal() {
-      const modal = document.getElementById('thoughtModal');
+    async function openThoughtModal() {
+      const modal = $('thoughtModal');
       lastFocusBeforeModal = document.activeElement;
       modal.classList.add('active');
       modal.setAttribute('aria-hidden', 'false');
-      modal.querySelector('button').focus();
-      apiFetch('/api/dono/pensamentos-privados')
-      .then(r => r.json())
-      .then(d => {
-        document.getElementById('thoughtContent').textContent = d.status === 'sucesso'
-          ? JSON.stringify(d.ultimos_pensamentos, null, 2)
-          : d.motivo || 'Acesso restrito.';
-      });
+      $('closeThoughts').focus();
+      $('thoughtContent').textContent = 'Carregando…';
+      try {
+        const data = await api('/api/dono/pensamentos-privados');
+        const thoughts = data.ultimos_pensamentos || [];
+        $('thoughtContent').textContent = thoughts.length
+          ? thoughts.map((t) => `${t.timestamp}\n${t.acao_contexto}\n${t.raciocinio_interno}`).join('\n\n')
+          : 'Nenhum pensamento registrado ainda.';
+      } catch (error) {
+        if (error.status !== 401) $('thoughtContent').textContent = `Erro: ${error.message}`;
+      }
     }
 
     function closeThoughtModal() {
-      const modal = document.getElementById('thoughtModal');
+      const modal = $('thoughtModal');
       modal.classList.remove('active');
       modal.setAttribute('aria-hidden', 'true');
       if (lastFocusBeforeModal) lastFocusBeforeModal.focus();
     }
 
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && document.getElementById('thoughtModal').classList.contains('active')) {
-        closeThoughtModal();
+    async function logout() {
+      try {
+        await fetch('/api/auth/device-session', { method: 'DELETE', credentials: 'same-origin', headers: { 'X-Jarvis-Csrf': '1' } });
+      } finally {
+        window.location.reload();
       }
-    });
+    }
 
-    document.getElementById('composerInput').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.shiftKey) {
+    function autoResize() {
+      const input = $('composerInput');
+      input.style.height = 'auto';
+      input.style.height = `${Math.min(input.scrollHeight, 200)}px`;
+    }
+
+    document.querySelectorAll('.nav-btn[data-tab]').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    document.querySelectorAll('[data-demo]').forEach((b) => b.addEventListener('click', () => runDemo(b)));
+    $('openThoughts').addEventListener('click', openThoughtModal);
+    $('closeThoughts').addEventListener('click', closeThoughtModal);
+    $('thoughtModal').addEventListener('click', (e) => { if (e.target === $('thoughtModal')) closeThoughtModal(); });
+    $('sendButton').addEventListener('click', sendMsg);
+    $('toolSearch').addEventListener('click', runWebSearch);
+    $('toolVoice').addEventListener('click', runVoice);
+    $('graphifyForm').addEventListener('submit', runGraphify);
+    $('refreshSystem').addEventListener('click', refreshSystem);
+    $('runScan').addEventListener('click', runScan);
+    $('runReach').addEventListener('click', runReach);
+    $('logoutButton').addEventListener('click', logout);
+    $('clearChat').addEventListener('click', () => {
+      $('chatStream').replaceChildren();
+      appendMsg('assistant', 'JARVIS', 'Conversa limpa.');
+    });
+    $('composerInput').addEventListener('input', autoResize);
+    $('composerInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
         sendMsg();
       }
     });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && $('thoughtModal').classList.contains('active')) closeThoughtModal();
+    });
 
-    function switchTab(tab, button) {
-      document.getElementById('tabTitle').textContent = tab.toUpperCase();
-      if (button) {
-        document.querySelectorAll('.nav-btn[onclick^="switchTab"]').forEach((b) => {
-          b.classList.remove('active');
-          b.removeAttribute('aria-current');
-        });
-        button.classList.add('active');
-        button.setAttribute('aria-current', 'page');
-      }
-    }
-
-    function clearStream() {
-      document.getElementById('chatStream').innerHTML = '';
-      appendMsg('assistant', 'JARVIS', 'Chat limpo.');
-    }
+    let savedTab = 'chat';
+    try { savedTab = localStorage.getItem('jarvis_tab') || 'chat'; } catch (_) { /* ignora */ }
+    switchTab(TAB_TITLES[savedTab] ? savedTab : 'chat');
+    refreshStatusDot();
+    setInterval(refreshStatusDot, 30000);
   </script>
 </body>
 </html>

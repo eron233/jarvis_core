@@ -16,6 +16,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 from typing import Any, Dict, List, Optional
@@ -47,7 +48,8 @@ class ToolDeveloperEngine:
         Desenvolve, valida com AST e registra uma nova ferramenta/conector.
         """
         now = datetime.now(timezone.utc).isoformat()
-        file_name = f"{tool_name.lower().replace(' ', '_')}.py"
+        safe_name = re.sub(r"[^a-z0-9_]", "_", tool_name.lower())[:64] or "ferramenta"
+        file_name = f"{safe_name}.py"
         file_path = self.tools_dir / file_name
 
         # Estrutura do módulo gerado
@@ -112,7 +114,8 @@ class ToolDeveloperEngine:
                 capture_output=True,
                 text=True,
                 timeout=timeout_seconds,
-                env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
+                # Sem herdar o ambiente do servidor: segredos (token, senha, chaves) nao vazam para a ferramenta.
+                env={"PYTHONPATH": str(PROJECT_ROOT), "PYTHONIOENCODING": "utf-8"},
             )
             if proc.returncode != 0:
                 return {

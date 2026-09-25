@@ -9,13 +9,30 @@ Responsável por:
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timezone
+from itertools import combinations
 import json
 from pathlib import Path
+import re
 from typing import Any, Dict, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GRAPHIFY_DIR = PROJECT_ROOT / "data" / "graphify_analyses"
+MAX_NODES = 15
+STOPWORDS = frozenset(
+    """
+    para como mais pelo pela pelos pelas entre sobre sendo sera esta este isso essa esse aqui
+    onde quando porque cada muito muita tambem ainda apenas deve devem pode podem ser sao
+    com sem uma umas uns dos das nos nas num numa que por the and with from that this into have
+    projeto sistema
+    """.split()
+)
+
+
+def _terms(sentence: str) -> List[str]:
+    words = re.findall(r"[\wÀ-ÿ]{4,}", sentence.lower())
+    return [w for w in words if w not in STOPWORDS and not w.isdigit()]
 
 
 class GraphifyEngine:
@@ -36,51 +53,71 @@ class GraphifyEngine:
         """
         now = datetime.now(timezone.utc).isoformat()
 
-        # 1. Extração Topológica de Nós
-        nodes = []
-        components = raw_components or ["Core Executivo", "Banco de Dados", "API Gateway", "Interface UI", "Módulo de Segurança"]
-        for idx, comp in enumerate(components):
-            nodes.append({
-                "id": f"node_{idx + 1}",
-                "label": comp,
-                "grupo": "infraestrutura" if "Banco" in comp or "API" in comp else "topologia_principal",
-                "importancia_score": 9.0 - (idx * 0.5),
-            })
+        text = f"{project_title}. {description or ''}"
+        sentences = [chunk for chunk in re.split(r"[.!?;\n]+", text) if chunk.strip()]
 
-        # 2. Construção de Arestas e Dependências
-        edges = []
-        if len(nodes) > 1:
-            for i in range(len(nodes) - 1):
-                edges.append({
-                    "origem": nodes[i]["id"],
-                    "destino": nodes[i + 1]["id"],
-                    "relacao": "conecta_com",
-                    "peso": 1.0,
-                })
-            # Aresta de ciclo com o primeiro nó
-            edges.append({
-                "origem": nodes[-1]["id"],
-                "destino": nodes[0]["id"],
-                "relacao": "retroalimenta",
-                "peso": 0.8,
-            })
+        if raw_components:
+            labels = [str(c).strip() for c in raw_components if str(c).strip()][:MAX_NODES]
+            sentence_terms = [
+                {label for label in labels if label.lower() in sentence.lower()} for sentence in sentences
+            ]
+            frequency = Counter({label: max(1, sum(label in terms for terms in sentence_terms)) for label in labels})
+            origin = "componentes_informados"
+        else:
+            sentence_terms = [set(_terms(sentence)) for sentence in sentences]
+            frequency = Counter(term for terms in sentence_terms for term in terms)
+            labels = [term for term, _ in frequency.most_common(MAX_NODES)]
+            origin = "termos_extraidos_do_texto"
 
+        node_ids = {label: f"node_{index + 1}" for index, label in enumerate(labels)}
+        top = max(frequency.values(), default=1)
+        nodes = [
+            {
+                "id": node_ids[label],
+                "label": label,
+                "frequencia": frequency[label],
+                "importancia_score": round(10.0 * frequency[label] / top, 2),
+            }
+            for label in labels
+        ]
+
+        cooccurrence: Counter = Counter()
+        for terms in sentence_terms:
+            present = sorted(t for t in terms if t in node_ids)
+            for a, b in combinations(present, 2):
+                cooccurrence[(a, b)] += 1
+        if raw_components and not cooccurrence and len(labels) > 1:
+            # Componentes informados sem mencao no texto: encadeia na ordem dada, marcado como tal.
+            for a, b in zip(labels, labels[1:]):
+                cooccurrence[(a, b)] = 0
+        edges = [
+            {
+                "origem": node_ids[a],
+                "destino": node_ids[b],
+                "relacao": "coocorrem" if weight else "sequencia_informada",
+                "peso": weight,
+            }
+            for (a, b), weight in cooccurrence.most_common()
+        ]
+
+        possible_edges = len(nodes) * (len(nodes) - 1) / 2
         graph_result = {
             "projeto": project_title,
             "analisado_em": now,
-            "metodo": "Graphify_Topological_Structuring",
+            "metodo": "coocorrencia_por_frase",
+            "origem_dos_nos": origin,
             "estatisticas": {
                 "total_nos": len(nodes),
                 "total_arestas": len(edges),
-                "densidade_topologica": round(len(edges) / max(len(nodes), 1), 2),
+                "densidade_topologica": round(len(edges) / possible_edges, 2) if possible_edges else 0.0,
             },
             "grafo": {
                 "nos": nodes,
                 "arestas": edges,
             },
             "resumo_topologico_ptbr": (
-                f"Análise Graphify de '{project_title}': Mapeados {len(nodes)} nós e {len(edges)} arestas "
-                "de dependência topológica. Fluxo totalmente fechado e resiliente."
+                f"'{project_title}': {len(nodes)} conceito(s) e {len(edges)} relacao(oes) de coocorrencia."
+                + (f" Mais central: {labels[0]}." if labels else " Texto insuficiente para montar o grafo.")
             ),
         }
 
@@ -89,6 +126,6 @@ class GraphifyEngine:
 
     def _save_graphify_record(self, record: Dict[str, Any]) -> None:
         """Salva a análise Graphify em disco."""
-        file_id = f"graphify_{int(datetime.now(timezone.utc).timestamp())}.json"
+        file_id = f"graphify_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')}.json"
         file_path = self.data_dir / file_id
         file_path.write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")

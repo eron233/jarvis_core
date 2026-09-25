@@ -45,7 +45,8 @@ DEFAULT_ADMIN_PASSWORD = "alter ego"
 DEFAULT_ACCESS_BOOTSTRAP_FILENAME = "jarvis_access_bootstrap.json"
 DEFAULT_ADMIN_BOOTSTRAP_REPORT_FILENAME = "JARVIS_ADMIN_BOOTSTRAP_CREDENTIAL_PTBR.txt"
 PBKDF2_ITERATIONS = 200_000
-_WEAK_TOKEN_VALUES = {"", DEFAULT_API_TOKEN}
+# Inclui o placeholder do .env.example: copiar o arquivo sem editar nao pode virar um token "valido".
+_WEAK_TOKEN_VALUES = {"", DEFAULT_API_TOKEN, "defina_um_token_seguro"}
 _WEAK_DEVICE_VALUES = {"", DEFAULT_TRUSTED_DEVICE_ID}
 _WEAK_ADMIN_PASSWORDS = {"", DEFAULT_ADMIN_PASSWORD}
 _DEVICE_ID_PATTERN = re.compile(r"[^a-z0-9-]+")

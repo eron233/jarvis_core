@@ -1,10 +1,10 @@
 """
-JARVIS - Feed de Dados de Mercado em Tempo Real (WDO / WIN)
+JARVIS - SIMULADOR de feed de mercado (WDO / WIN)
 
-Responsável por:
-- simular ou conectar feed contínuo de dados de mercado (WebSocket/Stream)
-- receber cotações de preços, ofertas do livro e saldo de agressão ao vivo
-- enviar alertas para o analisador de mercado quando houver picos de volatilidade
+ATENCAO: nao existe conexao com a B3 nem com qualquer corretora. Todos os precos,
+volumes e lados de agressao sao gerados aleatoriamente para testar a interface.
+Nunca use estes numeros para decidir operacoes reais. Toda resposta carrega
+`simulado=True` e um aviso explicito.
 """
 
 from __future__ import annotations
@@ -28,7 +28,8 @@ class MarketWebSocketFeed:
         return {
             "status": "conectado",
             "ativo": self.asset,
-            "feed": "WebSocket_B3_DirectStream",
+            "feed": "simulador_local",
+            "simulado": True,
             "conectado_em": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -46,6 +47,8 @@ class MarketWebSocketFeed:
         volume = random.randint(10, 500)
 
         return {
+            "simulado": True,
+            "aviso": "DADOS SIMULADOS (aleatorios). Sem conexao com a B3. Nao use para operar.",
             "ativo": self.asset,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "preco_atual": current_price,

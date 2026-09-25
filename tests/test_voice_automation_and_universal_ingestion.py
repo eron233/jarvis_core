@@ -26,8 +26,13 @@ class VoiceAutomationUniversalIngestionTests(unittest.TestCase):
         voice = LocalVoiceEngine(audio_dir=self.tmp_path / "audio")
         res = voice.speak("Testando a voz do Jarvis")
 
-        self.assertEqual(res["status"], "sucesso")
-        self.assertTrue(Path(res["arquivo_audio"]).exists())
+        # Sem sintetizador instalado a resposta e honesta: nada de WAV vazio com "sucesso".
+        self.assertIn(res["status"], {"sucesso", "indisponivel"})
+        if res["status"] == "sucesso":
+            self.assertTrue(Path(res["arquivo_audio"]).exists())
+            self.assertGreater(Path(res["arquivo_audio"]).stat().st_size, 44)
+        else:
+            self.assertIn("motivo", res)
 
     def test_system_automation_engine(self) -> None:
         auto = SystemAutomationEngine()
@@ -41,6 +46,18 @@ class VoiceAutomationUniversalIngestionTests(unittest.TestCase):
         browser = WebBrowserEngine()
         res = browser.search_and_extract("Jarvis AI")
         self.assertIn("fontes", res)
+        # Offline nunca inventa fonte ficticia.
+        if res.get("status") == "indisponivel":
+            self.assertEqual(res["fontes"], [])
+        for fonte in res["fontes"]:
+            self.assertNotIn("pesquisa.local", fonte["url"])
+
+    def test_web_browser_bloqueia_rede_interna(self) -> None:
+        browser = WebBrowserEngine()
+        for url in ("http://127.0.0.1:8000/health", "http://169.254.169.254/latest/meta-data", "file:///etc/passwd"):
+            with self.subTest(url=url):
+                res = browser.fetch_page_content(url)
+                self.assertEqual(res["status"], "bloqueado")
 
     def test_universal_file_extractor(self) -> None:
         extractor = UniversalFileExtractor()
@@ -62,6 +79,8 @@ class VoiceAutomationUniversalIngestionTests(unittest.TestCase):
         tick = feed.fetch_live_tick()
         self.assertEqual(tick["ativo"], "WDO")
         self.assertIn("preco_atual", tick)
+        self.assertTrue(tick["simulado"])
+        self.assertIn("SIMULADOS", tick["aviso"])
 
     def test_runtime_integration_of_new_engines(self) -> None:
         runtime = InternalAgentRuntime()

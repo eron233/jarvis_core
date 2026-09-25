@@ -11,7 +11,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
+import shutil
 import sys
 from typing import Any, Dict, Optional
 
@@ -31,36 +33,61 @@ class LocalVoiceEngine:
         Sintetiza texto em áudio de fala local.
         """
         now = datetime.now(timezone.utc).isoformat()
-        file_id = f"speech_{int(datetime.now(timezone.utc).timestamp())}.wav"
+        text = str(text)[:2000]
+        file_id = f"speech_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')}.wav"
         output_file = self.audio_dir / file_id
 
-        # Tenta utilizar sintetizadores nativos do SO com fallback seguro
-        synth_method = "simulado_local"
+        # Texto e caminho vao por variavel de ambiente/arquivo, nunca interpolados em comando.
+        synth_method = None
+        error_detail = None
         try:
+            import subprocess
+
             if sys.platform == "win32":
-                # PowerShell SAPI SpeechSynthesizer
-                import subprocess
-                clean_t = text.replace("'", "''")
                 ps_cmd = (
-                    f"Add-Type -AssemblyName System.Speech; "
-                    f"$synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-                    f"$synth.SetOutputToWaveFile('{output_file}'); "
-                    f"$synth.Speak('{clean_t}'); $synth.Dispose()"
+                    "Add-Type -AssemblyName System.Speech; "
+                    "$synth = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+                    "$synth.SetOutputToWaveFile($env:JARVIS_TTS_OUT); "
+                    "$synth.Speak($env:JARVIS_TTS_TEXT); $synth.Dispose()"
                 )
-                res = subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True, timeout=10)
+                env = {**os.environ, "JARVIS_TTS_TEXT": text, "JARVIS_TTS_OUT": str(output_file)}
+                res = subprocess.run(
+                    ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd],
+                    capture_output=True, timeout=15, env=env,
+                )
                 if res.returncode == 0 and output_file.exists():
                     synth_method = "windows_sapi"
             elif sys.platform == "darwin":
-                import subprocess
-                subprocess.run(["say", "-o", str(output_file), "--data-format=LEI16@22050", text], timeout=10)
+                text_file = output_file.with_suffix(".txt")
+                text_file.write_text(text, encoding="utf-8")
+                try:
+                    subprocess.run(
+                        ["say", "-o", str(output_file), "--data-format=LEI16@22050", "-f", str(text_file)],
+                        timeout=15, capture_output=True,
+                    )
+                finally:
+                    text_file.unlink(missing_ok=True)
                 if output_file.exists():
                     synth_method = "macos_say"
-        except Exception:
-            pass
+            else:
+                engine = shutil.which("espeak-ng") or shutil.which("espeak")
+                if engine:
+                    subprocess.run(
+                        [engine, "-v", "pt-br", "-w", str(output_file), "--stdin"],
+                        input=text.encode("utf-8"), timeout=15, capture_output=True,
+                    )
+                    if output_file.exists():
+                        synth_method = Path(engine).name
+        except Exception as exc:  # noqa: BLE001 - reportado ao chamador
+            error_detail = str(exc)
 
-        if not output_file.exists():
-            # Gera um placeholder wav válido para garantir integridade offline
-            output_file.write_bytes(b"RIFF\x24\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00")
+        if synth_method is None:
+            return {
+                "status": "indisponivel",
+                "texto_sintetizado": text,
+                "motivo": error_detail or "Nenhum sintetizador de voz disponivel neste sistema (Windows SAPI, macOS say ou espeak-ng).",
+                "gerado_em": now,
+            }
 
         return {
             "status": "sucesso",

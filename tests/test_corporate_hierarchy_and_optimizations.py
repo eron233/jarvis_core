@@ -95,8 +95,18 @@ class TestCorporateHierarchyAndOptimizations(unittest.TestCase):
             target_filepath="security/vulnerability_hunter.py",
             patch_content="def fix(): pass",
         )
-        self.assertTrue(patch_res["testes_passaram"])
-        self.assertEqual(patch_res["nome_branch_isolada"], "jarvis/fix-zday-001")
+        self.assertTrue(patch_res["sintaxe_valida"])
+        self.assertFalse(patch_res["branch_criada"])
+        self.assertFalse(patch_res["arquivo_alterado"])
+        self.assertEqual(patch_res["nome_branch_sugerida"], "jarvis/fix-zday-001")
+        self.assertIn("+def fix(): pass", patch_res["diff"])
+
+        outside = self.git_patcher.apply_patch_in_isolated_branch(
+            vulnerability_id="X",
+            target_filepath="../../etc/passwd",
+            patch_content="x",
+        )
+        self.assertEqual(outside["status_patch"], "bloqueado")
 
     def test_api_corporate_endpoints(self):
         # API Dispatch

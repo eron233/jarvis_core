@@ -16,14 +16,15 @@ Integracoes principais:
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Annotated, Any, Dict, Optional
 
 from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from interface.api.web_session import AuthAttemptLimiter, WebSession, WebSessionManager, secrets_match
 from interface.api.websocket_feed import ws_manager
 from pydantic import BaseModel, Field
 
@@ -48,6 +49,8 @@ DEVICE_HEADER = "X-Jarvis-Device-Id"
 NONCE_HEADER = "X-Jarvis-Nonce"
 TIMESTAMP_HEADER = "X-Jarvis-Timestamp"
 SESSION_COOKIE = "jarvis_trusted_device"
+CSRF_HEADER = "X-Jarvis-Csrf"
+MUTATING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 SIMPLE_WEB_LOGIN_DEVICE_ID = "web-access-recovery"
 SAFE_WORKER_IDS = {"runtime", "finance", "study", "studio"}
 DASHBOARD_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "index.html"
@@ -154,6 +157,12 @@ def create_app(
     app.state.enable_dashboard = (
         True if effective_deployment_config is None else effective_deployment_config.enable_dashboard
     )
+    app.state.web_sessions = WebSessionManager(ttl_seconds=_env_int("JARVIS_SESSION_TTL_SECONDS", 7 * 24 * 3600))
+    app.state.auth_limiter = AuthAttemptLimiter(
+        max_failures=_env_int("JARVIS_AUTH_MAX_FAILURES", 10),
+        window_seconds=_env_int("JARVIS_AUTH_WINDOW_SECONDS", 300),
+    )
+    app.state.files_root = _resolve_files_root(effective_deployment_config)
     app.state.environment_report = _build_environment_report(app)
     app.state.runtime.configure_runtime_identity(
         entrypoint="interface.api.app.create_app",
@@ -165,6 +174,25 @@ def create_app(
             "painel_ativo": app.state.environment_report.get("painel_ativo"),
         },
     )
+
+    @app.middleware("http")
+    async def apply_security_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        response.headers.setdefault("Permissions-Policy", "camera=(), geolocation=(), microphone=()")
+        response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+        if request.url.path == "/painel" or request.url.path.startswith("/api/"):
+            response.headers.setdefault("Cache-Control", "no-store")
+        if request.url.path == "/painel":
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; "
+                "form-action 'self'; object-src 'none'",
+            )
+        return response
 
     if BRAIN_AVATAR_DIR.exists():
         app.mount(
@@ -195,10 +223,18 @@ def create_app(
         - registra acessos autorizados e negados na auditoria do runtime.
         """
 
-        if request.app.state.simple_web_login and _has_valid_dashboard_session(request):
+        web_session = _read_dashboard_session(request)
+        if web_session is not None and not _session_device_still_trusted(request, web_session):
+            web_session = None
+        if web_session is not None:
+            if request.method.upper() in MUTATING_METHODS and not _is_csrf_safe(request):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Requisicao do painel sem protecao CSRF.",
+                )
             return {
-                "device_id": SIMPLE_WEB_LOGIN_DEVICE_ID,
-                "access_mode": "simple_web_login",
+                "device_id": web_session.device_id,
+                "access_mode": "simple_web_login" if request.app.state.simple_web_login else "web_session",
             }
 
         return _validate_trusted_access(
@@ -279,9 +315,6 @@ def create_app(
                 request=request,
                 admin_password=payload.admin_password if payload is not None else None,
             )
-            session_cookie_value = _build_simple_web_session_value(
-                request.app.state.access_control.admin_password_hash
-            )
         else:
             access_context = _validate_trusted_access(
                 request=request,
@@ -290,10 +323,10 @@ def create_app(
                 request_nonce=x_jarvis_nonce,
                 request_timestamp=x_jarvis_timestamp,
             )
-            session_cookie_value = _build_trusted_session_value(
-                request.app.state.api_token,
-                access_context["device_id"],
-            )
+        session_cookie_value = request.app.state.web_sessions.issue(
+            _session_secret_material(request.app),
+            access_context["device_id"],
+        )
         response = JSONResponse(
             {
                 "mensagem": "Acesso ao painel validado com sucesso.",
@@ -304,14 +337,16 @@ def create_app(
         response.set_cookie(
             key=SESSION_COOKIE,
             value=session_cookie_value,
+            max_age=request.app.state.web_sessions.ttl_seconds,
             httponly=True,
-            samesite="lax",
+            samesite="strict",
             secure=request.url.scheme == "https",
+            path="/",
         )
         return response
 
     @app.delete("/api/auth/device-session")
-    def clear_device_session() -> JSONResponse:
+    def clear_device_session(request: Request) -> JSONResponse:
         """
         Remove a sessao HTTP do dispositivo autenticado.
 
@@ -325,8 +360,11 @@ def create_app(
         - encerra a sessao local do painel.
         """
 
+        web_session = _read_dashboard_session(request)
+        if web_session is not None:
+            request.app.state.web_sessions.revoke(web_session)
         response = JSONResponse({"mensagem": "Sessao do dispositivo removida."})
-        response.delete_cookie(SESSION_COOKIE)
+        response.delete_cookie(SESSION_COOKIE, path="/")
         return response
 
     @app.get("/api/saude")
@@ -377,9 +415,20 @@ def create_app(
                 DEFAULT_TRUSTED_DEVICE_ID,
             ),
         )
-        payload["mensagem"] = "Healthcheck de deploy do JARVIS."
-        payload["ambiente"] = _build_environment_report(request.app)
-        return payload
+        # Endpoint publico: nunca expoe caminhos, origem de segredos ou identidade do build.
+        public_keys = (
+            "status", "status_ptbr", "api_ativa", "runtime_ativo", "fila_carregada",
+            "memoria_carregada", "objetivos_carregados", "uptime_segundos",
+        )
+        public_payload = {key: payload.get(key) for key in public_keys}
+        environment = _build_environment_report(request.app)
+        public_payload["mensagem"] = "Healthcheck de deploy do JARVIS."
+        public_payload["ambiente"] = {
+            "ambiente": environment.get("ambiente"),
+            "porta_api": environment.get("porta_api"),
+            "painel_ativo": environment.get("painel_ativo"),
+        }
+        return public_payload
 
     @app.get("/api/health", dependencies=[Depends(require_trusted_device)])
     def detailed_healthcheck(request: Request) -> Dict[str, Any]:
@@ -824,7 +873,7 @@ def create_app(
             flow_data=[{"side": "buy", "volume": 1200}, {"side": "sell", "volume": 800}],
             news_events=[{"timestamp": "10:00", "titulo": "Divulgação Payroll"}],
         )
-        return {"mensagem": "Análise de mercado realizada com sucesso.", "analise": res}
+        return _as_demo({"mensagem": "Análise de demonstração sobre dados fixos de exemplo.", "analise": res})
 
     @app.post("/api/modulos/estudio/incubar", dependencies=[Depends(require_trusted_device)])
     def incubate_creative_project(request: Request) -> Dict[str, Any]:
@@ -836,7 +885,7 @@ def create_app(
             target_market="Desenvolvedores e Empresas",
             competitors=[{"nome": "Framework X", "falhas": ["Falta de determinação", "Código complexo"]}],
         )
-        return {"mensagem": "Projeto incubado com sucesso.", "projeto": res}
+        return _as_demo({"mensagem": "Incubação de demonstração com parâmetros fixos de exemplo.", "projeto": res})
 
     @app.get("/api/modulos/dispositivo/perfil", dependencies=[Depends(require_trusted_device)])
     def get_device_profile(request: Request) -> Dict[str, Any]:
@@ -873,13 +922,15 @@ def create_app(
     def ingest_universal_file(request: Request, caminho_arquivo: str = Query(min_length=1)) -> Dict[str, Any]:
         """Extrai texto e ingere QUALQUER tipo de arquivo no banco SQLite."""
         runtime = _ensure_runtime_initialized(request)
-        return runtime.universal_file_extractor.extract_and_ingest_file(caminho_arquivo)
+        return runtime.universal_file_extractor.extract_and_ingest_file(
+            _confine_path(request.app, caminho_arquivo)
+        )
 
     @app.get("/api/mercado/feed/live", dependencies=[Depends(require_trusted_device)])
     def get_live_market_tick(request: Request) -> Dict[str, Any]:
         """Retorna cotação em tempo real do feed de mercado."""
         runtime = _ensure_runtime_initialized(request)
-        return runtime.market_websocket_feed.fetch_live_tick()
+        return _as_demo(runtime.market_websocket_feed.fetch_live_tick())
 
     @app.post("/api/modulos/arvore-quantica/explorar", dependencies=[Depends(require_trusted_device)])
     def explore_quantum_tree_hypotheses(request: Request, objetivo: str = Query(min_length=1)) -> Dict[str, Any]:
@@ -895,7 +946,7 @@ def create_app(
             initial_hypotheses=initial_hypotheses,
             available_crypto_budget_brl=100.0,
         )
-        return {"mensagem": "Exploração de árvore paralela concluída.", "resultado_colapsado": res}
+        return _as_demo({"mensagem": "Exploração sobre hipóteses fixas de exemplo.", "resultado_colapsado": res})
 
     # --- Endpoints de Arquivos, Visão e Stream de Pensamentos Privados do Dono ---
 
@@ -903,36 +954,33 @@ def create_app(
     def compress_files_endpoint(request: Request, caminho: str = Query(min_length=1), formato: str = Query(default="zip")) -> Dict[str, Any]:
         """Compacta arquivos/pastas para .zip, .tar.gz, etc."""
         runtime = _ensure_runtime_initialized(request)
-        return runtime.file_archive_engine.compress_files(source_paths=[caminho], format_type=formato)
+        return runtime.file_archive_engine.compress_files(
+            source_paths=[_confine_path(request.app, caminho)],
+            format_type=formato,
+        )
 
     @app.post("/api/arquivos/descompactar", dependencies=[Depends(require_trusted_device)])
     def decompress_archive_endpoint(request: Request, caminho: str = Query(min_length=1)) -> Dict[str, Any]:
         """Descompacta e extrai arquivos compactados."""
         runtime = _ensure_runtime_initialized(request)
-        return runtime.file_archive_engine.decompress_archive(archive_path=caminho)
+        return runtime.file_archive_engine.decompress_archive(archive_path=_confine_path(request.app, caminho))
 
     @app.post("/api/visao/analisar-imagem", dependencies=[Depends(require_trusted_device)])
     def analyze_image_endpoint(request: Request, caminho_imagem: str = Query(min_length=1)) -> Dict[str, Any]:
         """Analisa imagem/print, extrai textos (OCR) e cria pré-contexto visual."""
         runtime = _ensure_runtime_initialized(request)
-        return runtime.image_vision_engine.analyze_image_and_build_context(image_path=caminho_imagem)
+        return runtime.image_vision_engine.analyze_image_and_build_context(
+            image_path=_confine_path(request.app, caminho_imagem)
+        )
 
-    @app.get("/api/dono/pensamentos-privados")
-    def get_owner_private_thoughts(
-        request: Request,
-        x_jarvis_token: Annotated[str | None, Header(alias=TOKEN_HEADER)] = None,
-        x_jarvis_device_id: Annotated[str | None, Header(alias=DEVICE_HEADER)] = None,
-    ) -> Dict[str, Any]:
+    @app.get("/api/dono/pensamentos-privados", dependencies=[Depends(require_trusted_device)])
+    def get_owner_private_thoughts(request: Request) -> Dict[str, Any]:
         """
         Retorna o stream de pensamentos privados do JARVIS.
-        EXCLUSIVO PARA O DONO AUTENTICADO.
+        EXCLUSIVO PARA O DONO AUTENTICADO (token + dispositivo ou sessao do painel).
         """
         runtime = _ensure_runtime_initialized(request)
-        is_owner = (
-            x_jarvis_token == request.app.state.api_token
-            and x_jarvis_device_id == request.app.state.trusted_device_id
-        )
-        return runtime.thought_stream_engine.get_owner_thoughts_stream(is_authenticated_owner=is_owner)
+        return runtime.thought_stream_engine.get_owner_thoughts_stream(is_authenticated_owner=True)
 
     @app.post("/api/graphify/estruturar", dependencies=[Depends(require_trusted_device)])
     def graphify_project_analysis(request: Request, titulo: str = Query(min_length=1), descricao: str = Query(default="")) -> Dict[str, Any]:
@@ -994,13 +1042,13 @@ def create_app(
 
     @app.post("/api/seguranca/caca-vulnerabilidades/campanha", dependencies=[Depends(require_trusted_device)])
     def execute_vulnerability_hunting_campaign(request: Request, nome_alvo: str = Query(min_length=1), caminho_alvo: str = Query(default="src")) -> Dict[str, Any]:
-        """Executa campanha de caça a vulnerabilidades (Zero-Days) com sub-agentes e auto-evolução de ferramentas."""
+        """Varredura estática heurística do código Python do projeto (caminho relativo à raiz)."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.vulnerability_hunter.execute_hunting_campaign(
             target_name=nome_alvo,
             target_codebase_path=caminho_alvo,
         )
-        return {"mensagem": "Campanha de caça a vulnerabilidades concluída com sucesso.", "relatorio_campanha": res}
+        return {"mensagem": "Varredura estática concluída.", "relatorio_campanha": res}
 
     @app.post("/api/web/scrapegraph/extrair", dependencies=[Depends(require_trusted_device)])
     def extract_structured_scrapegraph(request: Request, url: str = Query(min_length=1), html: str = Body(...), schema: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
@@ -1015,20 +1063,20 @@ def create_app(
 
     @app.post("/api/web/scrapling-mcp/raspagem-stealth", dependencies=[Depends(require_trusted_device)])
     def scrape_stealth_mcp_endpoint(request: Request, url: str = Query(min_length=1), nivel_stealth: str = Query(default="high")) -> Dict[str, Any]:
-        """Executa raspagem stealth e empacota no formato padrão do protocolo MCP."""
+        """Lê uma página pública (bloqueia redes internas) e empacota no formato MCP."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.scrapling_mcp_engine.scrape_stealth_mcp(
             target_url=url,
             stealth_level=nivel_stealth,
         )
-        return {"mensagem": "Raspagem stealth MCP concluída com sucesso.", "pacote_mcp": res}
+        return {"mensagem": "Leitura de página concluída." if not res.get("is_error") else "Falha ao ler a página.", "pacote_mcp": res}
 
     @app.post("/api/learning/agent-reach/contexto", dependencies=[Depends(require_trusted_device)])
     def reach_multi_source_context_endpoint(request: Request, topico: str = Query(min_length=1)) -> Dict[str, Any]:
         """Realiza varredura multi-fonte para agregação e validação cruzada de contexto profundo."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.agent_reach_engine.reach_multi_source_context(topic_query=topico)
-        return {"mensagem": "Agregação de contexto do Agent Reach concluída com sucesso.", "relatorio_alcance": res}
+        return {"mensagem": "Agregação de contexto concluída.", "relatorio_alcance": res}
 
     # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
 
@@ -1042,7 +1090,7 @@ def create_app(
             task_payload={},
             task_complexity=complexidade,
         )
-        return {"mensagem": "Tarefa corporativa despachada com sucesso.", "relatorio_dispatch": res}
+        return _as_demo({"mensagem": "Despacho registrado (simulação organizacional; nenhum modelo foi chamado).", "relatorio_dispatch": res})
 
     @app.get("/api/corporativo/status", dependencies=[Depends(require_trusted_device)])
     def get_corporate_hierarchy_status(request: Request) -> Dict[str, Any]:
@@ -1058,41 +1106,54 @@ def create_app(
 
     @app.post("/api/seguranca/git/patch-branch", dependencies=[Depends(require_trusted_device)])
     def apply_git_patch_branch(request: Request, id_vulnerabilidade: str = Query(min_length=1), arquivo_alvo: str = Query(min_length=1), conteudo_patch: str = Body(...)) -> Dict[str, Any]:
-        """Aplica patch de segurança em branch Git isolada e gera diff para aprovação do proprietário."""
+        """Valida um patch proposto e devolve o diff; não cria branch nem grava arquivos."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.git_branch_patcher_engine.apply_patch_in_isolated_branch(
             vulnerability_id=id_vulnerabilidade,
             target_filepath=arquivo_alvo,
             patch_content=conteudo_patch,
         )
-        return {"mensagem": "Patch isolado na branch Git criado com sucesso.", "relatorio_patch": res}
+        return {"mensagem": "Proposta de patch validada (nada foi aplicado ao repositório).", "relatorio_patch": res}
 
     @app.post("/api/seguranca/micro-sandbox/executar", dependencies=[Depends(require_trusted_device)])
     def execute_in_microsandbox_endpoint(request: Request, nome_ferramenta: str = Query(default="ferramenta_dinamica"), codigo: str = Body(...)) -> Dict[str, Any]:
-        """Executa código/ferramenta em um micro-sandbox isolado ultraleve com < 5MB de RAM e limites de CPU."""
+        """Executa código curto em subprocesso restrito (desligado por padrão; ver JARVIS_ENABLE_CODE_SANDBOX)."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.lightweight_sandbox_engine.execute_in_microsandbox(
             code_str=codigo,
             tool_name=nome_ferramenta,
         )
-        return {"mensagem": "Execução em micro-sandbox concluída.", "resultado_sandbox": res}
+        return {"mensagem": "Execução em sandbox processada.", "resultado_sandbox": res}
 
     @app.websocket("/ws/live-stream")
     async def websocket_live_stream_endpoint(websocket: WebSocket):
-        """Endpoint de transmissão ao vivo por WebSocket para eventos, pensamentos e telemetria."""
+        """Transmissao ao vivo por WebSocket, restrita ao dono autenticado."""
+        if not _is_websocket_authorized(websocket):
+            # 1008 = policy violation: fecha antes de aceitar qualquer dado.
+            await websocket.close(code=1008)
+            return
         await ws_manager.connect(websocket)
         try:
             while True:
                 data = await websocket.receive_text()
-                # Processa comandos/mensagens recepcionados via WebSocket
-                await ws_manager.broadcast_event(
-                    event_type="client_message_echo",
-                    payload={"recebido": data},
-                )
+                # Mensagens do cliente nunca sao retransmitidas para outros clientes.
+                if data.strip().lower() == "ping":
+                    await websocket.send_text("pong")
         except WebSocketDisconnect:
             ws_manager.disconnect(websocket)
 
     return app
+
+
+def _as_demo(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Marca respostas de modulos que operam sobre dados fixos ou aleatorios."""
+
+    payload["simulado"] = True
+    payload.setdefault(
+        "aviso",
+        "Resultado de DEMONSTRAÇÃO: entradas fixas/aleatórias, sem dados reais. Não use para decisões.",
+    )
+    return payload
 
 
 def _resolve_worker(requested_worker: str | None, domain: str) -> str:
@@ -1169,6 +1230,15 @@ def _validate_trusted_access(
 
     runtime = _ensure_runtime_initialized(request)
     client_host = request.client.host if request.client is not None else None
+    limiter: AuthAttemptLimiter = request.app.state.auth_limiter
+    limiter_key = client_host or "desconhecido"
+
+    if limiter.is_blocked(limiter_key):
+        _record_access_attempt(runtime, request, device_id, False, "rate_limited", client_host)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas tentativas de acesso invalidas. Aguarde alguns minutos.",
+        )
 
     if not token:
         _record_access_attempt(runtime, request, device_id, False, "missing_token", client_host)
@@ -1177,7 +1247,8 @@ def _validate_trusted_access(
             detail="Token de acesso ausente.",
         )
 
-    if token != request.app.state.api_token:
+    if not secrets_match(token, request.app.state.api_token):
+        limiter.register_failure(limiter_key)
         _record_access_attempt(runtime, request, device_id, False, "invalid_token", client_host)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1201,7 +1272,7 @@ def _validate_trusted_access(
             metadata={"source": "api_security_gate"},
         )
 
-    trusted_device = device_id == request.app.state.trusted_device_id or (
+    trusted_device = secrets_match(device_id, request.app.state.trusted_device_id) or (
         runtime.device_registry is not None and runtime.device_registry.is_trusted(device_id)
     )
 
@@ -1261,6 +1332,17 @@ def _validate_simple_web_access(
 
     runtime = _ensure_runtime_initialized(request)
     client_host = request.client.host if request.client is not None else None
+    limiter: AuthAttemptLimiter = request.app.state.auth_limiter
+    limiter_key = client_host or "desconhecido"
+
+    if limiter.is_blocked(limiter_key):
+        _record_access_attempt(
+            runtime, request, SIMPLE_WEB_LOGIN_DEVICE_ID, False, "rate_limited", client_host
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas tentativas de acesso invalidas. Aguarde alguns minutos.",
+        )
 
     if not admin_password:
         _record_access_attempt(
@@ -1278,6 +1360,7 @@ def _validate_simple_web_access(
 
     access_context = request.app.state.access_control.evaluate(password=admin_password)
     if not access_context.get("admin_access"):
+        limiter.register_failure(limiter_key)
         _record_access_attempt(
             runtime,
             request,
@@ -1335,65 +1418,118 @@ def _record_access_attempt(
 
 
 def _has_valid_dashboard_session(request: Request) -> bool:
+    """Verifica se o cookie do painel e uma sessao assinada, valida e nao revogada."""
+
+    return _read_dashboard_session(request) is not None
+
+
+def _session_secret_material(app: FastAPI) -> str:
     """
-    Verifica se o cookie do painel corresponde ao dispositivo confiavel.
+    Material secreto que assina as sessoes do painel.
 
-    Parametros:
-    - request: requisicao HTTP atual.
-
-    Retorno:
-    - `True` quando a sessao do painel esta valida.
-
-    Efeitos no sistema:
-    - nenhum; protege o HTML do painel.
+    Trocar o token, o dispositivo principal ou a senha administrativa invalida
+    automaticamente todas as sessoes emitidas antes da troca.
     """
 
-    session_value = request.cookies.get(SESSION_COOKIE)
-    if not session_value:
+    if app.state.simple_web_login:
+        return f"simple-web:{app.state.access_control.admin_password_hash}"
+    return f"trusted:{app.state.api_token}:{app.state.trusted_device_id}"
+
+
+def _read_dashboard_session(request: Request) -> Optional[WebSession]:
+    """Le e verifica o cookie de sessao do painel."""
+
+    return request.app.state.web_sessions.verify(
+        _session_secret_material(request.app),
+        request.cookies.get(SESSION_COOKIE),
+    )
+
+
+def _session_device_still_trusted(request: Request, web_session: WebSession) -> bool:
+    """Sessao de dispositivo secundario cai assim que ele perde a confianca no registro."""
+
+    app = request.app
+    if app.state.simple_web_login or secrets_match(web_session.device_id, app.state.trusted_device_id):
+        return True
+    registry = getattr(app.state.runtime, "device_registry", None)
+    return registry is not None and registry.is_trusted(web_session.device_id)
+
+
+def _is_csrf_safe(request: Request) -> bool:
+    """
+    Exige header customizado e origem igual ao host em mutacoes via cookie.
+
+    Formularios e navegacao cross-site nao conseguem definir headers customizados,
+    e `fetch` cross-origin com esse header dispara preflight CORS, que a API nao libera.
+    """
+
+    if request.headers.get(CSRF_HEADER) != "1":
         return False
+    origin = request.headers.get("origin")
+    if origin is None:
+        return True
+    host = request.headers.get("host", "")
+    return origin.split("://", 1)[-1] == host
 
-    if request.app.state.simple_web_login:
-        expected_value = _build_simple_web_session_value(
-            request.app.state.access_control.admin_password_hash
-        )
+
+def _is_websocket_authorized(websocket: WebSocket) -> bool:
+    """Aceita WebSocket somente com sessao valida do painel ou token + dispositivo."""
+
+    app = websocket.app
+    origin = websocket.headers.get("origin")
+    host = websocket.headers.get("host", "")
+    if origin is not None and origin.split("://", 1)[-1] != host:
+        return False
+    session = app.state.web_sessions.verify(
+        _session_secret_material(app),
+        websocket.cookies.get(SESSION_COOKIE),
+    )
+    if session is not None:
+        return True
+    token = websocket.headers.get(TOKEN_HEADER)
+    device_id = websocket.headers.get(DEVICE_HEADER)
+    return secrets_match(token, app.state.api_token) and secrets_match(device_id, app.state.trusted_device_id)
+
+
+def _env_int(name: str, default: int) -> int:
+    """Le inteiro positivo do ambiente com fallback seguro."""
+
+    try:
+        value = int(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+def _resolve_files_root(deployment_config: JarvisEnvironmentConfig | None) -> Path:
+    """
+    Diretorio unico que os endpoints de arquivos podem ler e escrever.
+
+    Pode ser trocado por JARVIS_FILES_DIR; o padrao e `<data_dir>/arquivos`.
+    """
+
+    configured = os.environ.get("JARVIS_FILES_DIR")
+    if configured:
+        root = Path(configured)
     else:
-        expected_value = _build_trusted_session_value(
-            request.app.state.api_token,
-            request.app.state.trusted_device_id,
+        data_dir = getattr(deployment_config, "data_dir", None)
+        root = Path(data_dir) / "arquivos" if data_dir else Path(__file__).resolve().parents[2] / "data" / "arquivos"
+    root.mkdir(parents=True, exist_ok=True)
+    return root.resolve()
+
+
+def _confine_path(app: FastAPI, raw_path: str) -> Path:
+    """Resolve caminho informado pelo cliente sem permitir sair de `files_root`."""
+
+    root: Path = app.state.files_root
+    candidate = Path(raw_path)
+    resolved = (candidate if candidate.is_absolute() else root / candidate).resolve()
+    if resolved != root and root not in resolved.parents:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Caminho fora do diretorio de arquivos permitido.",
         )
-    return session_value == expected_value
-
-
-def _build_trusted_session_value(api_token: str, device_id: str) -> str:
-    """
-    Gera o valor hasheado da sessao de dispositivo confiavel.
-
-    Parametros:
-    - api_token: token configurado da API.
-    - device_id: dispositivo confiavel ativo.
-
-    Retorno:
-    - hash SHA-256 usado como cookie de sessao.
-
-    Efeitos no sistema:
-    - nenhum; padroniza a protecao do painel.
-    """
-
-    return hashlib.sha256(f"{api_token}:{device_id}".encode("utf-8")).hexdigest()
-
-
-def _build_simple_web_session_value(admin_password_hash: str) -> str:
-    """
-    Gera o valor do cookie do modo emergencial de acesso web.
-
-    Parametros:
-    - admin_password_hash: hash PBKDF2 da senha administrativa efetiva.
-
-    Retorno:
-    - valor estavel e nao reversivel para a sessao do painel.
-    """
-
-    return hashlib.sha256(f"simple-web:{admin_password_hash}".encode("utf-8")).hexdigest()
+    return resolved
 
 
 def _render_access_gate(app: FastAPI) -> str:

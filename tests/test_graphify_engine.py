@@ -31,6 +31,20 @@ class GraphifyEngineTests(unittest.TestCase):
         self.assertGreater(len(res["grafo"]["arestas"]), 0)
         self.assertIn("resumo_topologico_ptbr", res)
 
+    def test_graphify_extrai_termos_reais_do_texto(self) -> None:
+        engine = GraphifyEngine(data_dir=self.tmp_path)
+        res = engine.analyze_and_graphify(
+            project_title="Loja",
+            description="Checkout chama pagamento. Pagamento grava pedido. Pedido dispara nota fiscal.",
+        )
+        labels = {no["label"] for no in res["grafo"]["nos"]}
+        self.assertTrue({"checkout", "pagamento", "pedido"} <= labels)
+        self.assertNotIn("Core Executivo", labels)
+        ids = {no["label"]: no["id"] for no in res["grafo"]["nos"]}
+        pares = {frozenset((a["origem"], a["destino"])) for a in res["grafo"]["arestas"]}
+        self.assertIn(frozenset((ids["checkout"], ids["pagamento"])), pares)
+        self.assertNotIn(frozenset((ids["checkout"], ids["pedido"])), pares)
+
     def test_runtime_integration_of_graphify_engine(self) -> None:
         runtime = InternalAgentRuntime()
         runtime.bootstrap()

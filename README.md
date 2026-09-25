@@ -224,8 +224,27 @@ http://localhost:8000/painel
 - `JARVIS_AUDIT_STORAGE_PATH`
 - `JARVIS_SELF_DEFENSE_REPORT_PATH`
 - `JARVIS_ADMIN_PASSWORD`
+- `JARVIS_SESSION_TTL_SECONDS` (validade do cookie do painel; padrao 7 dias)
+- `JARVIS_AUTH_MAX_FAILURES` / `JARVIS_AUTH_WINDOW_SECONDS` (anti forca bruta por IP; padrao 10 falhas em 5 min)
+- `JARVIS_FILES_DIR` (unico diretorio acessivel pelos endpoints de arquivos; padrao `<data>/arquivos`)
+- `JARVIS_ENABLE_CODE_SANDBOX` (execucao de codigo pela API; desligada por padrao)
 
 O arquivo base fica em `.env.example`.
+
+### Modelo de seguranca da API
+
+- **Painel**: o token e trocado por um cookie de sessao `HttpOnly`, `SameSite=Strict`, assinado por HMAC e com expiracao. O token nunca fica salvo no navegador. "Sair" revoga a sessao no servidor. Trocar token, dispositivo principal ou senha admin invalida todas as sessoes.
+- **CSRF**: mutacoes autenticadas por cookie exigem o header `X-Jarvis-Csrf: 1` e origem igual ao host.
+- **Clientes externos**: continuam usando `X-Jarvis-Token` + `X-Jarvis-Device-Id` (comparados em tempo constante) e nonce/timestamp anti-replay em mutacoes.
+- **WebSocket `/ws/live-stream`**: recusa conexao sem sessao valida ou token + dispositivo; mensagens de um cliente nunca sao retransmitidas a outros.
+- **`/health` publico**: so status booleanos; caminhos, origem de segredos e identidade do build ficam em `/api/health` (autenticado).
+- **Arquivos**: ingestao, compactacao, descompactacao e imagem so aceitam caminhos dentro de `JARVIS_FILES_DIR`; extracao recusa path traversal, links e zip bombs.
+- **Rede**: busca/leitura de paginas bloqueia loopback, redes privadas e metadata de nuvem (anti-SSRF), inclusive apos redirecionamento.
+- **Sandbox de codigo**: desligado por padrao. Mesmo ligado, e um subprocesso com filtro AST, builtins reduzidos e limites de CPU/memoria (Linux/macOS) — nao substitui container/VM.
+
+### Modulos simulados
+
+Alguns modulos operam sobre dados fixos ou aleatorios e respondem com `"simulado": true` e um aviso: feed e analise de mercado (nao ha conexao com a B3), incubacao criativa, arvore de hipoteses, hierarquia corporativa e autoevolucao. O painel os mostra com o selo **Simulado**. Voz, OCR e transcricao respondem `indisponivel` quando o motor local (SAPI/`say`/`espeak-ng`, `tesseract`) nao esta instalado, em vez de fingir sucesso.
 
 Se `JARVIS_TOKEN`, `JARVIS_TRUSTED_DEVICE_ID` ou `JARVIS_ADMIN_PASSWORD` nao forem informados com valores fortes, o Jarvis cria um bootstrap seguro em `data/jarvis_access_bootstrap.json` e grava orientacao operacional em `reports/JARVIS_ADMIN_BOOTSTRAP_CREDENTIAL_PTBR.txt`.
 
