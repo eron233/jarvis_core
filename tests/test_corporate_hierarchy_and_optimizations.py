@@ -168,3 +168,53 @@ class TestCorporateHierarchyAndOptimizations(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+import unittest as _ut
+
+
+class TestSemanticCacheOtimizado(_ut.TestCase):
+    """Cobre a otimização do cache semântico (índice por hash, sem I/O por leitura)."""
+
+    def setUp(self):
+        import tempfile, shutil
+        from pathlib import Path
+        from memory_system.semantic_cache_engine import SemanticCacheEngine
+        self._d = tempfile.mkdtemp()
+        self.cache = SemanticCacheEngine(storage_path=Path(self._d) / "c.json")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self._d)
+
+    def test_hit_exato_e_similaridade(self):
+        self.cache.put("Como funciona o sandbox do JARVIS", {"r": "ok"}, domain="sys")
+        self.assertEqual(self.cache.get("Como funciona o sandbox do JARVIS", domain="sys"), {"r": "ok"})
+        # Similaridade alta (mesmo conjunto de tokens em ordem diferente)
+        self.assertEqual(self.cache.get("do JARVIS Como funciona o sandbox", domain="sys"), {"r": "ok"})
+        self.assertIsNone(self.cache.get("assunto totalmente diferente aqui", domain="sys"))
+
+    def test_leitura_nao_reescreve_arquivo(self):
+        import os
+        self.cache.put("consulta persistida", {"r": 1}, domain="x")
+        mtime_antes = os.path.getmtime(self.cache.storage_path)
+        for _ in range(50):
+            self.cache.get("consulta persistida", domain="x")
+        # Nenhuma leitura deve ter reescrito o arquivo (persistência adiada).
+        self.assertEqual(os.path.getmtime(self.cache.storage_path), mtime_antes)
+        # Contadores em memória seguem corretos.
+        self.assertEqual(self.cache.get_stats()["total_hits_acumulados"], 50)
+        # flush persiste sob demanda.
+        self.cache.flush()
+        self.assertGreaterEqual(os.path.getmtime(self.cache.storage_path), mtime_antes)
+
+    def test_indice_sobrevive_a_recarga(self):
+        from pathlib import Path
+        from memory_system.semantic_cache_engine import SemanticCacheEngine
+        self.cache.put("entrada durável", {"r": 9}, domain="d")
+        recarregado = SemanticCacheEngine(storage_path=self.cache.storage_path)
+        self.assertEqual(recarregado.get("entrada durável", domain="d"), {"r": 9})
+
+
+if __name__ == "__main__":
+    _ut.main()

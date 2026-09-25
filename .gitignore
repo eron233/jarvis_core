@@ -64,3 +64,7 @@ intent_layer/goals.json
 security/twin_state/*.json
 jarvis_run.cmd
 development/AUTONOMOUS_SYNC_LOG.txt
+
+# Artefatos gerados por testes
+tests/_command_intents_artifacts/
+tests/_dashboard_artifacts/
