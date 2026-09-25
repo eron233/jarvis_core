@@ -990,7 +990,7 @@
             <div class="message-stack">
               <article class="message-card response">
                 <strong>Conversa</strong>
-                <div id="responseBox" class="chat-thread">
+                <div id="responseBox" class="chat-thread" aria-live="polite" aria-atomic="false">
                   <div class="chat-empty">Comece escrevendo ou ative a voz. O Jarvis vai responder aqui em formato de conversa.</div>
                 </div>
               </article>
@@ -1049,15 +1049,15 @@
                     <button type="button" id="voiceStopButton" class="button-ghost" onclick="desligarEscutaPorVoz()" disabled>Parar escuta</button>
                   </div>
                   <label class="toggle-row" for="voiceAutoSendToggle">
-                    <input id="voiceAutoSendToggle" type="checkbox" checked />
+                    <input id="voiceAutoSendToggle" type="checkbox" checked aria-label="Enviar automaticamente depois da palavra de ativação" />
                     Enviar automaticamente depois da palavra de ativacao
                   </label>
                   <div class="voice-meter"><span id="voiceMeterFill"></span></div>
                   <div class="voice-output">
                     <strong>Status da escuta</strong>
-                    <div id="voiceStateText">Escuta por voz ainda nao iniciada.</div>
+                    <div id="voiceStateText" aria-live="polite">Escuta por voz ainda nao iniciada.</div>
                   </div>
-                  <div class="voice-output" id="voiceTranscriptBox">Aguardando transcricao por voz.</div>
+                  <div class="voice-output" id="voiceTranscriptBox" aria-live="polite">Aguardando transcricao por voz.</div>
                   <div class="compact-note" id="voiceHint">Diga "Jarvis" para acordar a escuta. Depois fale o comando normalmente.</div>
                 </section>
               </details>
