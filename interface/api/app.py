@@ -989,6 +989,46 @@ def create_app(
         )
         return {"mensagem": "Síntese multi-domínio gerada com sucesso.", "relatorio_sintese": res}
 
+    # --- Endpoints de Caça a Vulnerabilidades por Sub-Agentes, ScrapeGraph, Scrapling MCP e Agent Reach ---
+
+    @app.post("/api/seguranca/caca-vulnerabilidades/campanha", dependencies=[Depends(require_trusted_device)])
+    def execute_vulnerability_hunting_campaign(request: Request, nome_alvo: str = Query(min_length=1), caminho_alvo: str = Query(default="src")) -> Dict[str, Any]:
+        """Executa campanha de caça a vulnerabilidades (Zero-Days) com sub-agentes e auto-evolução de ferramentas."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.vulnerability_hunter.execute_hunting_campaign(
+            target_name=nome_alvo,
+            target_codebase_path=caminho_alvo,
+        )
+        return {"mensagem": "Campanha de caça a vulnerabilidades concluída com sucesso.", "relatorio_campanha": res}
+
+    @app.post("/api/web/scrapegraph/extrair", dependencies=[Depends(require_trusted_device)])
+    def extract_structured_scrapegraph(request: Request, url: str = Query(min_length=1), html: str = Body(...), schema: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        """Realiza extração adaptativa por grafo semântico sem seletores CSS rígidos."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.scrapegraph_engine.extract_structured_graph(
+            target_url=url,
+            html_content=html,
+            extraction_schema=schema,
+        )
+        return {"mensagem": "Extração adaptativa ScrapeGraph concluída com sucesso.", "resultado_grafo": res}
+
+    @app.post("/api/web/scrapling-mcp/raspagem-stealth", dependencies=[Depends(require_trusted_device)])
+    def scrape_stealth_mcp_endpoint(request: Request, url: str = Query(min_length=1), nivel_stealth: str = Query(default="high")) -> Dict[str, Any]:
+        """Executa raspagem stealth e empacota no formato padrão do protocolo MCP."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.scrapling_mcp_engine.scrape_stealth_mcp(
+            target_url=url,
+            stealth_level=nivel_stealth,
+        )
+        return {"mensagem": "Raspagem stealth MCP concluída com sucesso.", "pacote_mcp": res}
+
+    @app.post("/api/learning/agent-reach/contexto", dependencies=[Depends(require_trusted_device)])
+    def reach_multi_source_context_endpoint(request: Request, topico: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Realiza varredura multi-fonte para agregação e validação cruzada de contexto profundo."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.agent_reach_engine.reach_multi_source_context(topic_query=topico)
+        return {"mensagem": "Agregação de contexto do Agent Reach concluída com sucesso.", "relatorio_alcance": res}
+
     return app
 
 

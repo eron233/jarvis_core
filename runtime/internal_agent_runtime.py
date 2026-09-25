@@ -377,6 +377,19 @@ class InternalAgentRuntime:
             self.jev_decision_engine = JEVDecisionEngine()
             self.multi_domain_synthesis_engine = MultiDomainSynthesisEngine()
 
+            # Motores de Caça a Vulnerabilidades por Sub-Agentes, ScrapeGraph, Scrapling MCP e Agent Reach
+            from security.subagent_tool_evolver import SubAgentToolEvolver
+            from security.vulnerability_hunter import AgenticVulnerabilityHunter
+            from learning.scrapegraph_engine import ScrapeGraphEngine
+            from runtime.scrapling_mcp_engine import ScraplingMCPEngine
+            from learning.agent_reach_engine import AgentReachEngine
+
+            self.subagent_tool_evolver = SubAgentToolEvolver()
+            self.vulnerability_hunter = AgenticVulnerabilityHunter(tool_evolver=self.subagent_tool_evolver)
+            self.scrapegraph_engine = ScrapeGraphEngine()
+            self.scrapling_mcp_engine = ScraplingMCPEngine()
+            self.agent_reach_engine = AgentReachEngine()
+
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
             if getattr(semantic_memory, "storage_path", None) is None:
