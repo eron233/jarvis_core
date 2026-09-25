@@ -953,6 +953,20 @@ def create_app(
         )
         return {"mensagem": "Fracionamento de carga avaliado.", "plano_shards": plan}
 
+    # --- Endpoints de Gravação, Filtro DSP e Decodificação de Sinais de Áudio ---
+
+    @app.post("/api/audio/gravar", dependencies=[Depends(require_trusted_device)])
+    def start_audio_recording(request: Request, contexto: str = Query(default="aula")) -> Dict[str, Any]:
+        """Inicia a gravação de áudio do microfone por tempo intermitente."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.audio_processing_engine.start_intermittent_recording(context_title=contexto)
+
+    @app.post("/api/audio/parar-e-limpar", dependencies=[Depends(require_trusted_device)])
+    def stop_and_clean_audio(request: Request) -> Dict[str, Any]:
+        """Para a gravação, aplica filtragem DSP de ruídos e retorna áudio limpo + texto."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.audio_processing_engine.stop_and_clean_recording()
+
     return app
 
 

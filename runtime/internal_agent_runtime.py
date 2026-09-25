@@ -358,6 +358,10 @@ class InternalAgentRuntime:
             self.image_vision_engine = ImageVisionEngine()
             self.thought_stream_engine = ThoughtStreamEngine()
 
+            # Motor de Gravação de Áudio, Filtro de Ruído DSP e Decodificação de Sinais
+            from runtime.audio_processing_engine import AudioProcessingEngine
+            self.audio_processing_engine = AudioProcessingEngine()
+
             # Motor de Fracionamento de Carga Multi-Dispositivo
             from device.distributed_task_sharding_engine import DistributedTaskShardingEngine
             self.distributed_task_sharding_engine = DistributedTaskShardingEngine()
