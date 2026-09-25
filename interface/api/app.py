@@ -21,9 +21,10 @@ import json
 from pathlib import Path
 from typing import Annotated, Any, Dict, Optional
 
-from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query, Request, status
+from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from interface.api.websocket_feed import ws_manager
 from pydantic import BaseModel, Field
 
 from main import SystemLoopConfig, bootstrap_runtime
@@ -1028,6 +1029,58 @@ def create_app(
         runtime = _ensure_runtime_initialized(request)
         res = runtime.agent_reach_engine.reach_multi_source_context(topic_query=topico)
         return {"mensagem": "Agregação de contexto do Agent Reach concluída com sucesso.", "relatorio_alcance": res}
+
+    # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
+
+    @app.post("/api/corporativo/despachar", dependencies=[Depends(require_trusted_device)])
+    def dispatch_corporate_task_endpoint(request: Request, departamento: str = Query(min_length=1), titulo_tarefa: str = Query(min_length=1), complexidade: str = Query(default="intermediaria")) -> Dict[str, Any]:
+        """Despacha tarefa para o departamento corporativo exclusivo com seleção de modelo leve/pesado e ciclo de vida de hibernação."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.corporate_hierarchy_engine.dispatch_corporate_task(
+            department=departamento,
+            task_title=titulo_tarefa,
+            task_payload={},
+            task_complexity=complexidade,
+        )
+        return {"mensagem": "Tarefa corporativa despachada com sucesso.", "relatorio_dispatch": res}
+
+    @app.get("/api/corporativo/status", dependencies=[Depends(require_trusted_device)])
+    def get_corporate_hierarchy_status(request: Request) -> Dict[str, Any]:
+        """Retorna o status dos departamentos e sub-agentes corporativos (ativos vs hibernados)."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.corporate_hierarchy_engine.get_hierarchy_status()
+
+    @app.get("/api/cache/semantico/estatisticas", dependencies=[Depends(require_trusted_device)])
+    def get_semantic_cache_stats(request: Request) -> Dict[str, Any]:
+        """Retorna estatísticas do cache semântico local e estimativa de tokens economizados."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.semantic_cache_engine.get_stats()
+
+    @app.post("/api/seguranca/git/patch-branch", dependencies=[Depends(require_trusted_device)])
+    def apply_git_patch_branch(request: Request, id_vulnerabilidade: str = Query(min_length=1), arquivo_alvo: str = Query(min_length=1), conteudo_patch: str = Body(...)) -> Dict[str, Any]:
+        """Aplica patch de segurança em branch Git isolada e gera diff para aprovação do proprietário."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.git_branch_patcher_engine.apply_patch_in_isolated_branch(
+            vulnerability_id=id_vulnerabilidade,
+            target_filepath=arquivo_alvo,
+            patch_content=conteudo_patch,
+        )
+        return {"mensagem": "Patch isolado na branch Git criado com sucesso.", "relatorio_patch": res}
+
+    @app.websocket("/ws/live-stream")
+    async def websocket_live_stream_endpoint(websocket: WebSocket):
+        """Endpoint de transmissão ao vivo por WebSocket para eventos, pensamentos e telemetria."""
+        await ws_manager.connect(websocket)
+        try:
+            while True:
+                data = await websocket.receive_text()
+                # Processa comandos/mensagens recepcionados via WebSocket
+                await ws_manager.broadcast_event(
+                    event_type="client_message_echo",
+                    payload={"recebido": data},
+                )
+        except WebSocketDisconnect:
+            ws_manager.disconnect(websocket)
 
     return app
 
