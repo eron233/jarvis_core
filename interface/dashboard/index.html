@@ -303,6 +303,33 @@
 
     .modal-overlay.active { display: flex; }
 
+    /* Foco visível por teclado em todos os controles interativos */
+    button:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid var(--accent-claude);
+      outline-offset: 2px;
+    }
+
+    .composer-textarea:focus-visible {
+      outline: none; /* o foco já é indicado pela borda do composer */
+    }
+
+    .composer-wrapper:focus-within {
+      box-shadow: 0 0 0 1px var(--accent-claude);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     .modal-content {
       width: min(720px, 90vw);
       background-color: var(--bg-sidebar);
@@ -329,20 +356,20 @@
     <aside class="sidebar">
       <div>
         <div class="brand">
-          <div class="brand-icon">J</div>
+          <div class="brand-icon" aria-hidden="true">J</div>
           <div class="brand-name">JARVIS</div>
         </div>
 
-        <nav class="nav-group">
-          <button class="nav-btn active" onclick="switchTab('chat')">Conversa Principal</button>
-          <button class="nav-btn" onclick="switchTab('graphify')">Graphify Topológico</button>
-          <button class="nav-btn" onclick="openThoughtModal()">Pensamentos do Dono</button>
-          <button class="nav-btn" onclick="switchTab('system')">Sensores & Módulos</button>
+        <nav class="nav-group" aria-label="Navegação principal">
+          <button type="button" class="nav-btn active" aria-current="page" onclick="switchTab('chat', this)">Conversa Principal</button>
+          <button type="button" class="nav-btn" onclick="switchTab('graphify', this)">Graphify Topológico</button>
+          <button type="button" class="nav-btn" aria-haspopup="dialog" aria-controls="thoughtModal" onclick="openThoughtModal()">Pensamentos do Dono</button>
+          <button type="button" class="nav-btn" onclick="switchTab('system', this)">Sensores & Módulos</button>
         </nav>
       </div>
 
-      <div class="sidebar-status">
-        <span class="status-dot"></span>
+      <div class="sidebar-status" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
         <span>JARVIS Operacional</span>
       </div>
     </aside>
@@ -350,14 +377,14 @@
     <!-- Área Principal de Chat -->
     <main class="main-content">
       <header class="header">
-        <div class="header-title" id="tabTitle">Sessão Atual</div>
+        <h1 class="header-title" id="tabTitle">Sessão Atual</h1>
         <div class="header-actions">
-          <button class="btn-action" onclick="clearStream()">Limpar Chat</button>
-          <button class="btn-action" onclick="runAutoEvolution()">Autoevolução</button>
+          <button type="button" class="btn-action" onclick="clearStream()">Limpar Chat</button>
+          <button type="button" class="btn-action" onclick="runAutoEvolution()">Autoevolução</button>
         </div>
       </header>
 
-      <div class="chat-stream" id="chatStream">
+      <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-atomic="false" aria-label="Conversa com o JARVIS" tabindex="0">
         <div class="msg-group assistant">
           <div class="msg-author">JARVIS</div>
           <div class="msg-content">Olá. O sistema está operacional com todos os módulos, análise topológica Graphify, busca web e voz local ativos. Como posso ajudar?</div>
@@ -366,14 +393,15 @@
 
       <div class="composer-container">
         <div class="composer-wrapper">
+          <label for="composerInput" class="sr-only">Mensagem para o JARVIS</label>
           <textarea id="composerInput" class="composer-textarea" placeholder="Envie uma mensagem ou solicite uma análise..." rows="1"></textarea>
           <div class="composer-controls">
-            <div class="quick-tools">
-              <button class="tool-btn" onclick="runGraphify()">Graphify</button>
-              <button class="tool-btn" onclick="runWebSearch()">Pesquisar Web</button>
-              <button class="tool-btn" onclick="runVoice()">Voz Local</button>
+            <div class="quick-tools" role="group" aria-label="Ferramentas rápidas">
+              <button type="button" class="tool-btn" onclick="runGraphify()">Graphify</button>
+              <button type="button" class="tool-btn" onclick="runWebSearch()">Pesquisar Web</button>
+              <button type="button" class="tool-btn" onclick="runVoice()">Voz Local</button>
             </div>
-            <button class="btn-send" onclick="sendMsg()">Enviar</button>
+            <button type="button" class="btn-send" onclick="sendMsg()">Enviar</button>
           </div>
         </div>
       </div>
@@ -381,13 +409,13 @@
   </div>
 
   <!-- Modal de Pensamentos Privados do Dono -->
-  <div class="modal-overlay" id="thoughtModal">
+  <div class="modal-overlay" id="thoughtModal" role="dialog" aria-modal="true" aria-labelledby="thoughtModalTitle" aria-hidden="true">
     <div class="modal-content">
       <div class="modal-header-clean">
-        <h4 style="font-size:0.95rem; font-weight:600;">Stream de Pensamentos Privados do Dono</h4>
-        <button class="btn-action" onclick="closeThoughtModal()">Fechar</button>
+        <h2 id="thoughtModalTitle" style="font-size:0.95rem; font-weight:600;">Stream de Pensamentos Privados do Dono</h2>
+        <button type="button" class="btn-action" onclick="closeThoughtModal()">Fechar</button>
       </div>
-      <pre id="thoughtContent" style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-secondary); white-space:pre-wrap;"></pre>
+      <pre id="thoughtContent" aria-live="polite" style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-secondary); white-space:pre-wrap;"></pre>
     </div>
   </div>
 
@@ -428,7 +456,13 @@
       const stream = document.getElementById('chatStream');
       const group = document.createElement('div');
       group.className = `msg-group ${role}`;
-      group.innerHTML = `<div class="msg-author">${author}</div><div class="msg-content">${text}</div>`;
+      const authorEl = document.createElement('div');
+      authorEl.className = 'msg-author';
+      authorEl.textContent = author;
+      const contentEl = document.createElement('div');
+      contentEl.className = 'msg-content';
+      contentEl.textContent = text;
+      group.append(authorEl, contentEl);
       stream.appendChild(group);
       stream.scrollTop = stream.scrollHeight;
     }
@@ -459,8 +493,14 @@
       .then(() => appendMsg('assistant', 'JARVIS', 'Ciclo de autoevolução executado.'));
     }
 
+    let lastFocusBeforeModal = null;
+
     function openThoughtModal() {
-      document.getElementById('thoughtModal').classList.add('active');
+      const modal = document.getElementById('thoughtModal');
+      lastFocusBeforeModal = document.activeElement;
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+      modal.querySelector('button').focus();
       apiFetch('/api/dono/pensamentos-privados')
       .then(r => r.json())
       .then(d => {
@@ -471,11 +511,35 @@
     }
 
     function closeThoughtModal() {
-      document.getElementById('thoughtModal').classList.remove('active');
+      const modal = document.getElementById('thoughtModal');
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+      if (lastFocusBeforeModal) lastFocusBeforeModal.focus();
     }
 
-    function switchTab(tab) {
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && document.getElementById('thoughtModal').classList.contains('active')) {
+        closeThoughtModal();
+      }
+    });
+
+    document.getElementById('composerInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMsg();
+      }
+    });
+
+    function switchTab(tab, button) {
       document.getElementById('tabTitle').textContent = tab.toUpperCase();
+      if (button) {
+        document.querySelectorAll('.nav-btn[onclick^="switchTab"]').forEach((b) => {
+          b.classList.remove('active');
+          b.removeAttribute('aria-current');
+        });
+        button.classList.add('active');
+        button.setAttribute('aria-current', 'page');
+      }
     }
 
     function clearStream() {
