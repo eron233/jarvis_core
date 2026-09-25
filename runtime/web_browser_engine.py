@@ -17,6 +17,47 @@ import urllib.parse
 import urllib.request
 
 
+# `urllib.request.urlopen` atende varios esquemas, nao apenas web: `file://`
+# leria arquivos do disco do hospedeiro e `ftp://` abriria outra rede. Buscar
+# uma pagina so faz sentido por HTTP.
+ALLOWED_URL_SCHEMES = ("http", "https")
+
+# Endereco de metadados das nuvens principais. Uma requisicao vinda de dentro da
+# maquina costuma receber credenciais da instancia sem qualquer autenticacao.
+CLOUD_METADATA_HOSTS = ("169.254.169.254", "metadata.google.internal", "[fd00:ec2::254]")
+
+
+def validate_fetchable_url(url: str) -> Optional[str]:
+    """
+    Verifica se uma URL pode ser buscada pelo motor.
+
+    Parametros:
+    - url: endereco recebido de quem chamou.
+
+    Retorno:
+    - `None` quando a URL e aceitavel, ou o motivo da recusa.
+
+    Efeitos no sistema:
+    - nenhum; apenas inspeciona o endereco antes de qualquer requisicao.
+    """
+
+    try:
+        parsed = urllib.parse.urlparse(url.strip())
+    except ValueError:
+        return "Endereco invalido."
+
+    if parsed.scheme.lower() not in ALLOWED_URL_SCHEMES:
+        return (
+            f"Esquema '{parsed.scheme or 'ausente'}' recusado: "
+            f"apenas {' e '.join(ALLOWED_URL_SCHEMES)} sao buscados."
+        )
+    if not parsed.hostname:
+        return "Endereco sem host definido."
+    if parsed.hostname.lower() in CLOUD_METADATA_HOSTS:
+        return "Endereco de metadados de nuvem recusado."
+    return None
+
+
 class WebBrowserEngine:
     """Motor de pesquisa, raspagem e extração limpa de conteúdo web."""
 
@@ -74,6 +115,10 @@ class WebBrowserEngine:
         Baixa uma página web e limpa as tags HTML para extrair apenas o texto relevante.
         """
         now = datetime.now(timezone.utc).isoformat()
+        recusa = validate_fetchable_url(url)
+        if recusa:
+            return {"status": "bloqueado", "url": url, "motivo": recusa, "avaliado_em": now}
+
         try:
             req = urllib.request.Request(url, headers={"User-Agent": self.user_agent})
             with urllib.request.urlopen(req, timeout=10) as resp:

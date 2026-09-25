@@ -146,3 +146,39 @@ class ArchiveExtractionHardeningTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WebFetchSchemeTests(unittest.TestCase):
+    """Valida que o motor web so busca enderecos HTTP."""
+
+    def setUp(self) -> None:
+        from runtime.web_browser_engine import WebBrowserEngine
+
+        self.engine = WebBrowserEngine()
+
+    def test_recusa_esquemas_que_nao_sao_web(self) -> None:
+        """
+        `urlopen` atende `file://` e `ftp://`, nao apenas web.
+
+        Sem a restricao, pedir uma "pagina" bastaria para ler um arquivo do
+        disco do hospedeiro.
+        """
+
+        for endereco in ("file:///etc/passwd", "ftp://exemplo.invalido/x", "gopher://exemplo.invalido"):
+            with self.subTest(endereco=endereco):
+                resultado = self.engine.fetch_page_content(endereco)
+                self.assertEqual(resultado["status"], "bloqueado")
+
+    def test_recusa_endereco_de_metadados_de_nuvem(self) -> None:
+        """O endereco de metadados entrega credenciais da instancia sem autenticacao."""
+
+        resultado = self.engine.fetch_page_content("http://169.254.169.254/latest/meta-data/")
+        self.assertEqual(resultado["status"], "bloqueado")
+
+    def test_aceita_endereco_http_comum(self) -> None:
+        """Um endereco web legitimo nao pode ser barrado pela validacao."""
+
+        from runtime.web_browser_engine import validate_fetchable_url
+
+        self.assertIsNone(validate_fetchable_url("https://exemplo.org/pagina"))
+        self.assertIsNone(validate_fetchable_url("http://exemplo.org:8080/a/b?c=d"))
