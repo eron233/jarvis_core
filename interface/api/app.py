@@ -21,9 +21,10 @@ import json
 from pathlib import Path
 from typing import Annotated, Any, Dict, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
+from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from interface.api.websocket_feed import ws_manager
 from pydantic import BaseModel, Field
 
 from main import SystemLoopConfig, bootstrap_runtime
@@ -879,6 +880,217 @@ def create_app(
         """Retorna cotação em tempo real do feed de mercado."""
         runtime = _ensure_runtime_initialized(request)
         return runtime.market_websocket_feed.fetch_live_tick()
+
+    @app.post("/api/modulos/arvore-quantica/explorar", dependencies=[Depends(require_trusted_device)])
+    def explore_quantum_tree_hypotheses(request: Request, objetivo: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Explora centenas de hipóteses em árvore paralela e submete à validação dos 11 pilares socráticos."""
+        runtime = _ensure_runtime_initialized(request)
+        initial_hypotheses = [
+            {"nome": f"Hipótese Open-Source A", "open_source": True, "custo_estimado_brl": 0.0, "diferencial_inovacao_0_10": 9.2},
+            {"nome": f"Hipótese Híbrida Cripto B", "open_source": True, "custo_estimado_brl": 20.0, "diferencial_inovacao_0_10": 9.8},
+            {"nome": f"Hipótese Legada C", "open_source": False, "custo_estimado_brl": 200.0, "diferencial_inovacao_0_10": 5.0},
+        ]
+        res = runtime.quantum_tree_search_engine.explore_hypotheses_tree(
+            domain_goal=objetivo,
+            initial_hypotheses=initial_hypotheses,
+            available_crypto_budget_brl=100.0,
+        )
+        return {"mensagem": "Exploração de árvore paralela concluída.", "resultado_colapsado": res}
+
+    # --- Endpoints de Arquivos, Visão e Stream de Pensamentos Privados do Dono ---
+
+    @app.post("/api/arquivos/compactar", dependencies=[Depends(require_trusted_device)])
+    def compress_files_endpoint(request: Request, caminho: str = Query(min_length=1), formato: str = Query(default="zip")) -> Dict[str, Any]:
+        """Compacta arquivos/pastas para .zip, .tar.gz, etc."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.file_archive_engine.compress_files(source_paths=[caminho], format_type=formato)
+
+    @app.post("/api/arquivos/descompactar", dependencies=[Depends(require_trusted_device)])
+    def decompress_archive_endpoint(request: Request, caminho: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Descompacta e extrai arquivos compactados."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.file_archive_engine.decompress_archive(archive_path=caminho)
+
+    @app.post("/api/visao/analisar-imagem", dependencies=[Depends(require_trusted_device)])
+    def analyze_image_endpoint(request: Request, caminho_imagem: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Analisa imagem/print, extrai textos (OCR) e cria pré-contexto visual."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.image_vision_engine.analyze_image_and_build_context(image_path=caminho_imagem)
+
+    @app.get("/api/dono/pensamentos-privados")
+    def get_owner_private_thoughts(
+        request: Request,
+        x_jarvis_token: Annotated[str | None, Header(alias=TOKEN_HEADER)] = None,
+        x_jarvis_device_id: Annotated[str | None, Header(alias=DEVICE_HEADER)] = None,
+    ) -> Dict[str, Any]:
+        """
+        Retorna o stream de pensamentos privados do JARVIS.
+        EXCLUSIVO PARA O DONO AUTENTICADO.
+        """
+        runtime = _ensure_runtime_initialized(request)
+        is_owner = (
+            x_jarvis_token == request.app.state.api_token
+            and x_jarvis_device_id == request.app.state.trusted_device_id
+        )
+        return runtime.thought_stream_engine.get_owner_thoughts_stream(is_authenticated_owner=is_owner)
+
+    @app.post("/api/graphify/estruturar", dependencies=[Depends(require_trusted_device)])
+    def graphify_project_analysis(request: Request, titulo: str = Query(min_length=1), descricao: str = Query(default="")) -> Dict[str, Any]:
+        """Estrutura a análise de um projeto em grafo topológico de nós e arestas."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.graphify_engine.analyze_and_graphify(project_title=titulo, description=descricao)
+        return {"mensagem": "Análise topológica Graphify gerada com sucesso.", "resultado": res}
+
+    @app.post("/api/dispositivo/fracionar-carga", dependencies=[Depends(require_trusted_device)])
+    def shard_task_load(request: Request, tarefa_id: str = Query(default="t1"), nome_tarefa: str = Query(default="processamento")) -> Dict[str, Any]:
+        """Fraciona tarefas pesadas entre os nós registrados para evitar travamento em dispositivos leves."""
+        runtime = _ensure_runtime_initialized(request)
+        devices = runtime.device_registry.list_devices() if runtime.device_registry else []
+        plan = runtime.distributed_task_sharding_engine.evaluate_and_shard_task(
+            task_id=tarefa_id,
+            task_name=nome_tarefa,
+            task_payload={"pesada": True},
+            registered_devices=devices,
+        )
+        return {"mensagem": "Fracionamento de carga avaliado.", "plano_shards": plan}
+
+    # --- Endpoints de Gravação, Filtro DSP e Decodificação de Sinais de Áudio ---
+
+    @app.post("/api/audio/gravar", dependencies=[Depends(require_trusted_device)])
+    def start_audio_recording(request: Request, contexto: str = Query(default="aula")) -> Dict[str, Any]:
+        """Inicia a gravação de áudio do microfone por tempo intermitente."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.audio_processing_engine.start_intermittent_recording(context_title=contexto)
+
+    @app.post("/api/audio/parar-e-limpar", dependencies=[Depends(require_trusted_device)])
+    def stop_and_clean_audio(request: Request) -> Dict[str, Any]:
+        """Para a gravação, aplica filtragem DSP de ruídos e retorna áudio limpo + texto."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.audio_processing_engine.stop_and_clean_recording()
+
+    # --- Endpoints JEV (Joint Executive Vector) e Síntese Multi-Domínio ---
+
+    @app.post("/api/decisao/jev/avaliar", dependencies=[Depends(require_trusted_device)])
+    def evaluate_jev_decision(request: Request, contexto: str = Query(min_length=1), opcoes: list[Dict[str, Any]] = Body(...)) -> Dict[str, Any]:
+        """Avalia opções de decisão usando o Vetor de Decisão Executiva Conjunta (JEV)."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.jev_decision_engine.evaluate_decision_vector(
+            decision_context=contexto,
+            options=opcoes,
+        )
+        return {"mensagem": "Avaliação de decisão JEV concluída com sucesso.", "relatorio_jev": res}
+
+    @app.post("/api/sintese/multi-dominio/sintetizar", dependencies=[Depends(require_trusted_device)])
+    def synthesize_multi_domain_perspectives(request: Request, topico: str = Query(min_length=1), insumos_dominios: Dict[str, Dict[str, Any]] = Body(...)) -> Dict[str, Any]:
+        """Sintetiza visões heterogêneas de múltiplos domínios e resolve conflitos."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.multi_domain_synthesis_engine.synthesize_domain_perspectives(
+            topic=topico,
+            domain_inputs=insumos_dominios,
+        )
+        return {"mensagem": "Síntese multi-domínio gerada com sucesso.", "relatorio_sintese": res}
+
+    # --- Endpoints de Caça a Vulnerabilidades por Sub-Agentes, ScrapeGraph, Scrapling MCP e Agent Reach ---
+
+    @app.post("/api/seguranca/caca-vulnerabilidades/campanha", dependencies=[Depends(require_trusted_device)])
+    def execute_vulnerability_hunting_campaign(request: Request, nome_alvo: str = Query(min_length=1), caminho_alvo: str = Query(default="src")) -> Dict[str, Any]:
+        """Executa campanha de caça a vulnerabilidades (Zero-Days) com sub-agentes e auto-evolução de ferramentas."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.vulnerability_hunter.execute_hunting_campaign(
+            target_name=nome_alvo,
+            target_codebase_path=caminho_alvo,
+        )
+        return {"mensagem": "Campanha de caça a vulnerabilidades concluída com sucesso.", "relatorio_campanha": res}
+
+    @app.post("/api/web/scrapegraph/extrair", dependencies=[Depends(require_trusted_device)])
+    def extract_structured_scrapegraph(request: Request, url: str = Query(min_length=1), html: str = Body(...), schema: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        """Realiza extração adaptativa por grafo semântico sem seletores CSS rígidos."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.scrapegraph_engine.extract_structured_graph(
+            target_url=url,
+            html_content=html,
+            extraction_schema=schema,
+        )
+        return {"mensagem": "Extração adaptativa ScrapeGraph concluída com sucesso.", "resultado_grafo": res}
+
+    @app.post("/api/web/scrapling-mcp/raspagem-stealth", dependencies=[Depends(require_trusted_device)])
+    def scrape_stealth_mcp_endpoint(request: Request, url: str = Query(min_length=1), nivel_stealth: str = Query(default="high")) -> Dict[str, Any]:
+        """Executa raspagem stealth e empacota no formato padrão do protocolo MCP."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.scrapling_mcp_engine.scrape_stealth_mcp(
+            target_url=url,
+            stealth_level=nivel_stealth,
+        )
+        return {"mensagem": "Raspagem stealth MCP concluída com sucesso.", "pacote_mcp": res}
+
+    @app.post("/api/learning/agent-reach/contexto", dependencies=[Depends(require_trusted_device)])
+    def reach_multi_source_context_endpoint(request: Request, topico: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Realiza varredura multi-fonte para agregação e validação cruzada de contexto profundo."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.agent_reach_engine.reach_multi_source_context(topic_query=topico)
+        return {"mensagem": "Agregação de contexto do Agent Reach concluída com sucesso.", "relatorio_alcance": res}
+
+    # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
+
+    @app.post("/api/corporativo/despachar", dependencies=[Depends(require_trusted_device)])
+    def dispatch_corporate_task_endpoint(request: Request, departamento: str = Query(min_length=1), titulo_tarefa: str = Query(min_length=1), complexidade: str = Query(default="intermediaria")) -> Dict[str, Any]:
+        """Despacha tarefa para o departamento corporativo exclusivo com seleção de modelo leve/pesado e ciclo de vida de hibernação."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.corporate_hierarchy_engine.dispatch_corporate_task(
+            department=departamento,
+            task_title=titulo_tarefa,
+            task_payload={},
+            task_complexity=complexidade,
+        )
+        return {"mensagem": "Tarefa corporativa despachada com sucesso.", "relatorio_dispatch": res}
+
+    @app.get("/api/corporativo/status", dependencies=[Depends(require_trusted_device)])
+    def get_corporate_hierarchy_status(request: Request) -> Dict[str, Any]:
+        """Retorna o status dos departamentos e sub-agentes corporativos (ativos vs hibernados)."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.corporate_hierarchy_engine.get_hierarchy_status()
+
+    @app.get("/api/cache/semantico/estatisticas", dependencies=[Depends(require_trusted_device)])
+    def get_semantic_cache_stats(request: Request) -> Dict[str, Any]:
+        """Retorna estatísticas do cache semântico local e estimativa de tokens economizados."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.semantic_cache_engine.get_stats()
+
+    @app.post("/api/seguranca/git/patch-branch", dependencies=[Depends(require_trusted_device)])
+    def apply_git_patch_branch(request: Request, id_vulnerabilidade: str = Query(min_length=1), arquivo_alvo: str = Query(min_length=1), conteudo_patch: str = Body(...)) -> Dict[str, Any]:
+        """Aplica patch de segurança em branch Git isolada e gera diff para aprovação do proprietário."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.git_branch_patcher_engine.apply_patch_in_isolated_branch(
+            vulnerability_id=id_vulnerabilidade,
+            target_filepath=arquivo_alvo,
+            patch_content=conteudo_patch,
+        )
+        return {"mensagem": "Patch isolado na branch Git criado com sucesso.", "relatorio_patch": res}
+
+    @app.post("/api/seguranca/micro-sandbox/executar", dependencies=[Depends(require_trusted_device)])
+    def execute_in_microsandbox_endpoint(request: Request, nome_ferramenta: str = Query(default="ferramenta_dinamica"), codigo: str = Body(...)) -> Dict[str, Any]:
+        """Executa código/ferramenta em um micro-sandbox isolado ultraleve com < 5MB de RAM e limites de CPU."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.lightweight_sandbox_engine.execute_in_microsandbox(
+            code_str=codigo,
+            tool_name=nome_ferramenta,
+        )
+        return {"mensagem": "Execução em micro-sandbox concluída.", "resultado_sandbox": res}
+
+    @app.websocket("/ws/live-stream")
+    async def websocket_live_stream_endpoint(websocket: WebSocket):
+        """Endpoint de transmissão ao vivo por WebSocket para eventos, pensamentos e telemetria."""
+        await ws_manager.connect(websocket)
+        try:
+            while True:
+                data = await websocket.receive_text()
+                # Processa comandos/mensagens recepcionados via WebSocket
+                await ws_manager.broadcast_event(
+                    event_type="client_message_echo",
+                    payload={"recebido": data},
+                )
+        except WebSocketDisconnect:
+            ws_manager.disconnect(websocket)
 
     return app
 

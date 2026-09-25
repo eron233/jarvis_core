@@ -345,6 +345,62 @@ class InternalAgentRuntime:
             self.universal_file_extractor = UniversalFileExtractor(knowledge_engine=self.research_knowledge_engine)
             self.market_websocket_feed = MarketWebSocketFeed()
 
+            # Motor de Busca em Árvore Paralela e Interrogação Socrática
+            from runtime.quantum_tree_search_engine import QuantumTreeSearchEngine
+            self.quantum_tree_search_engine = QuantumTreeSearchEngine()
+
+            # Motores de Arquivos, Visão e Pensamentos do Dono
+            from runtime.file_archive_engine import FileArchiveEngine
+            from learning.image_vision_engine import ImageVisionEngine
+            from runtime.thought_stream_engine import ThoughtStreamEngine
+
+            self.file_archive_engine = FileArchiveEngine()
+            self.image_vision_engine = ImageVisionEngine()
+            self.thought_stream_engine = ThoughtStreamEngine()
+
+            # Motor de Gravação de Áudio, Filtro de Ruído DSP e Decodificação de Sinais
+            from runtime.audio_processing_engine import AudioProcessingEngine
+            self.audio_processing_engine = AudioProcessingEngine()
+
+            # Motor de Fracionamento de Carga Multi-Dispositivo
+            from device.distributed_task_sharding_engine import DistributedTaskShardingEngine
+            self.distributed_task_sharding_engine = DistributedTaskShardingEngine()
+
+            # Motor Graphify de Análise Topológica de Projetos
+            from runtime.graphify_engine import GraphifyEngine
+            self.graphify_engine = GraphifyEngine()
+
+            # Motor de Tomada de Decisão JEV e Síntese Multi-Domínio
+            from runtime.jev_decision_engine import JEVDecisionEngine
+            from runtime.multi_domain_synthesis_engine import MultiDomainSynthesisEngine
+
+            self.jev_decision_engine = JEVDecisionEngine()
+            self.multi_domain_synthesis_engine = MultiDomainSynthesisEngine()
+
+            # Motores de Caça a Vulnerabilidades por Sub-Agentes, ScrapeGraph, Scrapling MCP e Agent Reach
+            from security.subagent_tool_evolver import SubAgentToolEvolver
+            from security.vulnerability_hunter import AgenticVulnerabilityHunter
+            from learning.scrapegraph_engine import ScrapeGraphEngine
+            from runtime.scrapling_mcp_engine import ScraplingMCPEngine
+            from learning.agent_reach_engine import AgentReachEngine
+
+            self.subagent_tool_evolver = SubAgentToolEvolver()
+            self.vulnerability_hunter = AgenticVulnerabilityHunter(tool_evolver=self.subagent_tool_evolver)
+            self.scrapegraph_engine = ScrapeGraphEngine()
+            self.scrapling_mcp_engine = ScraplingMCPEngine()
+            self.agent_reach_engine = AgentReachEngine()
+
+            # Motores de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e Micro-Sandbox
+            from runtime.corporate_agent_hierarchy import CorporateAgentHierarchyEngine
+            from memory_system.semantic_cache_engine import SemanticCacheEngine
+            from security.git_branch_patcher import GitBranchPatcherEngine
+            from security.lightweight_sandbox_engine import UltraLightweightSandboxEngine
+
+            self.corporate_hierarchy_engine = CorporateAgentHierarchyEngine()
+            self.semantic_cache_engine = SemanticCacheEngine()
+            self.git_branch_patcher_engine = GitBranchPatcherEngine()
+            self.lightweight_sandbox_engine = UltraLightweightSandboxEngine()
+
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
             if getattr(semantic_memory, "storage_path", None) is None:
