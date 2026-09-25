@@ -160,6 +160,14 @@
 
     button:hover, .button:hover { transform: translateY(-1px); }
 
+    button:focus-visible,
+    .button:focus-visible,
+    .tab-button:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     .button-primary, button.button-primary, button:not(.button-secondary):not(.button-ghost):not(.tab-button) {
       background: linear-gradient(135deg, rgba(61, 217, 184, 0.95), rgba(104, 225, 255, 0.88));
       color: #04212a;
@@ -1055,7 +1063,7 @@
                   <div class="voice-meter"><span id="voiceMeterFill"></span></div>
                   <div class="voice-output">
                     <strong>Status da escuta</strong>
-                    <div id="voiceStateText">Escuta por voz ainda nao iniciada.</div>
+                    <div id="voiceStateText" role="status" aria-live="polite">Escuta por voz ainda nao iniciada.</div>
                   </div>
                   <div class="voice-output" id="voiceTranscriptBox">Aguardando transcricao por voz.</div>
                   <div class="compact-note" id="voiceHint">Diga "Jarvis" para acordar a escuta. Depois fale o comando normalmente.</div>

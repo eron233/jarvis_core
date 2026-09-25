@@ -1,0 +1,3 @@
+## 2026-09-25 - High-contrast focus rings on custom dark theme interactive elements
+**Learning:** In custom dark theme panels (`.panel`, `.composer-card`), default browser focus outlines are often removed or hidden by rounded borders and dark backgrounds. Tabbing through interactive controls (`summary`, `.tab-button`, `.button-secondary`) was invisible without custom `:focus-visible` outline styles using `var(--accent)`.
+**Action:** When working on dark theme components, always verify `:focus-visible` outline states using `var(--accent)` with `outline-offset` to ensure high contrast keyboard focus indicators.
