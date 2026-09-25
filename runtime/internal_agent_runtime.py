@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 import json
 import logging
 from pathlib import Path
+import re
 from threading import RLock
 from typing import Any, Dict
 
@@ -804,6 +805,93 @@ class InternalAgentRuntime:
                         "resposta": self._build_cognitive_evolution_message(evolution_report, response_mode),
                     }
                 )
+            elif "vulnerab" in normalized_command or (
+                "codigo" in normalized_command
+                and any(keyword in normalized_command for keyword in ("seguranca", "varr", "escane", "analis"))
+            ):
+                if not self.access_control.can_execute_sensitive_action(access_context):
+                    response_payload.update(self._build_guest_denial())
+                else:
+                    target_path = self._extract_target_codebase_path(command_text)
+                    code_security_report = self.vulnerability_hunter.execute_hunting_campaign(
+                        target_name="Analise via comando de chat",
+                        target_codebase_path=target_path,
+                    )
+                    response_payload.update(
+                        {
+                            "status": "authorized",
+                            "status_ptbr": traduzir_status("authorized"),
+                            "acao": "code_security_analysis",
+                            "dados_relacionados": code_security_report,
+                            "resposta": self._build_code_security_message(code_security_report, response_mode),
+                        }
+                    )
+            elif "pesquis" in normalized_command or "busca na web" in normalized_command or "procura na internet" in normalized_command:
+                search_query = self._extract_search_query(command_text)
+                search_result = self.web_browser_engine.search_and_extract(search_query)
+                response_payload.update(
+                    {
+                        "status": "authorized",
+                        "status_ptbr": traduzir_status("authorized"),
+                        "acao": "web_search",
+                        "dados_relacionados": search_result,
+                        "resposta": self._build_web_search_message(search_result, response_mode),
+                    }
+                )
+            elif "graphify" in normalized_command or "grafo" in normalized_command or "topolog" in normalized_command:
+                graph_result = self.graphify_engine.analyze_and_graphify(
+                    project_title="Analise via comando de chat",
+                    description=command_text,
+                )
+                response_payload.update(
+                    {
+                        "status": "authorized",
+                        "status_ptbr": traduzir_status("authorized"),
+                        "acao": "graphify_analysis",
+                        "dados_relacionados": graph_result,
+                        "resposta": self._build_graphify_message(graph_result, response_mode),
+                    }
+                )
+            elif "decis" in normalized_command or "decidir" in normalized_command or "jev" in normalized_command:
+                jev_guidance = self._build_jev_decision_guidance(command_text)
+                response_payload.update(
+                    {
+                        "status": "authorized",
+                        "status_ptbr": traduzir_status("authorized"),
+                        "acao": "jev_decision_guidance",
+                        "dados_relacionados": jev_guidance,
+                        "resposta": self._build_jev_guidance_message(jev_guidance, response_mode),
+                    }
+                )
+            elif "sandbox" in normalized_command or "executar codigo" in normalized_command:
+                if not self.access_control.can_execute_sensitive_action(access_context):
+                    response_payload.update(self._build_guest_denial())
+                else:
+                    extracted_code = self._extract_code_block(command_text)
+                    if extracted_code:
+                        sandbox_result = self.lightweight_sandbox_engine.execute_in_microsandbox(
+                            extracted_code, "chat"
+                        )
+                        response_payload.update(
+                            {
+                                "status": "authorized",
+                                "status_ptbr": traduzir_status("authorized"),
+                                "acao": "sandbox_execution",
+                                "dados_relacionados": sandbox_result,
+                                "resposta": self._build_sandbox_message(sandbox_result, response_mode),
+                            }
+                        )
+                    else:
+                        sandbox_guidance = self._build_sandbox_guidance()
+                        response_payload.update(
+                            {
+                                "status": "authorized",
+                                "status_ptbr": traduzir_status("authorized"),
+                                "acao": "sandbox_guidance",
+                                "dados_relacionados": sandbox_guidance,
+                                "resposta": self._build_sandbox_guidance_message(sandbox_guidance, response_mode),
+                            }
+                        )
             elif any(keyword in normalized_command for keyword in ("status", "saude", "relatorio")):
                 system_report = self.build_system_report(last_cycle_result=self.last_cycle_result)
                 response_payload.update(
@@ -883,7 +971,9 @@ class InternalAgentRuntime:
                         "status_ptbr": traduzir_status("authorized"),
                         "acao": "help",
                         "resposta": (
-                            "Comando nao reconhecido. Use: status, objetivos, tarefas, memoria, evolucao, seguranca ou ciclo."
+                            "Comando nao reconhecido. Use: status, objetivos, tarefas, memoria, evolucao, "
+                            "seguranca, ciclo, pesquisa (web), graphify/grafo (analise topologica), "
+                            "analise de seguranca do codigo/vulnerabilidades, decisao/jev, ou sandbox/executar codigo."
                         ),
                     }
                 )
@@ -1879,6 +1969,162 @@ class InternalAgentRuntime:
             fraquezas=resumo.get("fraquezas_detectadas", 0),
             acoes=resumo.get("acoes_automaticas_realizadas", 0),
         )
+
+    @staticmethod
+    def _extract_search_query(command_text: str) -> str:
+        """Extrai o termo de busca removendo os gatilhos de pesquisa do texto do comando."""
+
+        trigger_phrases = sorted(
+            [
+                "pesquisar na web sobre",
+                "pesquisar na internet sobre",
+                "pesquisar sobre",
+                "pesquise sobre",
+                "pesquisa sobre",
+                "busca na web sobre",
+                "busca na web",
+                "procura na internet sobre",
+                "procura na internet",
+                "pesquisar",
+                "pesquise",
+                "pesquisa",
+                "buscar",
+                "busque",
+            ],
+            key=len,
+            reverse=True,
+        )
+        remaining = str(command_text or "")
+        lowered = remaining.lower()
+        for phrase in trigger_phrases:
+            idx = lowered.find(phrase)
+            if idx != -1:
+                remaining = remaining[:idx] + remaining[idx + len(phrase):]
+                lowered = remaining.lower()
+                break
+        cleaned = remaining.strip(" :,.-")
+        return cleaned if cleaned else str(command_text or "").strip()
+
+    @staticmethod
+    def _extract_target_codebase_path(command_text: str) -> str:
+        """Tenta extrair um caminho de codebase explicito do texto do comando, com fallback para a raiz."""
+
+        match = re.search(r"[./]?[\w\-]+(?:/[\w\-.]+)+", str(command_text or ""))
+        if match:
+            return match.group(0)
+        return "."
+
+    @staticmethod
+    def _extract_code_block(command_text: str) -> str | None:
+        """Extrai um bloco de codigo explicito (delimitado por crases triplas) do texto do comando, se houver."""
+
+        text = str(command_text or "")
+        match = re.search(r"```(?:\w+)?\n?(.*?)```", text, re.DOTALL)
+        if match:
+            extracted = match.group(1).strip()
+            return extracted or None
+        return None
+
+    def _build_jev_decision_guidance(self, command_text: str) -> Dict[str, Any]:
+        """Monta uma orientacao honesta sobre como avaliar uma decisao JEV, sem inventar opcoes."""
+
+        return {
+            "requer_opcoes_estruturadas": True,
+            "endpoint_recomendado": "/api/decisao/jev/avaliar",
+            "comando_recebido": command_text,
+            "motivo": (
+                "O chat de texto livre nao fornece opcoes estruturadas (utilidade/risco/custo) "
+                "necessarias para o motor JEV avaliar uma decisao."
+            ),
+            "formato_esperado_opcoes": [
+                {"nome": "opcao_exemplo", "utilidade_0_10": 5.0, "risco_0_10": 2.0, "custo_0_10": 1.0}
+            ],
+        }
+
+    @staticmethod
+    def _build_sandbox_guidance() -> Dict[str, Any]:
+        """Monta uma orientacao honesta sobre como executar codigo na micro-sandbox."""
+
+        return {
+            "endpoint_recomendado": "/api/seguranca/micro-sandbox/executar",
+            "motivo": (
+                "Nenhum bloco de codigo explicito (delimitado por crases triplas) foi identificado "
+                "no comando. Para seguranca, o codigo nao e inferido a partir de texto livre."
+            ),
+        }
+
+    @staticmethod
+    def _build_web_search_message(search_result: Dict[str, Any], response_mode: str) -> str:
+        """Resume o resultado da pesquisa web para resposta por comando."""
+
+        if response_mode == "tecnico":
+            return json.dumps(search_result, ensure_ascii=False, indent=2)
+        if search_result.get("status") != "sucesso":
+            return (
+                "Nao foi possivel concluir a pesquisa web agora ({motivo}). "
+                "Nenhuma fonte foi retornada."
+            ).format(motivo=search_result.get("motivo", "erro desconhecido"))
+        return "Pesquisa concluida com {total} fonte(s) encontrada(s) para '{termo}'.".format(
+            total=search_result.get("total_fontes_encontradas", 0),
+            termo=search_result.get("pesquisa", ""),
+        )
+
+    @staticmethod
+    def _build_graphify_message(graph_result: Dict[str, Any], response_mode: str) -> str:
+        """Resume o resultado da analise Graphify para resposta por comando."""
+
+        if response_mode == "tecnico":
+            return json.dumps(graph_result, ensure_ascii=False, indent=2)
+        estatisticas = graph_result.get("estatisticas", {})
+        return "Analise Graphify concluida com {nos} no(s) e {arestas} aresta(s) mapeada(s).".format(
+            nos=estatisticas.get("total_nos", 0),
+            arestas=estatisticas.get("total_arestas", 0),
+        )
+
+    @staticmethod
+    def _build_code_security_message(code_security_report: Dict[str, Any], response_mode: str) -> str:
+        """Resume o resultado da analise de seguranca do codigo para resposta por comando."""
+
+        if response_mode == "tecnico":
+            return json.dumps(code_security_report, ensure_ascii=False, indent=2)
+        return code_security_report.get(
+            "resumo_ptbr",
+            "Analise de seguranca do codigo concluida com {total} achado(s).".format(
+                total=code_security_report.get("total_achados", 0)
+            ),
+        )
+
+    @staticmethod
+    def _build_jev_guidance_message(jev_guidance: Dict[str, Any], response_mode: str) -> str:
+        """Explica de forma honesta como avaliar uma decisao JEV via API."""
+
+        if response_mode == "tecnico":
+            return json.dumps(jev_guidance, ensure_ascii=False, indent=2)
+        return (
+            "Para avaliar uma decisao JEV preciso de opcoes estruturadas (utilidade, risco e custo). "
+            "Use o endpoint {endpoint} informando as opcoes."
+        ).format(endpoint=jev_guidance.get("endpoint_recomendado", "/api/decisao/jev/avaliar"))
+
+    @staticmethod
+    def _build_sandbox_message(sandbox_result: Dict[str, Any], response_mode: str) -> str:
+        """Resume o resultado da execucao na micro-sandbox para resposta por comando."""
+
+        if response_mode == "tecnico":
+            return json.dumps(sandbox_result, ensure_ascii=False, indent=2)
+        return "Execucao na sandbox concluida com status '{status}'.".format(
+            status=sandbox_result.get("status", "desconhecido")
+        )
+
+    @staticmethod
+    def _build_sandbox_guidance_message(sandbox_guidance: Dict[str, Any], response_mode: str) -> str:
+        """Explica de forma honesta como executar codigo na micro-sandbox via API."""
+
+        if response_mode == "tecnico":
+            return json.dumps(sandbox_guidance, ensure_ascii=False, indent=2)
+        return (
+            "Para executar codigo com seguranca, inclua um bloco de codigo explicito (entre crases triplas) "
+            "ou use o endpoint {endpoint}."
+        ).format(endpoint=sandbox_guidance.get("endpoint_recomendado", "/api/seguranca/micro-sandbox/executar"))
 
     @staticmethod
     def _resolve_cognitive_level_from_text(command_text: str) -> str:

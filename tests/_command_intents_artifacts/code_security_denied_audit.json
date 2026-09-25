@@ -1,0 +1,22 @@
+{
+  "version": "0.1.0",
+  "entry_count": 1,
+  "saved_at": "2026-09-25T21:13:33.342882+00:00",
+  "entries": [
+    {
+      "timestamp": "2026-09-25T21:13:33.341872+00:00",
+      "event": "command",
+      "event_ptbr": "comando",
+      "payload": {
+        "status": "denied",
+        "access_level": "guest",
+        "device_id": "nao_informado",
+        "action": "restricted_command",
+        "command_text": "faça uma analise de seguranca do codigo",
+        "reason": "guest_restricted_command",
+        "status_ptbr": "negado",
+        "reason_ptbr": "comando_restrito_ao_admin"
+      }
+    }
+  ]
+}

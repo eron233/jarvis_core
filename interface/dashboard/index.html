@@ -5,29 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>JARVIS — Sistema Cognitivo Operacional</title>
   <style>
-    /* Estética Anthropic Claude Desktop / Claude Code */
     :root {
-      --bg-app: #181715;
-      --bg-sidebar: #1E1C1A;
-      --bg-card: #242220;
+      --bg-app: #14130F;
+      --bg-sidebar: #1B1A16;
+      --bg-card: #211F1A;
+      --bg-elev: #2A2822;
       --bg-input: #2A2825;
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-active: rgba(217, 119, 87, 0.4);
+      --border-subtle: rgba(255, 255, 255, 0.09);
+      --border-active: rgba(217, 119, 87, 0.45);
       --text-primary: #ECEBE8;
-      --text-secondary: #B0AEA8;
-      --text-muted: #85837D;
-      --accent-claude: #D97757; /* Laranja Terroso característico do Claude */
-      --accent-claude-hover: #E28769;
+      --text-secondary: #B4B1A9;
+      --text-muted: #86837B;
+      --accent: #D97757;
+      --accent-hover: #E9906F;
+      --accent-ink: #17130F;
+      --ok: #5FB98B;
+      --warn: #E0B252;
+      --danger: #E0705F;
+      --info: #6FA8D6;
+      --radius: 10px;
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-      --font-mono: "JetBrains Mono", "Cascadia Code", monospace;
+      --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      width: 100%;
       height: 100%;
-      overflow: hidden;
       font-family: var(--font-sans);
       background-color: var(--bg-app);
       color: var(--text-primary);
@@ -36,525 +40,607 @@
 
     .app-layout {
       display: grid;
-      grid-template-columns: 260px minmax(0, 1fr);
-      width: 100vw;
+      grid-template-columns: 250px minmax(0, 1fr);
       height: 100vh;
     }
 
-    /* Sidebar Esquerda Minimalista estilo Claude */
+    /* ---------- Sidebar ---------- */
     .sidebar {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 16px;
+      gap: 8px;
+      padding: 16px 14px;
       background-color: var(--bg-sidebar);
       border-right: 1px solid var(--border-subtle);
+      overflow-y: auto;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 4px 16px;
+      padding: 6px 6px 16px;
       border-bottom: 1px solid var(--border-subtle);
     }
 
     .brand-icon {
-      width: 24px;
-      height: 24px;
-      background-color: var(--accent-claude);
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 0.85rem;
-      color: #181715;
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--accent), #C25E43);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; color: var(--accent-ink);
     }
+    .brand-name { font-size: 1.02rem; font-weight: 700; letter-spacing: -0.01em; }
+    .brand-sub { font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; }
 
-    .brand-name {
-      font-size: 0.98rem;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      color: var(--text-primary);
-    }
-
-    .nav-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-top: 16px;
-    }
+    .nav-group { display: flex; flex-direction: column; gap: 3px; margin-top: 12px; }
+    .nav-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 8px 4px; }
 
     .nav-btn {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 0.88rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      text-align: left;
-      transition: background 0.15s ease, color 0.15s ease;
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: 8px;
+      font-size: 0.88rem; font-weight: 500; color: var(--text-secondary);
+      background: transparent; border: none; cursor: pointer; text-align: left;
+      transition: background 0.15s, color 0.15s;
     }
+    .nav-btn:hover { background-color: var(--bg-card); color: var(--text-primary); }
+    .nav-btn.active { background-color: var(--bg-elev); color: var(--text-primary); box-shadow: inset 2px 0 0 var(--accent); }
+    .nav-ico { width: 18px; text-align: center; opacity: 0.9; }
 
-    .nav-btn:hover, .nav-btn.active {
-      background-color: var(--bg-card);
-      color: var(--text-primary);
-    }
+    .sidebar-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
+    .sidebar-status { font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 7px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--ok); box-shadow: 0 0 0 3px rgba(95,185,139,0.18); }
 
-    .sidebar-status {
-      padding-top: 12px;
-      border-top: 1px solid var(--border-subtle);
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: var(--accent-claude);
-    }
-
-    /* Área Principal estilo Chat Claude Desktop */
-    .main-content {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      background-color: var(--bg-app);
-      position: relative;
-    }
+    /* ---------- Main ---------- */
+    .main-content { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
     .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 24px;
-      border-bottom: 1px solid var(--border-subtle);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
     }
+    .header-title { font-size: 1.02rem; font-weight: 600; }
+    .header-sub { font-size: 0.76rem; color: var(--text-muted); margin-top: 1px; }
+    .header-actions { display: flex; gap: 8px; }
 
-    .header-title {
-      font-size: 0.92rem;
-      font-weight: 600;
-      color: var(--text-secondary);
+    .btn {
+      padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border-subtle); background-color: var(--bg-card);
+      color: var(--text-secondary); transition: all 0.15s; font-family: inherit;
     }
+    .btn:hover { color: var(--text-primary); border-color: var(--border-active); }
+    .btn-primary { background-color: var(--accent); color: var(--accent-ink); border-color: transparent; }
+    .btn-primary:hover { background-color: var(--accent-hover); color: var(--accent-ink); }
 
-    .header-actions {
-      display: flex;
-      gap: 8px;
+    .view-scroll { flex: 1; overflow-y: auto; padding: 22px 24px 32px; }
+    .view { display: none; animation: fade 0.2s ease; }
+    .view.active { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    .grid { display: grid; gap: 14px; }
+    .cols-auto { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+    .cols-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+    .card {
+      background-color: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius); padding: 16px 18px;
     }
+    .card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card-hint { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
 
-    .btn-action {
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.82rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      cursor: pointer;
-      transition: all 0.15s ease;
+    .kpi { background-color: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 16px 18px; }
+    .kpi-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-value { font-size: 1.7rem; font-weight: 700; margin-top: 6px; font-family: var(--font-mono); }
+    .kpi-sub { font-size: 0.74rem; color: var(--text-secondary); margin-top: 4px; }
+
+    .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+    .pill-ok { background: rgba(95,185,139,0.16); color: var(--ok); }
+    .pill-warn { background: rgba(224,178,82,0.16); color: var(--warn); }
+    .pill-danger { background: rgba(224,112,95,0.16); color: var(--danger); }
+    .pill-info { background: rgba(111,168,214,0.16); color: var(--info); }
+
+    label.field { display: block; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+    input.inp, textarea.inp, select.inp {
+      width: 100%; background-color: var(--bg-input); border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 10px 12px; color: var(--text-primary); font-family: inherit;
+      font-size: 0.88rem; margin-bottom: 12px;
     }
+    textarea.inp { resize: vertical; min-height: 90px; font-family: var(--font-mono); font-size: 0.82rem; }
+    input.inp:focus, textarea.inp:focus, select.inp:focus { outline: none; border-color: var(--accent); }
 
-    .btn-action:hover {
-      color: var(--text-primary);
-      border-color: var(--border-active);
+    .result-box {
+      margin-top: 12px; background-color: #131210; border: 1px solid var(--border-subtle);
+      border-radius: 8px; padding: 12px 14px; font-family: var(--font-mono); font-size: 0.8rem;
+      color: var(--text-secondary); white-space: pre-wrap; word-break: break-word; max-height: 340px; overflow-y: auto;
     }
+    .finding { border-left: 3px solid var(--border-subtle); padding: 8px 12px; margin-bottom: 8px; background: var(--bg-elev); border-radius: 0 6px 6px 0; }
+    .finding.critico { border-left-color: var(--danger); }
+    .finding.alto { border-left-color: var(--danger); }
+    .finding.medio { border-left-color: var(--warn); }
+    .finding.baixo { border-left-color: var(--info); }
+    .finding-head { font-size: 0.82rem; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+    .finding-body { font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; }
+    .finding-fix { font-size: 0.76rem; color: var(--ok); margin-top: 4px; }
+    .muted { color: var(--text-muted); }
 
-    .chat-stream {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      max-width: 800px;
-      margin: 0 auto;
-      width: 100%;
-    }
+    /* Chat */
+    .chat-wrap { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; height: 100%; }
+    .chat-stream { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; padding-bottom: 16px; }
+    .msg-group { display: flex; flex-direction: column; gap: 5px; }
+    .msg-author { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .msg-content { font-size: 0.94rem; line-height: 1.6; white-space: pre-wrap; }
+    .msg-group.user .msg-content { background-color: var(--bg-card); padding: 11px 15px; border-radius: 10px; border: 1px solid var(--border-subtle); }
+    .composer { background-color: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 14px; }
+    .composer:focus-within { border-color: var(--accent); }
+    .composer textarea { width: 100%; background: transparent; border: none; outline: none; color: var(--text-primary); font-family: inherit; font-size: 0.94rem; resize: none; min-height: 46px; max-height: 180px; }
+    .composer-bar { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border-subtle); }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { background: transparent; border: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 0.78rem; padding: 4px 10px; border-radius: 999px; cursor: pointer; font-family: inherit; }
+    .chip:hover { color: var(--text-primary); border-color: var(--border-active); }
 
-    .msg-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .msg-author {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .msg-content {
-      font-size: 0.95rem;
-      line-height: 1.6;
-      color: var(--text-primary);
-      white-space: pre-wrap;
-    }
-
-    .msg-group.user .msg-content {
-      color: #F7F6F3;
-      background-color: var(--bg-card);
-      padding: 12px 16px;
-      border-radius: 8px;
-      border: 1px solid var(--border-subtle);
-    }
-
-    /* Composer de Texto estilo Claude */
-    .composer-container {
-      padding: 16px 24px 24px;
-      max-width: 800px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .composer-wrapper {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      transition: border-color 0.15s ease;
-    }
-
-    .composer-wrapper:focus-within {
-      border-color: var(--border-active);
-    }
-
-    .composer-textarea {
-      width: 100%;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 0.95rem;
-      resize: none;
-      min-height: 48px;
-      max-height: 200px;
-    }
-
-    .composer-controls {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 8px;
-      border-top: 1px solid var(--border-subtle);
-    }
-
-    .quick-tools {
-      display: flex;
-      gap: 6px;
-    }
-
-    .tool-btn {
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      padding: 4px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .tool-btn:hover {
-      background-color: var(--bg-input);
-      color: var(--text-primary);
-    }
-
-    .btn-send {
-      background-color: var(--accent-claude);
-      color: #181715;
-      font-weight: 600;
-      font-size: 0.82rem;
-      padding: 6px 14px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-
-    .btn-send:hover {
-      background-color: var(--accent-claude-hover);
-    }
-
-    /* Modal Discreto */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 10;
-      background: rgba(0, 0, 0, 0.6);
-      align-items: center;
-      justify-content: center;
-    }
-
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,0.65); align-items: center; justify-content: center; padding: 16px; }
     .modal-overlay.active { display: flex; }
+    .modal-content { width: min(720px, 100%); background-color: var(--bg-sidebar); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px; max-height: 82vh; overflow-y: auto; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 14px; }
 
-    /* Foco visível por teclado em todos os controles interativos */
-    button:focus-visible,
-    textarea:focus-visible {
-      outline: 2px solid var(--accent-claude);
-      outline-offset: 2px;
+    /* focus + a11y */
+    button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible, .nav-btn:focus-visible {
+      outline: 2px solid var(--accent); outline-offset: 2px;
     }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
-    .composer-textarea:focus-visible {
-      outline: none; /* o foco já é indicado pela borda do composer */
-    }
+    .menu-toggle { display: none; }
 
-    .composer-wrapper:focus-within {
-      box-shadow: 0 0 0 1px var(--accent-claude);
-    }
-
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    .modal-content {
-      width: min(720px, 90vw);
-      background-color: var(--bg-sidebar);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 20px;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    .modal-header-clean {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border-subtle);
-      margin-bottom: 14px;
+    /* Responsivo */
+    @media (max-width: 860px) {
+      .app-layout { grid-template-columns: 1fr; }
+      .sidebar {
+        position: fixed; inset: 0 auto 0 0; width: 250px; z-index: 30;
+        transform: translateX(-100%); transition: transform 0.2s;
+      }
+      .sidebar.open { transform: none; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+      .menu-toggle { display: inline-flex; }
+      .view-scroll { padding: 16px; }
+      .header { padding: 12px 16px; }
     }
   </style>
 </head>
 <body>
   <div class="app-layout">
-    <!-- Sidebar estilo Claude Code/Desktop -->
-    <aside class="sidebar">
-      <div>
-        <div class="brand">
-          <div class="brand-icon" aria-hidden="true">J</div>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">J</div>
+        <div>
           <div class="brand-name">JARVIS</div>
+          <div class="brand-sub">Cockpit Operacional</div>
         </div>
-
-        <nav class="nav-group" aria-label="Navegação principal">
-          <button type="button" class="nav-btn active" aria-current="page" onclick="switchTab('chat', this)">Conversa Principal</button>
-          <button type="button" class="nav-btn" onclick="switchTab('graphify', this)">Graphify Topológico</button>
-          <button type="button" class="nav-btn" aria-haspopup="dialog" aria-controls="thoughtModal" onclick="openThoughtModal()">Pensamentos do Dono</button>
-          <button type="button" class="nav-btn" onclick="switchTab('system', this)">Sensores & Módulos</button>
-        </nav>
       </div>
 
-      <div class="sidebar-status" role="status" aria-live="polite">
-        <span class="status-dot" aria-hidden="true"></span>
-        <span>JARVIS Operacional</span>
+      <nav class="nav-group" aria-label="Navegação principal" id="navGroup">
+        <div class="nav-label">Operação</div>
+        <button type="button" class="nav-btn active" aria-current="page" data-view="overview"><span class="nav-ico" aria-hidden="true">◵</span>Visão Geral</button>
+        <button type="button" class="nav-btn" data-view="chat"><span class="nav-ico" aria-hidden="true">✦</span>Conversa</button>
+        <div class="nav-label">Capacidades</div>
+        <button type="button" class="nav-btn" data-view="security"><span class="nav-ico" aria-hidden="true">⛨</span>Segurança</button>
+        <button type="button" class="nav-btn" data-view="web"><span class="nav-ico" aria-hidden="true">⌕</span>Web &amp; Pesquisa</button>
+        <button type="button" class="nav-btn" data-view="graphify"><span class="nav-ico" aria-hidden="true">◈</span>Graphify</button>
+        <button type="button" class="nav-btn" data-view="system"><span class="nav-ico" aria-hidden="true">▤</span>Sistema</button>
+        <button type="button" class="nav-btn" data-view="market"><span class="nav-ico" aria-hidden="true">◷</span>Mercado</button>
+        <div class="nav-label">Privado</div>
+        <button type="button" class="nav-btn" aria-haspopup="dialog" aria-controls="thoughtModal" id="thoughtsBtn"><span class="nav-ico" aria-hidden="true">◔</span>Pensamentos do Dono</button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="sidebar-status" role="status" aria-live="polite" id="heartbeat">
+          <span class="status-dot" aria-hidden="true"></span><span>Verificando estado…</span>
+        </div>
       </div>
     </aside>
 
-    <!-- Área Principal de Chat -->
     <main class="main-content">
       <header class="header">
-        <h1 class="header-title" id="tabTitle">Sessão Atual</h1>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button type="button" class="btn menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
+          <div>
+            <h1 class="header-title" id="viewTitle">Visão Geral</h1>
+            <div class="header-sub" id="viewSub">Estado operacional do sistema</div>
+          </div>
+        </div>
         <div class="header-actions">
-          <button type="button" class="btn-action" onclick="clearStream()">Limpar Chat</button>
-          <button type="button" class="btn-action" onclick="runAutoEvolution()">Autoevolução</button>
+          <button type="button" class="btn" id="refreshBtn">Atualizar</button>
+          <button type="button" class="btn btn-primary" id="evolBtn">Autoevolução</button>
         </div>
       </header>
 
-      <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-atomic="false" aria-label="Conversa com o JARVIS" tabindex="0">
-        <div class="msg-group assistant">
-          <div class="msg-author">JARVIS</div>
-          <div class="msg-content">Olá. O sistema está operacional com todos os módulos, análise topológica Graphify, busca web e voz local ativos. Como posso ajudar?</div>
-        </div>
-      </div>
-
-      <div class="composer-container">
-        <div class="composer-wrapper">
-          <label for="composerInput" class="sr-only">Mensagem para o JARVIS</label>
-          <textarea id="composerInput" class="composer-textarea" placeholder="Envie uma mensagem ou solicite uma análise..." rows="1"></textarea>
-          <div class="composer-controls">
-            <div class="quick-tools" role="group" aria-label="Ferramentas rápidas">
-              <button type="button" class="tool-btn" onclick="runGraphify()">Graphify</button>
-              <button type="button" class="tool-btn" onclick="runWebSearch()">Pesquisar Web</button>
-              <button type="button" class="tool-btn" onclick="runVoice()">Voz Local</button>
-            </div>
-            <button type="button" class="btn-send" onclick="sendMsg()">Enviar</button>
+      <div class="view-scroll">
+        <!-- VISÃO GERAL -->
+        <section class="view active" id="view-overview" aria-label="Visão geral">
+          <div class="grid cols-auto" id="kpiGrid" aria-live="polite"></div>
+          <div class="grid cols-2" style="margin-top:14px;">
+            <div class="card"><h3>Relatório do Sistema</h3><div id="sysReport" class="result-box">Carregando…</div></div>
+            <div class="card"><h3>Armazenamento</h3><div id="storageBox" class="result-box">Carregando…</div></div>
           </div>
-        </div>
+        </section>
+
+        <!-- CONVERSA -->
+        <section class="view" id="view-chat" aria-label="Conversa">
+          <div class="chat-wrap">
+            <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-atomic="false" aria-label="Conversa com o JARVIS" tabindex="0">
+              <div class="msg-group assistant">
+                <div class="msg-author">JARVIS</div>
+                <div class="msg-content">Sistema operacional. Peça um relatório de status, uma análise de segurança do código, uma pesquisa na web, uma análise Graphify, ou converse normalmente.</div>
+              </div>
+            </div>
+            <div class="composer">
+              <label for="composerInput" class="sr-only">Mensagem para o JARVIS</label>
+              <textarea id="composerInput" placeholder="Escreva um comando ou pergunta…" rows="1"></textarea>
+              <div class="composer-bar">
+                <div class="chips" role="group" aria-label="Sugestões">
+                  <button type="button" class="chip" data-cmd="status do sistema">Status</button>
+                  <button type="button" class="chip" data-cmd="analisar segurança do código">Analisar código</button>
+                  <button type="button" class="chip" data-cmd="pesquisar inteligência artificial">Pesquisar web</button>
+                  <button type="button" class="chip" data-cmd="objetivos">Objetivos</button>
+                </div>
+                <button type="button" class="btn btn-primary" id="sendBtn">Enviar</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SEGURANÇA -->
+        <section class="view" id="view-security" aria-label="Segurança">
+          <div class="grid cols-2">
+            <div class="card">
+              <h3>⛨ Análise Estática de Código</h3>
+              <p class="card-hint">Varre arquivos Python em busca de padrões inseguros (execução dinâmica, shell, desserialização, segredos embutidos, hash fraco). Análise defensiva.</p>
+              <label class="field" for="scanPath">Caminho a analisar (relativo à raiz)</label>
+              <input class="inp" id="scanPath" value="." />
+              <button type="button" class="btn btn-primary" id="scanBtn">Executar varredura</button>
+              <div id="scanResult" class="result-box" style="display:none;"></div>
+            </div>
+            <div class="card">
+              <h3>▣ Micro-Sandbox Isolado</h3>
+              <p class="card-hint">Executa código Python em subprocesso isolado, com portão de segurança AST (bloqueia imports perigosos, eval/exec/open) e limites reais de CPU/memória.</p>
+              <label class="field" for="sandboxCode">Código Python</label>
+              <textarea class="inp" id="sandboxCode">_out['soma'] = sum(range(10))</textarea>
+              <button type="button" class="btn btn-primary" id="sandboxBtn">Executar no sandbox</button>
+              <div id="sandboxResult" class="result-box" style="display:none;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- WEB -->
+        <section class="view" id="view-web" aria-label="Web e Pesquisa">
+          <div class="card">
+            <h3>⌕ Pesquisa Web Ativa</h3>
+            <p class="card-hint">Busca real na web e extrai as principais fontes. Requer que o ambiente tenha acesso de saída à internet.</p>
+            <label class="field" for="webQuery">Termo de busca</label>
+            <input class="inp" id="webQuery" placeholder="ex.: arquitetura de agentes de IA" />
+            <button type="button" class="btn btn-primary" id="webBtn">Pesquisar</button>
+            <div id="webResult" class="result-box" style="display:none;"></div>
+          </div>
+        </section>
+
+        <!-- GRAPHIFY -->
+        <section class="view" id="view-graphify" aria-label="Graphify">
+          <div class="card">
+            <h3>◈ Análise Topológica Graphify</h3>
+            <p class="card-hint">Estrutura uma descrição em grafo: extrai nós, arestas, calcula densidade, grau, hub e detecta ciclos reais.</p>
+            <label class="field" for="graphTitle">Título</label>
+            <input class="inp" id="graphTitle" value="Projeto JARVIS" />
+            <label class="field" for="graphDesc">Descrição (componentes separados por vírgula)</label>
+            <textarea class="inp" id="graphDesc" style="font-family:var(--font-sans);">Núcleo executivo, banco de dados, gateway de API, interface, módulo de segurança</textarea>
+            <button type="button" class="btn btn-primary" id="graphBtn">Estruturar grafo</button>
+            <div id="graphResult" class="result-box" style="display:none;"></div>
+          </div>
+        </section>
+
+        <!-- SISTEMA -->
+        <section class="view" id="view-system" aria-label="Sistema">
+          <div class="grid cols-2">
+            <div class="card"><h3>▤ Métricas do Sistema</h3><div id="metricsBox" class="result-box">Carregando…</div></div>
+            <div class="card"><h3>⚙ Perfil do Dispositivo</h3><div id="deviceBox" class="result-box">Carregando…</div></div>
+          </div>
+        </section>
+
+        <!-- MERCADO -->
+        <section class="view" id="view-market" aria-label="Mercado">
+          <div class="card">
+            <h3>◷ Feed de Mercado <span class="pill pill-warn">simulado</span></h3>
+            <p class="card-hint">Simulador local de cotações (não é um feed real da B3). Útil para testar o fluxo do analisador de mercado.</p>
+            <label class="field" for="marketAsset">Ativo</label>
+            <select class="inp" id="marketAsset"><option>WDO</option><option>WIN</option></select>
+            <button type="button" class="btn btn-primary" id="marketBtn">Obter tick</button>
+            <div id="marketResult" class="result-box" style="display:none;"></div>
+          </div>
+        </section>
       </div>
     </main>
   </div>
 
-  <!-- Modal de Pensamentos Privados do Dono -->
+  <!-- Modal Pensamentos -->
   <div class="modal-overlay" id="thoughtModal" role="dialog" aria-modal="true" aria-labelledby="thoughtModalTitle" aria-hidden="true">
     <div class="modal-content">
-      <div class="modal-header-clean">
-        <h2 id="thoughtModalTitle" style="font-size:0.95rem; font-weight:600;">Stream de Pensamentos Privados do Dono</h2>
-        <button type="button" class="btn-action" onclick="closeThoughtModal()">Fechar</button>
+      <div class="modal-head">
+        <h2 id="thoughtModalTitle" style="font-size:0.98rem;font-weight:600;">Fluxo de Pensamentos Privados do Dono</h2>
+        <button type="button" class="btn" id="closeThoughtBtn">Fechar</button>
       </div>
-      <pre id="thoughtContent" aria-live="polite" style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-secondary); white-space:pre-wrap;"></pre>
+      <pre id="thoughtContent" aria-live="polite" style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-secondary);white-space:pre-wrap;">Carregando…</pre>
     </div>
   </div>
 
   <script>
-    function getAuthHeaders() {
-      // Nunca embute credenciais de teste no cliente. Usa apenas o que o dono
-      // salvou neste navegador; sem token, a requisição falha a autenticação
-      // (comportamento correto) em vez de enviar um segredo adivinhável.
-      var token = '';
-      var deviceId = '';
+    "use strict";
+
+    // ---------- Autenticação ----------
+    function getAuthHeaders(extra) {
+      var token = "", deviceId = "";
       try {
-        token = localStorage.getItem('jarvis_token') || '';
-        deviceId = localStorage.getItem('jarvis_device_id') || '';
+        token = localStorage.getItem("jarvis_token") || "";
+        deviceId = localStorage.getItem("jarvis_device_id") || "";
       } catch (e) { /* localStorage indisponível */ }
-      return {
-        'Content-Type': 'application/json',
-        'X-Jarvis-Token': token,
-        'X-Jarvis-Device-Id': deviceId,
-        'X-Jarvis-Nonce': 'nonce-' + Math.random().toString(36).substring(2, 10),
-        'X-Jarvis-Timestamp': Date.now().toString()
-      };
+      return Object.assign({
+        "Content-Type": "application/json",
+        "X-Jarvis-Token": token,
+        "X-Jarvis-Device-Id": deviceId,
+        "X-Jarvis-Nonce": "nonce-" + Math.random().toString(36).slice(2, 12),
+        "X-Jarvis-Timestamp": Date.now().toString()
+      }, extra || {});
     }
 
-    function apiFetch(url, options = {}) {
-      const headers = Object.assign(getAuthHeaders(), options.headers || {});
-      return fetch(url, Object.assign({}, options, { headers }));
+    function apiFetch(url, options) {
+      options = options || {};
+      var headers = getAuthHeaders(options.headers);
+      return fetch(url, Object.assign({}, options, { headers: headers }));
     }
 
-    function sendMsg() {
-      const input = document.getElementById('composerInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      appendMsg('user', 'Você', text);
-      input.value = '';
-
-      apiFetch('/api/comando', {
-        method: 'POST',
-        body: JSON.stringify({ texto: text })
-      })
-      .then(r => r.json())
-      .then(d => appendMsg('assistant', 'JARVIS', d.resposta || d.mensagem || 'Comando executado.'))
-      .catch(e => appendMsg('assistant', 'JARVIS', 'Erro: ' + e.message));
+    async function apiJson(url, options) {
+      var r = await apiFetch(url, options);
+      var data = null;
+      try { data = await r.json(); } catch (e) { data = { erro: "resposta inválida" }; }
+      if (!r.ok) { data = data || {}; data.__http = r.status; }
+      return data;
     }
 
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    }
+    function pretty(obj) { try { return JSON.stringify(obj, null, 2); } catch (e) { return String(obj); } }
+
+    // ---------- Navegação entre views ----------
+    var VIEW_META = {
+      overview: ["Visão Geral", "Estado operacional do sistema", loadOverview],
+      chat: ["Conversa", "Fale com o JARVIS", null],
+      security: ["Segurança", "Análise estática e sandbox isolado", null],
+      web: ["Web & Pesquisa", "Busca ativa na internet", null],
+      graphify: ["Graphify", "Análise topológica de projetos", null],
+      system: ["Sistema", "Métricas e perfil do dispositivo", loadSystem],
+      market: ["Mercado", "Simulador de cotações", null]
+    };
+
+    function showView(id) {
+      document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+      var view = document.getElementById("view-" + id);
+      if (view) view.classList.add("active");
+      document.querySelectorAll(".nav-btn[data-view]").forEach(function (b) {
+        var on = b.getAttribute("data-view") === id;
+        b.classList.toggle("active", on);
+        if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+      });
+      var meta = VIEW_META[id];
+      if (meta) {
+        document.getElementById("viewTitle").textContent = meta[0];
+        document.getElementById("viewSub").textContent = meta[1];
+        if (typeof meta[2] === "function") meta[2]();
+      }
+      document.getElementById("sidebar").classList.remove("open");
+    }
+
+    // ---------- Visão Geral ----------
+    function kpi(label, value, sub) {
+      var k = el("div", "kpi");
+      k.appendChild(el("div", "kpi-label", label));
+      k.appendChild(el("div", "kpi-value", value));
+      if (sub) k.appendChild(el("div", "kpi-sub", sub));
+      return k;
+    }
+
+    async function loadOverview() {
+      var grid = document.getElementById("kpiGrid");
+      grid.replaceChildren(el("div", "kpi", "Carregando…"));
+      var status = await apiJson("/api/status");
+      var saude = await apiJson("/api/saude");
+      grid.replaceChildren();
+      if (status.__http) {
+        grid.appendChild(kpi("Acesso", "Restrito", "Configure token do dispositivo"));
+      } else {
+        grid.appendChild(kpi("Status", status.status || status.estado || "ativo", "Runtime do JARVIS"));
+        grid.appendChild(kpi("Tarefas", String(status.total_tarefas != null ? status.total_tarefas : (status.tarefas_pendentes != null ? status.tarefas_pendentes : "—")), "Na fila"));
+        grid.appendChild(kpi("Uptime", (saude.uptime_segundos != null ? saude.uptime_segundos + "s" : (saude.status || "ok")), "Desde o boot"));
+      }
+      grid.appendChild(kpi("Saúde", saude.status || (saude.__http ? "erro" : "ok"), "Healthcheck"));
+
+      var sys = await apiJson("/api/relatorio/sistema");
+      document.getElementById("sysReport").textContent = sys.__http ? "Acesso restrito (" + sys.__http + ")." : pretty(sys.relatorio || sys);
+      var stor = await apiJson("/api/armazenamento/status");
+      document.getElementById("storageBox").textContent = stor.__http ? "Acesso restrito (" + stor.__http + ")." : pretty(stor);
+    }
+
+    // ---------- Sistema ----------
+    async function loadSystem() {
+      var m = await apiJson("/api/sistema/metricas");
+      document.getElementById("metricsBox").textContent = m.__http ? "Acesso restrito (" + m.__http + ")." : pretty(m.metricas || m);
+      var d = await apiJson("/api/modulos/dispositivo/perfil");
+      document.getElementById("deviceBox").textContent = d.__http ? "Acesso restrito (" + d.__http + ")." : pretty(d.perfil || d);
+    }
+
+    // ---------- Chat ----------
     function appendMsg(role, author, text) {
-      const stream = document.getElementById('chatStream');
-      const group = document.createElement('div');
-      group.className = `msg-group ${role}`;
-      const authorEl = document.createElement('div');
-      authorEl.className = 'msg-author';
-      authorEl.textContent = author;
-      const contentEl = document.createElement('div');
-      contentEl.className = 'msg-content';
-      contentEl.textContent = text;
-      group.append(authorEl, contentEl);
-      stream.appendChild(group);
+      var stream = document.getElementById("chatStream");
+      var g = el("div", "msg-group " + role);
+      g.appendChild(el("div", "msg-author", author));
+      g.appendChild(el("div", "msg-content", text));
+      stream.appendChild(g);
       stream.scrollTop = stream.scrollHeight;
     }
 
-    function runGraphify() {
-      appendMsg('user', 'Você', 'Executar análise Graphify.');
-      apiFetch('/api/graphify/estruturar?titulo=Projeto_JARVIS&descricao=Topologia', { method: 'POST' })
-      .then(r => r.json())
-      .then(d => appendMsg('assistant', 'JARVIS', d.resultado?.resumo_topologico_ptbr || 'Análise Graphify gerada.'));
+    async function sendMsg() {
+      var input = document.getElementById("composerInput");
+      var text = input.value.trim();
+      if (!text) return;
+      appendMsg("user", "Você", text);
+      input.value = "";
+      var d = await apiJson("/api/comando", { method: "POST", body: JSON.stringify({ texto: text }) });
+      var reply = d.resposta || d.mensagem || (d.__http ? "Falha de acesso (" + d.__http + "). Verifique o token do dispositivo." : "Comando processado.");
+      appendMsg("assistant", "JARVIS", reply);
     }
 
-    function runWebSearch() {
-      appendMsg('user', 'Você', 'Pesquisar na web.');
-      apiFetch('/api/web/pesquisar?q=JARVIS+AI')
-      .then(r => r.json())
-      .then(d => appendMsg('assistant', 'JARVIS', `Pesquisa web concluída. ${d.total_fontes_encontradas || 0} fontes consultadas.`));
-    }
-
-    function runVoice() {
-      apiFetch('/api/voz/falar?texto=JARVIS+online', { method: 'POST' })
-      .then(r => r.json())
-      .then(() => appendMsg('assistant', 'JARVIS', 'Áudio de voz gerado localmente.'));
-    }
-
-    function runAutoEvolution() {
-      apiFetch('/api/modulos/autoevolucao/ciclo', { method: 'POST' })
-      .then(r => r.json())
-      .then(() => appendMsg('assistant', 'JARVIS', 'Ciclo de autoevolução executado.'));
-    }
-
-    let lastFocusBeforeModal = null;
-
-    function openThoughtModal() {
-      const modal = document.getElementById('thoughtModal');
-      lastFocusBeforeModal = document.activeElement;
-      modal.classList.add('active');
-      modal.setAttribute('aria-hidden', 'false');
-      modal.querySelector('button').focus();
-      apiFetch('/api/dono/pensamentos-privados')
-      .then(r => r.json())
-      .then(d => {
-        document.getElementById('thoughtContent').textContent = d.status === 'sucesso'
-          ? JSON.stringify(d.ultimos_pensamentos, null, 2)
-          : d.motivo || 'Acesso restrito.';
+    // ---------- Segurança ----------
+    async function runScan() {
+      var box = document.getElementById("scanResult");
+      box.style.display = "block"; box.textContent = "Analisando…";
+      var path = encodeURIComponent(document.getElementById("scanPath").value || ".");
+      var d = await apiJson("/api/seguranca/caca-vulnerabilidades/campanha?nome_alvo=Dashboard&caminho_alvo=" + path, { method: "POST" });
+      if (d.__http) { box.textContent = "Acesso restrito (" + d.__http + ")."; return; }
+      var rel = d.relatorio_campanha || d;
+      box.replaceChildren();
+      var head = el("div", null);
+      head.style.marginBottom = "10px";
+      head.appendChild(el("strong", null, rel.total_achados + " achado(s) em " + rel.arquivos_analisados + " arquivo(s)"));
+      box.appendChild(head);
+      (rel.achados || []).slice(0, 40).forEach(function (a) {
+        var f = el("div", "finding " + (a.severidade || ""));
+        var h = el("div", "finding-head");
+        h.appendChild(el("span", null, a.categoria));
+        h.appendChild(el("span", "pill pill-" + sevClass(a.severidade), a.severidade));
+        f.appendChild(h);
+        f.appendChild(el("div", "finding-body", a.arquivo + ":" + a.linha + " — " + a.descricao));
+        f.appendChild(el("div", "finding-fix", "→ " + a.recomendacao));
+        box.appendChild(f);
       });
+      if (!(rel.achados || []).length) box.appendChild(el("div", "muted", rel.resumo_ptbr || "Nenhum achado."));
+    }
+    function sevClass(s) { return s === "critico" || s === "alto" ? "danger" : (s === "medio" ? "warn" : "info"); }
+
+    async function runSandbox() {
+      var box = document.getElementById("sandboxResult");
+      box.style.display = "block"; box.textContent = "Executando…";
+      var code = document.getElementById("sandboxCode").value;
+      var d = await apiJson("/api/seguranca/micro-sandbox/executar?nome_ferramenta=dashboard", {
+        method: "POST", headers: { "Content-Type": "text/plain" }, body: code
+      });
+      if (d.__http) { box.textContent = "Acesso restrito (" + d.__http + ")."; return; }
+      box.textContent = pretty(d.resultado_sandbox || d);
     }
 
-    function closeThoughtModal() {
-      const modal = document.getElementById('thoughtModal');
-      modal.classList.remove('active');
-      modal.setAttribute('aria-hidden', 'true');
-      if (lastFocusBeforeModal) lastFocusBeforeModal.focus();
+    // ---------- Web ----------
+    async function runWeb() {
+      var box = document.getElementById("webResult");
+      box.style.display = "block"; box.textContent = "Pesquisando…";
+      var q = document.getElementById("webQuery").value.trim();
+      if (!q) { box.textContent = "Informe um termo."; return; }
+      var d = await apiJson("/api/web/pesquisar?q=" + encodeURIComponent(q));
+      if (d.__http) { box.textContent = "Acesso restrito (" + d.__http + ")."; return; }
+      box.textContent = (d.total_fontes_encontradas || 0) + " fonte(s):\n\n" + pretty(d.fontes || d);
     }
 
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && document.getElementById('thoughtModal').classList.contains('active')) {
-        closeThoughtModal();
-      }
+    // ---------- Graphify ----------
+    async function runGraph() {
+      var box = document.getElementById("graphResult");
+      box.style.display = "block"; box.textContent = "Estruturando…";
+      var t = encodeURIComponent(document.getElementById("graphTitle").value || "Projeto");
+      var desc = encodeURIComponent(document.getElementById("graphDesc").value || "");
+      var d = await apiJson("/api/graphify/estruturar?titulo=" + t + "&descricao=" + desc, { method: "POST" });
+      if (d.__http) { box.textContent = "Acesso restrito (" + d.__http + ")."; return; }
+      var r = d.resultado || d;
+      var txt = (r.resumo_topologico_ptbr || "") + "\n\n" + pretty(r.estatisticas || {}) + "\n\n" + pretty(r.grafo || {});
+      box.textContent = txt;
+    }
+
+    // ---------- Mercado ----------
+    async function runMarket() {
+      var box = document.getElementById("marketResult");
+      box.style.display = "block"; box.textContent = "Consultando…";
+      var d = await apiJson("/api/mercado/feed/live");
+      if (d.__http) { box.textContent = "Acesso restrito (" + d.__http + ")."; return; }
+      box.textContent = pretty(d.tick || d.resultado || d);
+    }
+
+    // ---------- Autoevolução + Heartbeat ----------
+    async function runEvolution() {
+      var d = await apiJson("/api/modulos/autoevolucao/ciclo", { method: "POST" });
+      var msg = d.__http ? "Autoevolução: acesso restrito (" + d.__http + ")." : "Ciclo de autoevolução executado.";
+      showView("chat"); appendMsg("assistant", "JARVIS", msg);
+    }
+
+    async function heartbeat() {
+      var hb = document.getElementById("heartbeat");
+      var d = await apiJson("/api/saude");
+      var ok = !d.__http;
+      hb.replaceChildren();
+      var dot = el("span", "status-dot"); dot.style.background = ok ? "var(--ok)" : "var(--danger)"; dot.setAttribute("aria-hidden", "true");
+      hb.appendChild(dot);
+      hb.appendChild(el("span", null, ok ? "JARVIS operacional" : "Sem conexão com o runtime"));
+    }
+
+    // ---------- Modal ----------
+    var lastFocus = null;
+    async function openThoughts() {
+      var modal = document.getElementById("thoughtModal");
+      lastFocus = document.activeElement;
+      modal.classList.add("active"); modal.setAttribute("aria-hidden", "false");
+      document.getElementById("closeThoughtBtn").focus();
+      var pre = document.getElementById("thoughtContent");
+      pre.textContent = "Carregando…";
+      var d = await apiJson("/api/dono/pensamentos-privados");
+      pre.textContent = d.status === "sucesso" ? pretty(d.ultimos_pensamentos) : (d.motivo || "Acesso restrito.");
+    }
+    function closeThoughts() {
+      var modal = document.getElementById("thoughtModal");
+      modal.classList.remove("active"); modal.setAttribute("aria-hidden", "true");
+      if (lastFocus) lastFocus.focus();
+    }
+
+    // ---------- Ligações ----------
+    document.querySelectorAll(".nav-btn[data-view]").forEach(function (b) {
+      b.addEventListener("click", function () { showView(b.getAttribute("data-view")); });
     });
-
-    document.getElementById('composerInput').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
+    document.getElementById("thoughtsBtn").addEventListener("click", openThoughts);
+    document.getElementById("closeThoughtBtn").addEventListener("click", closeThoughts);
+    document.getElementById("sendBtn").addEventListener("click", sendMsg);
+    document.getElementById("scanBtn").addEventListener("click", runScan);
+    document.getElementById("sandboxBtn").addEventListener("click", runSandbox);
+    document.getElementById("webBtn").addEventListener("click", runWeb);
+    document.getElementById("graphBtn").addEventListener("click", runGraph);
+    document.getElementById("marketBtn").addEventListener("click", runMarket);
+    document.getElementById("evolBtn").addEventListener("click", runEvolution);
+    document.getElementById("menuToggle").addEventListener("click", function () {
+      document.getElementById("sidebar").classList.toggle("open");
+    });
+    document.getElementById("refreshBtn").addEventListener("click", function () {
+      var active = document.querySelector(".nav-btn.active[data-view]");
+      showView(active ? active.getAttribute("data-view") : "overview");
+    });
+    document.querySelectorAll(".chip[data-cmd]").forEach(function (c) {
+      c.addEventListener("click", function () {
+        document.getElementById("composerInput").value = c.getAttribute("data-cmd");
         sendMsg();
-      }
+      });
+    });
+    document.getElementById("composerInput").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && document.getElementById("thoughtModal").classList.contains("active")) closeThoughts();
     });
 
-    function switchTab(tab, button) {
-      document.getElementById('tabTitle').textContent = tab.toUpperCase();
-      if (button) {
-        document.querySelectorAll('.nav-btn[onclick^="switchTab"]').forEach((b) => {
-          b.classList.remove('active');
-          b.removeAttribute('aria-current');
-        });
-        button.classList.add('active');
-        button.setAttribute('aria-current', 'page');
-      }
-    }
-
-    function clearStream() {
-      document.getElementById('chatStream').innerHTML = '';
-      appendMsg('assistant', 'JARVIS', 'Chat limpo.');
-    }
+    // ---------- Início ----------
+    loadOverview();
+    heartbeat();
+    setInterval(heartbeat, 30000);
   </script>
 </body>
 </html>

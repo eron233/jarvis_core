@@ -1,0 +1,61 @@
+{
+  "projeto": "Analise via comando de chat",
+  "analisado_em": "2026-09-25T21:13:33.664191+00:00",
+  "metodo": "Graphify_Topological_Structuring",
+  "estatisticas": {
+    "total_nos": 3,
+    "total_arestas": 3,
+    "densidade_topologica": 0.5,
+    "graus": {
+      "node_1": 2,
+      "node_2": 2,
+      "node_3": 2
+    },
+    "hub_id": "node_1",
+    "grau_maximo": 2,
+    "tem_ciclo": true
+  },
+  "grafo": {
+    "nos": [
+      {
+        "id": "node_1",
+        "label": "Faça Graphify Projeto API",
+        "grupo": "infraestrutura",
+        "importancia_score": 2.0
+      },
+      {
+        "id": "node_2",
+        "label": "Banco Dados",
+        "grupo": "infraestrutura",
+        "importancia_score": 2.0
+      },
+      {
+        "id": "node_3",
+        "label": "Fila Mensagens",
+        "grupo": "infraestrutura",
+        "importancia_score": 2.0
+      }
+    ],
+    "arestas": [
+      {
+        "origem": "node_1",
+        "destino": "node_2",
+        "relacao": "conecta_com",
+        "peso": 1.0
+      },
+      {
+        "origem": "node_2",
+        "destino": "node_3",
+        "relacao": "conecta_com",
+        "peso": 1.0
+      },
+      {
+        "origem": "node_3",
+        "destino": "node_1",
+        "relacao": "retroalimenta",
+        "peso": 0.8
+      }
+    ]
+  },
+  "resumo_topologico_ptbr": "Análise Graphify de 'Analise via comando de chat': mapeados 3 nós e 3 arestas de dependência topológica (densidade 0.5). O grafo é cíclico (há retroalimentação entre nós). O nó de maior grau (hub) é 'Faça Graphify Projeto API' com grau 2."
+}

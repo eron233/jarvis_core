@@ -1,0 +1,17 @@
+{
+  "ferramenta": "chat",
+  "status": "sucesso",
+  "sucesso": true,
+  "resultado": {},
+  "pegada_memoria_mb": 95.49,
+  "limites_aplicados": {
+    "cpu_segundos": 5,
+    "memoria_teto_mb": 256,
+    "isolamento_processo": true,
+    "builtins_restritos": true,
+    "ambiente_limpo": true,
+    "resumo": "Limites reais aplicados: CPU 5s, teto de memória 256 MB, sem novos processos, builtins restritos."
+  },
+  "resumo_ptbr": "Ferramenta 'chat' executada no sandbox isolado usando 95.49 MB de RAM (medido). Limites reais aplicados: CPU 5s, teto de memória 256 MB, sem novos processos, builtins restritos.",
+  "executado_em": "2026-09-25T21:13:34.105512+00:00"
+}

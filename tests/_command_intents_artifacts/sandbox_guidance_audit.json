@@ -1,0 +1,22 @@
+{
+  "version": "0.1.0",
+  "entry_count": 1,
+  "saved_at": "2026-09-25T21:13:34.275480+00:00",
+  "entries": [
+    {
+      "timestamp": "2026-09-25T21:13:34.274249+00:00",
+      "event": "command",
+      "event_ptbr": "comando",
+      "payload": {
+        "status": "authorized",
+        "access_level": "admin",
+        "device_id": "nao_informado",
+        "action": "sandbox_guidance",
+        "command_text": "quero rodar isso na sandbox",
+        "reason": null,
+        "status_ptbr": "autorizado",
+        "reason_ptbr": "None"
+      }
+    }
+  ]
+}
