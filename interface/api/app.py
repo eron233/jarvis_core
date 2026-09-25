@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import hmac
 import json
 from pathlib import Path
 from typing import Annotated, Any, Dict, Optional
@@ -920,17 +921,32 @@ def create_app(
     @app.get("/api/dono/pensamentos-privados")
     def get_owner_private_thoughts(
         request: Request,
-        x_jarvis_token: Annotated[str | None, Header(alias=TOKEN_HEADER)] = None,
-        x_jarvis_device_id: Annotated[str | None, Header(alias=DEVICE_HEADER)] = None,
+        trusted_access: Dict[str, str] = Depends(require_trusted_device),
     ) -> Dict[str, Any]:
         """
         Retorna o stream de pensamentos privados do JARVIS.
         EXCLUSIVO PARA O DONO AUTENTICADO.
+
+        Parametros:
+        - request: requisicao HTTP atual.
+        - trusted_access: dispositivo validado pela camada HTTP.
+
+        Retorno:
+        - fluxo de pensamentos quando o chamador e o dispositivo principal do dono.
+
+        Efeitos no sistema:
+        - registra a tentativa de acesso na auditoria, como qualquer rota protegida.
+
+        O endpoint antes validava token e dispositivo por conta propria. Aquele caminho
+        ficava fora da auditoria, da protecao contra repeticao e do registro de
+        dispositivos, e comparava o token em tempo variavel. A validacao agora e a
+        mesma das demais rotas, mantendo a restricao ao dispositivo principal.
         """
+
         runtime = _ensure_runtime_initialized(request)
-        is_owner = (
-            x_jarvis_token == request.app.state.api_token
-            and x_jarvis_device_id == request.app.state.trusted_device_id
+        is_owner = _secrets_match(
+            trusted_access.get("device_id"),
+            request.app.state.trusted_device_id,
         )
         return runtime.thought_stream_engine.get_owner_thoughts_stream(is_authenticated_owner=is_owner)
 
@@ -1177,7 +1193,7 @@ def _validate_trusted_access(
             detail="Token de acesso ausente.",
         )
 
-    if token != request.app.state.api_token:
+    if not _secrets_match(token, request.app.state.api_token):
         _record_access_attempt(runtime, request, device_id, False, "invalid_token", client_host)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1334,6 +1350,27 @@ def _record_access_attempt(
     )
 
 
+
+def _secrets_match(supplied: str | None, expected: str | None) -> bool:
+    """
+    Compara dois segredos em tempo constante.
+
+    Parametros:
+    - supplied: valor recebido do cliente.
+    - expected: valor esperado pelo sistema.
+
+    Retorno:
+    - `True` somente quando os dois valores sao identicos.
+
+    Efeitos no sistema:
+    - nenhum; o tempo de resposta nao revela quantos caracteres iniciais
+      do segredo foram acertados, ao contrario de `==` em str.
+    """
+
+    if supplied is None or expected is None:
+        return False
+    return hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
+
 def _has_valid_dashboard_session(request: Request) -> bool:
     """
     Verifica se o cookie do painel corresponde ao dispositivo confiavel.
@@ -1361,7 +1398,7 @@ def _has_valid_dashboard_session(request: Request) -> bool:
             request.app.state.api_token,
             request.app.state.trusted_device_id,
         )
-    return session_value == expected_value
+    return _secrets_match(session_value, expected_value)
 
 
 def _build_trusted_session_value(api_token: str, device_id: str) -> str:
