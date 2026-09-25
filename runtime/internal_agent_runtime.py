@@ -390,14 +390,16 @@ class InternalAgentRuntime:
             self.scrapling_mcp_engine = ScraplingMCPEngine()
             self.agent_reach_engine = AgentReachEngine()
 
-            # Motores de Hierarquia Corporativa, Cache Semântico e Git Branch Patcher
+            # Motores de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e Micro-Sandbox
             from runtime.corporate_agent_hierarchy import CorporateAgentHierarchyEngine
             from memory_system.semantic_cache_engine import SemanticCacheEngine
             from security.git_branch_patcher import GitBranchPatcherEngine
+            from security.lightweight_sandbox_engine import UltraLightweightSandboxEngine
 
             self.corporate_hierarchy_engine = CorporateAgentHierarchyEngine()
             self.semantic_cache_engine = SemanticCacheEngine()
             self.git_branch_patcher_engine = GitBranchPatcherEngine()
+            self.lightweight_sandbox_engine = UltraLightweightSandboxEngine()
 
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]

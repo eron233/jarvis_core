@@ -1067,6 +1067,16 @@ def create_app(
         )
         return {"mensagem": "Patch isolado na branch Git criado com sucesso.", "relatorio_patch": res}
 
+    @app.post("/api/seguranca/micro-sandbox/executar", dependencies=[Depends(require_trusted_device)])
+    def execute_in_microsandbox_endpoint(request: Request, nome_ferramenta: str = Query(default="ferramenta_dinamica"), codigo: str = Body(...)) -> Dict[str, Any]:
+        """Executa código/ferramenta em um micro-sandbox isolado ultraleve com < 5MB de RAM e limites de CPU."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.lightweight_sandbox_engine.execute_in_microsandbox(
+            code_str=codigo,
+            tool_name=nome_ferramenta,
+        )
+        return {"mensagem": "Execução em micro-sandbox concluída.", "resultado_sandbox": res}
+
     @app.websocket("/ws/live-stream")
     async def websocket_live_stream_endpoint(websocket: WebSocket):
         """Endpoint de transmissão ao vivo por WebSocket para eventos, pensamentos e telemetria."""

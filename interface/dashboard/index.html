@@ -392,6 +392,21 @@
   </div>
 
   <script>
+    function getAuthHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'X-Jarvis-Token': localStorage.getItem('jarvis_token') || 'test-token',
+        'X-Jarvis-Device-Id': localStorage.getItem('jarvis_device_id') || 'test-device-id',
+        'X-Jarvis-Nonce': 'nonce-' + Math.random().toString(36).substring(2, 10),
+        'X-Jarvis-Timestamp': Date.now().toString()
+      };
+    }
+
+    function apiFetch(url, options = {}) {
+      const headers = Object.assign(getAuthHeaders(), options.headers || {});
+      return fetch(url, Object.assign({}, options, { headers }));
+    }
+
     function sendMsg() {
       const input = document.getElementById('composerInput');
       const text = input.value.trim();
@@ -400,9 +415,8 @@
       appendMsg('user', 'Você', text);
       input.value = '';
 
-      fetch('/api/comando', {
+      apiFetch('/api/comando', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texto: text })
       })
       .then(r => r.json())
@@ -421,33 +435,33 @@
 
     function runGraphify() {
       appendMsg('user', 'Você', 'Executar análise Graphify.');
-      fetch('/api/graphify/estruturar?titulo=Projeto_JARVIS&descricao=Topologia', { method: 'POST' })
+      apiFetch('/api/graphify/estruturar?titulo=Projeto_JARVIS&descricao=Topologia', { method: 'POST' })
       .then(r => r.json())
       .then(d => appendMsg('assistant', 'JARVIS', d.resultado?.resumo_topologico_ptbr || 'Análise Graphify gerada.'));
     }
 
     function runWebSearch() {
       appendMsg('user', 'Você', 'Pesquisar na web.');
-      fetch('/api/web/pesquisar?q=JARVIS+AI')
+      apiFetch('/api/web/pesquisar?q=JARVIS+AI')
       .then(r => r.json())
       .then(d => appendMsg('assistant', 'JARVIS', `Pesquisa web concluída. ${d.total_fontes_encontradas || 0} fontes consultadas.`));
     }
 
     function runVoice() {
-      fetch('/api/voz/falar?texto=JARVIS+online', { method: 'POST' })
+      apiFetch('/api/voz/falar?texto=JARVIS+online', { method: 'POST' })
       .then(r => r.json())
       .then(() => appendMsg('assistant', 'JARVIS', 'Áudio de voz gerado localmente.'));
     }
 
     function runAutoEvolution() {
-      fetch('/api/modulos/autoevolucao/ciclo', { method: 'POST' })
+      apiFetch('/api/modulos/autoevolucao/ciclo', { method: 'POST' })
       .then(r => r.json())
       .then(() => appendMsg('assistant', 'JARVIS', 'Ciclo de autoevolução executado.'));
     }
 
     function openThoughtModal() {
       document.getElementById('thoughtModal').classList.add('active');
-      fetch('/api/dono/pensamentos-privados')
+      apiFetch('/api/dono/pensamentos-privados')
       .then(r => r.json())
       .then(d => {
         document.getElementById('thoughtContent').textContent = d.status === 'sucesso'
