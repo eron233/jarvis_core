@@ -101,7 +101,10 @@ class FileArchiveEngine:
                     extracted_files = zipf.namelist()
             elif tarfile.is_tarfile(src_path):
                 with tarfile.open(src_path, "r:*") as tarf:
-                    tarf.extractall(target_dir)
+                    # `extractall` sem filtro honra `..`, caminhos absolutos e links
+                    # do proprio arquivo compactado, permitindo gravar fora do
+                    # destino. O filtro "data" recusa esses membros.
+                    _extract_tar_safely(tarf, target_dir)
                     extracted_files = tarf.getnames()
             else:
                 return {"status": "erro", "motivo": "Formato de arquivo compactado não reconhecido."}
@@ -115,3 +118,40 @@ class FileArchiveEngine:
             }
         except Exception as e:
             return {"status": "erro", "motivo": str(e)}
+
+
+def _extract_tar_safely(tarf: tarfile.TarFile, target_dir: Path) -> None:
+    """
+    Extrai um tar recusando membros que escapem do diretorio de destino.
+
+    Parametros:
+    - tarf: arquivo tar ja aberto.
+    - target_dir: diretorio onde a extracao pode gravar.
+
+    Retorno:
+    - nenhum.
+
+    Efeitos no sistema:
+    - grava apenas dentro de `target_dir`. Caminhos absolutos, componentes `..`,
+      links para fora e arquivos especiais sao recusados.
+    """
+
+    try:
+        tarf.extractall(target_dir, filter="data")
+        return
+    except TypeError:
+        # Interpretadores anteriores ao suporte a `filter` caem na checagem manual.
+        pass
+
+    destino = Path(target_dir).resolve()
+    seguros = []
+    for membro in tarf.getmembers():
+        if membro.issym() or membro.islnk():
+            raise ValueError(f"Membro '{membro.name}' recusado: links nao sao extraidos.")
+        if not (membro.isfile() or membro.isdir()):
+            raise ValueError(f"Membro '{membro.name}' recusado: tipo de arquivo nao permitido.")
+        candidato = (destino / membro.name).resolve()
+        if candidato != destino and destino not in candidato.parents:
+            raise ValueError(f"Membro '{membro.name}' recusado: escaparia do diretorio de destino.")
+        seguros.append(membro)
+    tarf.extractall(destino, members=seguros)

@@ -21,6 +21,13 @@ FORBIDDEN_COMMANDS = {
     "rm -rf /", "format", "mkfs", "dd", "shutdown", "reboot", "del /f /s /q c:\\"
 }
 
+# Caracteres que encadeiam, redirecionam ou expandem comandos no shell.
+# Uma lista de comandos proibidos so reconhece o que ja foi previsto; barrar os
+# separadores impede que um comando autorizado carregue um segundo comando junto.
+# Parenteses ficam de fora de proposito: aparecem em caminhos legitimos do
+# Windows, como "C:\\Program Files (x86)".
+SHELL_METACHARACTERS = ("&", "|", ";", "<", ">", "^", "$", "`", "\n", "\r", "\0")
+
 
 class SystemAutomationEngine:
     """Motor de automação, execução controlada de apps e sensores do SO."""
@@ -39,10 +46,25 @@ class SystemAutomationEngine:
                 "motivo": f"Comando '{app_command}' bloqueado pela política de segurança.",
             }
 
+        encontrados = [caractere for caractere in SHELL_METACHARACTERS if caractere in app_command]
+        if encontrados:
+            return {
+                "status": "bloqueado",
+                "motivo": (
+                    "Comando bloqueado: contém separador de shell "
+                    f"({' '.join(repr(caractere) for caractere in encontrados)}), "
+                    "que permitiria executar um segundo comando junto do aplicativo."
+                ),
+            }
+
         now = datetime.now(timezone.utc).isoformat()
         try:
             if platform.system() == "Windows":
-                proc = subprocess.Popen(["cmd.exe", "/c", "start", "", app_command], shell=True)
+                # Sem `shell=True`: com ele o Windows junta a lista numa unica linha
+                # entregue ao interpretador, e qualquer separador dentro de
+                # `app_command` viraria um comando novo. Sem ele, o argumento e
+                # passado ja delimitado e o `cmd.exe` o trata como um valor unico.
+                proc = subprocess.Popen(["cmd.exe", "/c", "start", "", app_command])
             elif platform.system() == "Darwin":
                 proc = subprocess.Popen(["open", "-a", app_command])
             else:
