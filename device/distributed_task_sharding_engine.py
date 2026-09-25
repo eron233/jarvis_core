@@ -31,20 +31,51 @@ class DistributedTaskShardingEngine:
         self.sharding_dir = Path(sharding_dir) if sharding_dir else DEFAULT_SHARDING_DIR
         self.sharding_dir.mkdir(parents=True, exist_ok=True)
 
+    @staticmethod
+    def detect_total_memory_mb() -> Optional[float]:
+        """Lê a RAM total real do sistema (POSIX via sysconf, ou /proc/meminfo). None se indisponível."""
+        try:
+            if hasattr(os, "sysconf") and "SC_PHYS_PAGES" in os.sysconf_names and "SC_PAGE_SIZE" in os.sysconf_names:
+                pages = os.sysconf("SC_PHYS_PAGES")
+                page_size = os.sysconf("SC_PAGE_SIZE")
+                if pages > 0 and page_size > 0:
+                    return round(pages * page_size / (1024 * 1024), 1)
+        except (ValueError, OSError):
+            pass
+        try:
+            meminfo = Path("/proc/meminfo").read_text(encoding="utf-8")
+            for line in meminfo.splitlines():
+                if line.startswith("MemTotal:"):
+                    kb = float(line.split()[1])
+                    return round(kb / 1024, 1)
+        except (OSError, ValueError, IndexError):
+            pass
+        return None
+
     def evaluate_and_shard_task(
         self,
         task_id: str,
         task_name: str,
         task_payload: Dict[str, Any],
         registered_devices: List[Dict[str, Any]],
-        current_device_memory_mb: float = 2048.0,
-        current_device_cpu_count: int = 2,
+        current_device_memory_mb: Optional[float] = None,
+        current_device_cpu_count: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Avalia se o dispositivo atual suporta a carga da tarefa. Se não suportar, fraciona em shards
         e distribui entre os nós/servidores registrados.
+
+        Quando `current_device_memory_mb`/`current_device_cpu_count` não são informados, o hardware
+        real é detectado (RAM via sysconf/proc, CPUs via os.cpu_count) em vez de valores fixos.
         """
         now = datetime.now(timezone.utc).isoformat()
+
+        autodetectado = current_device_memory_mb is None or current_device_cpu_count is None
+        if current_device_memory_mb is None:
+            detected = self.detect_total_memory_mb()
+            current_device_memory_mb = detected if detected is not None else 2048.0
+        if current_device_cpu_count is None:
+            current_device_cpu_count = os.cpu_count() or 2
 
         # 1. Avaliação de Capacidade do Dispositivo Atual
         is_heavy_task = task_payload.get("pesada", True) or len(str(task_payload)) > 1000
@@ -95,6 +126,7 @@ class DistributedTaskShardingEngine:
                 "ram_mb": current_device_memory_mb,
                 "cpus": current_device_cpu_count,
                 "capacidade_suficiente": current_can_handle,
+                "hardware_autodetectado": autodetectado,
             },
             "fracionamento_necessario": sharding_required,
             "total_shards": len(shards),

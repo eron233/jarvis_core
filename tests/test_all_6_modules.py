@@ -103,7 +103,10 @@ class AllSixModulesTests(unittest.TestCase):
 
         self.assertIn("hardware", profile)
         self.assertIn("otimizacoes_simuladas", profile)
-        self.assertEqual(profile["status_simulacao"], "simulado_com_sucesso")
+        # Nenhuma simulação de ganho real é executada: o status deve refletir
+        # honestamente que apenas recomendações foram geradas, sem números
+        # de ganho fabricados.
+        self.assertEqual(profile["status_simulacao"], "recomendacoes_geradas_sem_simulacao_ativa")
 
     def test_runtime_integration_of_all_six_modules(self) -> None:
         runtime = InternalAgentRuntime()

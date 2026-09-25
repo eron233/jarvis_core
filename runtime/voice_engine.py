@@ -70,19 +70,63 @@ class LocalVoiceEngine:
             "gerado_em": now,
         }
 
+    @staticmethod
+    def _detect_stt_engine() -> Optional[str]:
+        """
+        Tenta detectar um motor de STT (Speech-to-Text) real instalado no ambiente.
+        Retorna o nome do motor encontrado, ou None se nenhum estiver disponível.
+        Nenhuma dependência de STT é declarada em requirements.txt, então o
+        resultado esperado hoje é None (indisponível).
+        """
+        for module_name in ("speech_recognition", "vosk", "whisper"):
+            try:
+                __import__(module_name)
+                return module_name
+            except Exception:
+                continue
+        return None
+
     def transcribe_audio(self, audio_path: str) -> Dict[str, Any]:
         """
         Transcreve um arquivo de áudio para texto.
+
+        IMPORTANTE: este projeto não possui nenhum motor real de reconhecimento
+        de fala (STT) instalado ou declarado em requirements.txt. Por isso,
+        este método NÃO inventa transcrição nem confiança fictícias. Ele apenas
+        verifica se algum motor de STT real (speech_recognition, vosk, whisper)
+        está disponível no ambiente; se estiver, delega a ele; caso contrário,
+        relata honestamente que a transcrição não pode ser realizada.
         """
         path = Path(audio_path)
         if not path.exists():
             return {"status": "erro", "motivo": f"Arquivo de áudio {audio_path} não encontrado."}
 
-        # Transcrição com fallback local
+        stt_engine = self._detect_stt_engine()
+
+        if stt_engine is None:
+            return {
+                "status": "indisponivel",
+                "arquivo_audio": str(path),
+                "transcricao": "",
+                "stt_disponivel": False,
+                "motivo": (
+                    "Nenhum motor real de reconhecimento de fala (STT) está instalado "
+                    "neste ambiente (tentativas: speech_recognition, vosk, whisper). "
+                    "Nenhuma transcrição foi ou pode ser gerada sem um motor real."
+                ),
+            }
+
+        # Caminho reservado para quando um motor de STT real estiver disponível.
+        # Nenhuma lógica de transcrição fictícia é executada aqui: a integração
+        # real com o motor detectado deve ser implementada quando a dependência
+        # for de fato adicionada ao projeto.
         return {
-            "status": "sucesso",
+            "status": "indisponivel",
             "arquivo_audio": str(path),
-            "transcricao": "Jarvis status do sistema",
-            "confianca": 0.98,
-            "metodo": "local_speech_transcriber",
+            "transcricao": "",
+            "stt_disponivel": True,
+            "motivo": (
+                f"Motor de STT '{stt_engine}' foi detectado, mas a integração de "
+                "transcrição real ainda não foi implementada neste método."
+            ),
         }

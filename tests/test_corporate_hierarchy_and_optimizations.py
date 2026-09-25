@@ -70,6 +70,56 @@ class TestCorporateHierarchyAndOptimizations(unittest.TestCase):
         self.assertEqual(res_heavy["roteamento_modelo"]["tier"], "pesado")
         self.assertEqual(res_heavy["estado_final_subagente"], "hibernating")
 
+    def test_dispatch_sem_executor_e_honesto(self):
+        # Sem handler registrado: o dispatch planeja o roteamento mas não finge executar.
+        res = self.corporate_hierarchy.dispatch_corporate_task(
+            department="Engenharia",
+            task_title="Tarefa Sem Executor",
+            task_payload={},
+            task_complexity="simples",
+        )
+        self.assertFalse(res["executado"])
+        self.assertFalse(res["modelo_conectado"])
+        self.assertEqual(res["resultado_execucao"]["status"], "nao_executado")
+
+    def test_dispatch_com_executor_real(self):
+        chamado = {}
+
+        def handler(titulo, payload):
+            chamado["titulo"] = titulo
+            return {"status": "ok", "eco": payload.get("valor")}
+
+        self.corporate_hierarchy.register_department_handler(
+            "Engenharia_de_Software_e_Arquitetura", handler
+        )
+        res = self.corporate_hierarchy.dispatch_corporate_task(
+            department="Engenharia",
+            task_title="Refatorar módulo",
+            task_payload={"valor": 42},
+            task_complexity="critica",
+        )
+        self.assertTrue(res["executado"])
+        self.assertEqual(res["resultado_execucao"]["status"], "ok")
+        self.assertEqual(res["resultado_execucao"]["eco"], 42)
+        self.assertEqual(chamado["titulo"], "Refatorar módulo")
+
+    def test_git_patcher_gera_diff_real(self):
+        # Novo comportamento: diff unificado real e honestidade sobre branch fora de repo git.
+        original = "security/vulnerability_hunter.py"
+        (Path(self.temp_dir) / "security").mkdir(parents=True, exist_ok=True)
+        (Path(self.temp_dir) / original).write_text("def antigo():\n    return 1\n", encoding="utf-8")
+        res = self.git_patcher.apply_patch_in_isolated_branch(
+            vulnerability_id="ZDAY-XYZ",
+            target_filepath=original,
+            patch_content="def novo():\n    return 2\n",
+        )
+        self.assertIn("diff_unificado", res)
+        self.assertIn("novo", res["diff_unificado"])
+        self.assertTrue(res["testes_passaram"])  # sintaxe válida
+        # temp_dir não é repo git → honesto: nenhuma branch criada
+        self.assertFalse(res["branch_criada"])
+        self.assertEqual(res["modo"], "dry_run")
+
     def test_semantic_cache_engine(self):
         query = "Como funciona a arquitetura do JARVIS?"
         response_payload = {"resposta": "JARVIS é um sistema executivo determinístico e defensivo."}

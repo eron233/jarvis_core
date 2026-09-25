@@ -23,18 +23,30 @@ class MarketWebSocketFeed:
         self.is_connected = False
 
     def connect(self) -> Dict[str, Any]:
-        """Conecta ao feed de dados ao vivo do ativo."""
+        """
+        'Conecta' ao feed de dados do ativo.
+
+        IMPORTANTE: este módulo NÃO possui nenhuma conexão real com a B3 ou
+        qualquer provedor de dados de mercado. Trata-se de um simulador local
+        que gera cotações pseudoaleatórias. O campo "simulado": True e o nome
+        do feed deixam isso explícito para quem consumir o retorno.
+        """
         self.is_connected = True
         return {
             "status": "conectado",
             "ativo": self.asset,
-            "feed": "WebSocket_B3_DirectStream",
+            "feed": "simulador_local",
+            "simulado": True,
             "conectado_em": datetime.now(timezone.utc).isoformat(),
         }
 
     def fetch_live_tick(self) -> Dict[str, Any]:
         """
-        Retorna uma cotação/tick ao vivo do fluxo de ordens (Tape Reading).
+        Retorna uma cotação/tick simulada do fluxo de ordens (Tape Reading).
+
+        Os valores são gerados por um gerador pseudoaleatório local, NÃO por
+        um feed real de mercado. Cada tick carrega "simulado": True e
+        "fonte": "gerador_pseudoaleatorio_local" para deixar isso explícito.
         """
         if not self.is_connected:
             self.connect()
@@ -55,6 +67,8 @@ class MarketWebSocketFeed:
                 "melhor_compra": round(current_price - 0.5, 2),
                 "melhor_venda": round(current_price + 0.5, 2),
             },
+            "simulado": True,
+            "fonte": "gerador_pseudoaleatorio_local",
         }
 
     def disconnect(self) -> Dict[str, Any]:

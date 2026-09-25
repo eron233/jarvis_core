@@ -57,11 +57,29 @@ class DeviceProfiler:
             "categorias_frequentes": usages,
         }
 
-        # 3. Simulação Prévia Interna de Otimizações
+        # 3. Recomendações de Otimização (SUGESTÕES, sem simulação ativa de ganhos)
+        # Nenhuma medição real de latência/FPS/temperatura é executada aqui.
+        # Por isso não se afirma nenhum número de ganho: cada item é uma sugestão
+        # textual que depende de aprovação e execução explícita do usuário.
         raw_recommendations = [
-            {"parametro": "Plano de Energia", "sugestao": "Alto Desempenho", "risco": "baixo"},
-            {"parametro": "Processos em Segundo Plano", "sugestao": "Otimizar inicializacao automatica", "risco": "baixo"},
-            {"parametro": "Alocacao de Memoria Cache", "sugestao": "Ajustar tamanho da pagina de memoria", "risco": "baixo"},
+            {
+                "parametro": "Plano de Energia",
+                "sugestao": "Alto Desempenho",
+                "justificativa": "Planos de energia de alto desempenho tendem a reduzir limitação de clock em notebooks/desktops.",
+                "risco": "baixo",
+            },
+            {
+                "parametro": "Processos em Segundo Plano",
+                "sugestao": "Otimizar inicializacao automatica",
+                "justificativa": "Menos processos em segundo plano tende a liberar CPU/RAM, mas o efeito varia por máquina.",
+                "risco": "baixo",
+            },
+            {
+                "parametro": "Alocacao de Memoria Cache",
+                "sugestao": "Ajustar tamanho da pagina de memoria",
+                "justificativa": "Ajustes de memória virtual podem ajudar em cenários de RAM limitada, mas dependem do uso real.",
+                "risco": "baixo",
+            },
         ]
 
         simulated_optimizations = []
@@ -70,7 +88,8 @@ class DeviceProfiler:
                 "parametro": rec["parametro"],
                 "sugestao": rec["sugestao"],
                 "nivel_risco": rec["risco"],
-                "simulacao_resultado": "Ganhos de 8% a 15% em latencia e taxa de quadros sem impacto de temperatura.",
+                "justificativa": rec["justificativa"],
+                "impacto_estimado": "não medido - nenhuma simulação ativa foi executada",
                 "aprovacao_usuario_requerida": True,
             })
 
@@ -80,7 +99,7 @@ class DeviceProfiler:
             "hardware": hardware_info,
             "perfil_usuario": user_profile,
             "otimizacoes_simuladas": simulated_optimizations,
-            "status_simulacao": "simulado_com_sucesso",
+            "status_simulacao": "recomendacoes_geradas_sem_simulacao_ativa",
         }
 
         self._save_profile(profile_report)
