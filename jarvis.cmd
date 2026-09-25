@@ -3,7 +3,13 @@ setlocal
 
 set "PROJECT_ROOT=%~dp0"
 
-if "%~1"=="" goto :usage
+if "%~1"=="" (
+    start "" "http://localhost:8000/painel"
+    call :find_python
+    if errorlevel 1 exit /b 1
+    "%PYTHON_BIN%" "%PROJECT_ROOT%main.py"
+    exit /b %errorlevel%
+)
 
 set "MODE=%~1"
 shift
