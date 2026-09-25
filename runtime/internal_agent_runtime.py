@@ -370,6 +370,13 @@ class InternalAgentRuntime:
             from runtime.graphify_engine import GraphifyEngine
             self.graphify_engine = GraphifyEngine()
 
+            # Motor de Tomada de Decisão JEV e Síntese Multi-Domínio
+            from runtime.jev_decision_engine import JEVDecisionEngine
+            from runtime.multi_domain_synthesis_engine import MultiDomainSynthesisEngine
+
+            self.jev_decision_engine = JEVDecisionEngine()
+            self.multi_domain_synthesis_engine = MultiDomainSynthesisEngine()
+
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
             if getattr(semantic_memory, "storage_path", None) is None:

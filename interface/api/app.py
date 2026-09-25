@@ -21,7 +21,7 @@ import json
 from pathlib import Path
 from typing import Annotated, Any, Dict, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
+from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -966,6 +966,28 @@ def create_app(
         """Para a gravação, aplica filtragem DSP de ruídos e retorna áudio limpo + texto."""
         runtime = _ensure_runtime_initialized(request)
         return runtime.audio_processing_engine.stop_and_clean_recording()
+
+    # --- Endpoints JEV (Joint Executive Vector) e Síntese Multi-Domínio ---
+
+    @app.post("/api/decisao/jev/avaliar", dependencies=[Depends(require_trusted_device)])
+    def evaluate_jev_decision(request: Request, contexto: str = Query(min_length=1), opcoes: list[Dict[str, Any]] = Body(...)) -> Dict[str, Any]:
+        """Avalia opções de decisão usando o Vetor de Decisão Executiva Conjunta (JEV)."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.jev_decision_engine.evaluate_decision_vector(
+            decision_context=contexto,
+            options=opcoes,
+        )
+        return {"mensagem": "Avaliação de decisão JEV concluída com sucesso.", "relatorio_jev": res}
+
+    @app.post("/api/sintese/multi-dominio/sintetizar", dependencies=[Depends(require_trusted_device)])
+    def synthesize_multi_domain_perspectives(request: Request, topico: str = Query(min_length=1), insumos_dominios: Dict[str, Dict[str, Any]] = Body(...)) -> Dict[str, Any]:
+        """Sintetiza visões heterogêneas de múltiplos domínios e resolve conflitos."""
+        runtime = _ensure_runtime_initialized(request)
+        res = runtime.multi_domain_synthesis_engine.synthesize_domain_perspectives(
+            topic=topico,
+            domain_inputs=insumos_dominios,
+        )
+        return {"mensagem": "Síntese multi-domínio gerada com sucesso.", "relatorio_sintese": res}
 
     return app
 
