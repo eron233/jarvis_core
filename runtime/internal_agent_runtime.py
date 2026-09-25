@@ -358,6 +358,10 @@ class InternalAgentRuntime:
             self.image_vision_engine = ImageVisionEngine()
             self.thought_stream_engine = ThoughtStreamEngine()
 
+            # Motor de Fracionamento de Carga Multi-Dispositivo
+            from device.distributed_task_sharding_engine import DistributedTaskShardingEngine
+            self.distributed_task_sharding_engine = DistributedTaskShardingEngine()
+
             # Motor Graphify de Análise Topológica de Projetos
             from runtime.graphify_engine import GraphifyEngine
             self.graphify_engine = GraphifyEngine()

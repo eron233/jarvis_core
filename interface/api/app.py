@@ -940,6 +940,19 @@ def create_app(
         res = runtime.graphify_engine.analyze_and_graphify(project_title=titulo, description=descricao)
         return {"mensagem": "Análise topológica Graphify gerada com sucesso.", "resultado": res}
 
+    @app.post("/api/dispositivo/fracionar-carga", dependencies=[Depends(require_trusted_device)])
+    def shard_task_load(request: Request, tarefa_id: str = Query(default="t1"), nome_tarefa: str = Query(default="processamento")) -> Dict[str, Any]:
+        """Fraciona tarefas pesadas entre os nós registrados para evitar travamento em dispositivos leves."""
+        runtime = _ensure_runtime_initialized(request)
+        devices = runtime.device_registry.list_devices() if runtime.device_registry else []
+        plan = runtime.distributed_task_sharding_engine.evaluate_and_shard_task(
+            task_id=tarefa_id,
+            task_name=nome_tarefa,
+            task_payload={"pesada": True},
+            registered_devices=devices,
+        )
+        return {"mensagem": "Fracionamento de carga avaliado.", "plano_shards": plan}
+
     return app
 
 
