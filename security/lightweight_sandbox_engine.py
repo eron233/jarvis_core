@@ -95,11 +95,32 @@ class UltraLightweightSandboxEngine:
             # Identação de todas as linhas de code_str para encaixar no bloco try
             indented_code = "\n".join("    " + line for line in code_str.splitlines())
 
+            # `input_args` era aceito e descartado em silencio: a ferramenta rodava
+            # sem as entradas que o chamador enviou. Os argumentos vao num arquivo
+            # JSON ao lado do script, e nao interpolados no codigo gerado, para que
+            # o conteudo do chamador nunca vire codigo.
+            args_file = Path(temp_dir) / "entrada.json"
+            try:
+                args_file.write_text(json.dumps(input_args or {}, ensure_ascii=False), encoding="utf-8")
+                args_error = None
+            except (TypeError, ValueError) as erro:
+                return {
+                    "ferramenta": tool_name,
+                    "status": "entrada_invalida",
+                    "motivo": f"Os argumentos de entrada nao sao serializaveis em JSON: {erro}",
+                    "executado_em": now,
+                    "pegada_memoria_mb": None,
+                    "memoria_medida": False,
+                    "sucesso": False,
+                }
+
             # Invólucro com limites de recursos do SO e medição real de memória.
             # `max_memory_mb` era guardado e nunca aplicado, e o limite de CPU
             # sozinho nao impede uma ferramenta de alocar toda a RAM disponivel.
             runner_wrapper = (
                 "import sys, json\n"
+                # A ferramenta recebe os argumentos do chamador em `entrada`.
+                f"entrada = json.load(open({str(args_file)!r}, encoding='utf-8'))\n"
                 "_limites = []\n"
                 "try:\n"
                 "    import resource\n"
@@ -151,10 +172,14 @@ class UltraLightweightSandboxEngine:
                     # nunca foi observado.
                     pico_medido = output_data.get("pico_memoria_mb") if isinstance(output_data, dict) else None
                     limites = output_data.get("limites_aplicados", []) if isinstance(output_data, dict) else []
-                    executou_dentro_do_limite = output_data.get("status") != "limite_memoria_excedido" if isinstance(output_data, dict) else True
+                    # O status interno precisa chegar ao status externo: uma
+                    # ferramenta que levantou excecao dentro do sandbox era
+                    # reportada como "sucesso" na resposta ao chamador.
+                    status_interno = output_data.get("status", "sucesso") if isinstance(output_data, dict) else "sucesso"
+                    executou_dentro_do_limite = status_interno == "sucesso"
                     run_result = {
                         "ferramenta": tool_name,
-                        "status": "sucesso" if executou_dentro_do_limite else "limite_memoria_excedido",
+                        "status": status_interno,
                         "executado_em": now,
                         "pegada_memoria_mb": pico_medido,
                         "memoria_medida": pico_medido is not None,

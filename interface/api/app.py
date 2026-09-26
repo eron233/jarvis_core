@@ -1088,7 +1088,13 @@ def create_app(
 
     @app.post("/api/seguranca/micro-sandbox/executar", dependencies=[Depends(require_trusted_device)])
     def execute_in_microsandbox_endpoint(request: Request, nome_ferramenta: str = Query(default="ferramenta_dinamica"), codigo: str = Body(...)) -> Dict[str, Any]:
-        """Executa codigo em um processo separado com limites de CPU e memoria e portao AST."""
+        """
+        Executa codigo em um processo separado com limites de CPU e memoria e portao AST.
+
+        O corpo e o codigo cru. Argumentos de entrada existem no motor
+        (`input_args`), mas expo-los aqui exigiria trocar o corpo por um objeto
+        JSON, quebrando os clientes atuais; fica para uma versao nova da rota.
+        """
         runtime = _ensure_runtime_initialized(request)
         res = runtime.lightweight_sandbox_engine.execute_in_microsandbox(
             code_str=codigo,

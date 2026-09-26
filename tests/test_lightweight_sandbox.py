@@ -150,3 +150,61 @@ class TestUltraLightweightSandbox(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SandboxInputArgsTests(unittest.TestCase):
+    """A ferramenta precisa receber os argumentos que o chamador enviou."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.sandbox = UltraLightweightSandboxEngine(
+            max_memory_mb=64,
+            max_cpu_time_seconds=3,
+            data_dir=Path(self.temp_dir) / "sandbox_runs",
+        )
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    def test_entrada_chega_a_ferramenta(self) -> None:
+        """
+        `input_args` era aceito e descartado em silencio: a ferramenta rodava
+        sem as entradas enviadas. O assert dentro do codigo so passa se os
+        valores tiverem realmente chegado.
+        """
+
+        resultado = self.sandbox.execute_in_microsandbox(
+            'assert entrada["a"] == 7 and entrada["b"] == "texto"',
+            "com_entrada",
+            input_args={"a": 7, "b": "texto"},
+        )
+
+        self.assertEqual(resultado["status"], "sucesso")
+
+    def test_entrada_ausente_vira_dicionario_vazio(self) -> None:
+        """Sem argumentos a ferramenta ainda encontra a variavel definida."""
+
+        resultado = self.sandbox.execute_in_microsandbox("assert entrada == {}", "sem_entrada")
+
+        self.assertEqual(resultado["status"], "sucesso")
+
+    def test_entrada_nao_serializavel_e_recusada(self) -> None:
+        """Argumentos que nao viram JSON precisam falhar de forma explicita."""
+
+        resultado = self.sandbox.execute_in_microsandbox(
+            "x = 1", "entrada_ruim", input_args={"obj": object()}
+        )
+
+        self.assertEqual(resultado["status"], "entrada_invalida")
+        self.assertFalse(resultado["sucesso"])
+
+    def test_erro_dentro_da_ferramenta_nao_e_reportado_como_sucesso(self) -> None:
+        """
+        Uma excecao dentro do sandbox aparecia so no resultado interno, enquanto
+        a resposta ao chamador continuava dizendo "sucesso".
+        """
+
+        resultado = self.sandbox.execute_in_microsandbox('raise ValueError("falhou")', "erro")
+
+        self.assertEqual(resultado["status"], "erro_execucao")
+        self.assertFalse(resultado["sucesso"])
