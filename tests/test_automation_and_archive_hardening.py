@@ -52,10 +52,17 @@ class LaunchApplicationHardeningTests(unittest.TestCase):
         self.assertEqual(self.engine.launch_application("rm -rf /")["status"], "bloqueado")
 
     def test_nao_bloqueia_caminho_legitimo_com_parenteses(self) -> None:
-        """Caminhos do Windows com '(x86)' nao podem ser tratados como ataque."""
+        """
+        Caminhos do Windows com '(x86)' nao podem ser tratados como ataque.
+
+        A verificacao olha apenas se o comando foi barrado. O que acontece
+        depois do portao depende do sistema onde o teste roda — se existe um
+        `xdg-open`, se o caminho existe — e nao e o que este teste cobre.
+        """
 
         resultado = self.engine.launch_application("C:\\Program Files (x86)\\App\\app.exe")
-        self.assertNotEqual(resultado.get("motivo", ""), "")
+
+        self.assertNotEqual(resultado["status"], "bloqueado")
         self.assertNotIn("separador de shell", resultado.get("motivo", ""))
 
 
