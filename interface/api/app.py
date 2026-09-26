@@ -1074,18 +1074,21 @@ def create_app(
 
     @app.post("/api/seguranca/git/patch-branch", dependencies=[Depends(require_trusted_device)])
     def apply_git_patch_branch(request: Request, id_vulnerabilidade: str = Query(min_length=1), arquivo_alvo: str = Query(min_length=1), conteudo_patch: str = Body(...)) -> Dict[str, Any]:
-        """Aplica patch de segurança em branch Git isolada e gera diff para aprovação do proprietário."""
+        """Verifica um patch de seguranca proposto e devolve o diff para revisao do proprietario."""
         runtime = _ensure_runtime_initialized(request)
-        res = runtime.git_branch_patcher_engine.apply_patch_in_isolated_branch(
+        res = runtime.git_branch_patcher_engine.prepare_patch_for_review(
             vulnerability_id=id_vulnerabilidade,
             target_filepath=arquivo_alvo,
             patch_content=conteudo_patch,
         )
-        return {"mensagem": "Patch isolado na branch Git criado com sucesso.", "relatorio_patch": res}
+        return {
+            "mensagem": "Proposta de patch verificada. Nenhuma branch foi criada e nenhum arquivo foi alterado.",
+            "relatorio_patch": res,
+        }
 
     @app.post("/api/seguranca/micro-sandbox/executar", dependencies=[Depends(require_trusted_device)])
     def execute_in_microsandbox_endpoint(request: Request, nome_ferramenta: str = Query(default="ferramenta_dinamica"), codigo: str = Body(...)) -> Dict[str, Any]:
-        """Executa código/ferramenta em um micro-sandbox isolado ultraleve com < 5MB de RAM e limites de CPU."""
+        """Executa codigo em um processo separado com limites de CPU e memoria e portao AST."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.lightweight_sandbox_engine.execute_in_microsandbox(
             code_str=codigo,

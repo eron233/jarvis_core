@@ -90,13 +90,18 @@ class TestCorporateHierarchyAndOptimizations(unittest.TestCase):
         self.assertEqual(stats["estimativa_tokens_economizados"], 300)
 
     def test_git_branch_patcher_engine(self):
-        patch_res = self.git_patcher.apply_patch_in_isolated_branch(
+        patch_res = self.git_patcher.prepare_patch_for_review(
             vulnerability_id="ZDAY-001",
             target_filepath="security/vulnerability_hunter.py",
             patch_content="def fix(): pass",
         )
-        self.assertTrue(patch_res["testes_passaram"])
-        self.assertEqual(patch_res["nome_branch_isolada"], "jarvis/fix-zday-001")
+        # O relatorio afirmava "testes_passaram" sem executar teste nenhum, e
+        # nomeava uma branch que nunca era criada.
+        self.assertTrue(patch_res["sintaxe_valida"])
+        self.assertEqual(patch_res["nome_branch_sugerida"], "jarvis/fix-zday-001")
+        self.assertFalse(patch_res["branch_criada"])
+        self.assertFalse(patch_res["patch_aplicado"])
+        self.assertFalse(patch_res["testes_executados"])
 
     def test_api_corporate_endpoints(self):
         # API Dispatch
