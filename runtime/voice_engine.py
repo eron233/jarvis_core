@@ -28,7 +28,22 @@ class LocalVoiceEngine:
 
     def speak(self, text: str, voice_name: str = "pt-BR-Jarvis") -> Dict[str, Any]:
         """
-        Sintetiza texto em áudio de fala local.
+        Sintetiza texto em audio de fala usando o sintetizador do sistema.
+
+        Parametros:
+        - text: texto a ser falado.
+        - voice_name: voz pedida; registrada no retorno, ainda nao selecionavel.
+
+        Retorno:
+        - resultado declarando se houve sintese real ou apenas um arquivo vazio.
+
+        Efeitos no sistema:
+        - grava um arquivo WAV em `audio_dir`.
+
+        Quando nenhum sintetizador esta disponivel, o metodo gravava um WAV com
+        cabecalho valido e zero amostras — silencio — e devolvia
+        `status: "sucesso"`. Quem tocasse o arquivo nao ouviria nada e nao teria
+        como saber que a sintese falhou.
         """
         now = datetime.now(timezone.utc).isoformat()
         file_id = f"speech_{int(datetime.now(timezone.utc).timestamp())}.wav"
@@ -58,16 +73,30 @@ class LocalVoiceEngine:
         except Exception:
             pass
 
+        audio_sintetizado = synth_method != "simulado_local" and output_file.exists()
+
         if not output_file.exists():
-            # Gera um placeholder wav válido para garantir integridade offline
+            # Arquivo WAV valido porem sem amostras, para que o caminho de saida
+            # exista mesmo sem sintetizador. Nao contem fala.
             output_file.write_bytes(b"RIFF\x24\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00")
 
         return {
-            "status": "sucesso",
+            "status": "sucesso" if audio_sintetizado else "indisponivel",
+            "audio_sintetizado": audio_sintetizado,
             "texto_sintetizado": text,
-            "metodo_sintese": synth_method,
+            "metodo_sintese": synth_method if audio_sintetizado else None,
+            "voz_solicitada": voice_name,
+            "voz_aplicada": False,
             "arquivo_audio": str(output_file),
             "gerado_em": now,
+            "motivo": (
+                None
+                if audio_sintetizado
+                else (
+                    "Nenhum sintetizador de fala respondeu neste sistema. O arquivo "
+                    "gravado e um WAV valido sem amostras e nao contem fala."
+                )
+            ),
         }
 
     def transcribe_audio(self, audio_path: str) -> Dict[str, Any]:

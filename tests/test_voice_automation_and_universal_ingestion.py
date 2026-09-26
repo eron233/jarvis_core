@@ -26,8 +26,17 @@ class VoiceAutomationUniversalIngestionTests(unittest.TestCase):
         voice = LocalVoiceEngine(audio_dir=self.tmp_path / "audio")
         res = voice.speak("Testando a voz do Jarvis")
 
-        self.assertEqual(res["status"], "sucesso")
+        # A asserção anterior era `status == "sucesso"`, que valia tambem quando
+        # nenhum sintetizador respondia e o arquivo saia mudo. O contrato agora
+        # separa sintese real de arquivo vazio, e o resultado depende de haver
+        # um sintetizador no sistema onde o teste roda.
         self.assertTrue(Path(res["arquivo_audio"]).exists())
+        if res["audio_sintetizado"]:
+            self.assertEqual(res["status"], "sucesso")
+            self.assertIsNotNone(res["metodo_sintese"])
+        else:
+            self.assertEqual(res["status"], "indisponivel")
+            self.assertIn("nao contem fala", res["motivo"])
 
     def test_system_automation_engine(self) -> None:
         auto = SystemAutomationEngine()

@@ -107,3 +107,37 @@ class VoiceTranscriptionHonestyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VoiceSynthesisHonestyTests(unittest.TestCase):
+    """A sintese de fala nao pode reportar sucesso entregando silencio."""
+
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp())
+        self.engine = LocalVoiceEngine(audio_dir=self.tmp)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_arquivo_mudo_nao_e_reportado_como_sucesso(self) -> None:
+        """
+        Sem sintetizador o motor gravava um WAV valido com zero amostras e
+        devolvia `status: "sucesso"`. Quem tocasse o arquivo nao ouviria nada.
+        """
+
+        resultado = self.engine.speak("Testando a voz")
+        arquivo = Path(resultado["arquivo_audio"])
+
+        self.assertTrue(arquivo.exists())
+        if not resultado["audio_sintetizado"]:
+            self.assertEqual(resultado["status"], "indisponivel")
+            # Cabecalho WAV de 44 bytes sem nenhuma amostra depois dele.
+            self.assertEqual(arquivo.stat().st_size, 44)
+
+    def test_declara_a_voz_pedida_e_que_ela_nao_foi_aplicada(self) -> None:
+        """O parametro `voice_name` era aceito e ignorado sem qualquer aviso."""
+
+        resultado = self.engine.speak("Teste", voice_name="pt-BR-Outra")
+
+        self.assertEqual(resultado["voz_solicitada"], "pt-BR-Outra")
+        self.assertFalse(resultado["voz_aplicada"])
