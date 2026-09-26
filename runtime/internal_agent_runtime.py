@@ -601,16 +601,44 @@ class InternalAgentRuntime:
                 task["procedural_guidance"] = deepcopy(procedural_guidance[0]["steps"])
                 task["procedural_guidance_source"] = procedural_guidance[0]["name"]
 
+            # `worker_task` e copia de `task`, que ja recebeu a orientacao acima.
             worker_task = deepcopy(task)
             worker_task["runtime_context"] = self.describe_state()
             worker_task["goal_summary"] = self.goal_manager.goal_report().get("resumo", {})
-            if procedural_guidance:
-                worker_task["procedural_guidance"] = deepcopy(procedural_guidance[0]["steps"])
-                worker_task["procedural_guidance_source"] = procedural_guidance[0]["name"]
-                task["procedural_guidance"] = deepcopy(procedural_guidance[0]["steps"])
-                task["procedural_guidance_source"] = procedural_guidance[0]["name"]
 
-            worker_response = worker.handle(worker_task)
+            # Um worker que levanta excecao nao pode derrubar o ciclo inteiro: o
+            # planner nao trata a falha, entao a tarefa ficaria num estado nao
+            # terminal e nada chegaria a auditoria. A falha e contida aqui, no
+            # limite do worker, e registrada pelo watchdog que ja existe.
+            try:
+                worker_response = worker.handle(worker_task)
+            except Exception as worker_error:  # noqa: BLE001 - a falha e registrada e devolvida
+                self._apply_state(task, "failed")
+                self.record_runtime_error(
+                    context="runtime.dispatch_task",
+                    error=worker_error,
+                    metadata={"task_id": task.get("task_id"), "worker": worker_id},
+                )
+                return self._build_worker_failure_result(
+                    task=task,
+                    worker_id=worker_id,
+                    reason="worker_exception",
+                    worker_response={
+                        "status": "failed",
+                        "error_type": worker_error.__class__.__name__,
+                        "error_message": str(worker_error),
+                    },
+                )
+
+            if not isinstance(worker_response, dict):
+                self._apply_state(task, "failed")
+                return self._build_worker_failure_result(
+                    task=task,
+                    worker_id=worker_id,
+                    reason="invalid_worker_response",
+                    worker_response={"status": "failed", "tipo_recebido": type(worker_response).__name__},
+                )
+
             if worker_response.get("status") in {"rejected", "failed"}:
                 result_status = "rejected" if worker_response.get("status") == "rejected" else "failed"
                 result_reason = worker_response.get("reason") or "worker_rejected"
@@ -692,6 +720,52 @@ class InternalAgentRuntime:
             )
             self.goal_manager.record_task_result(task, result)
             return result
+
+    def _build_worker_failure_result(
+        self,
+        task: Dict[str, Any],
+        worker_id: str,
+        reason: str,
+        worker_response: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Monta e registra o resultado de uma falha do worker.
+
+        Parametros:
+        - task: tarefa que estava sendo executada.
+        - worker_id: worker responsavel pela execucao.
+        - reason: motivo interno da falha.
+        - worker_response: detalhe tecnico devolvido ou sintetizado.
+
+        Retorno:
+        - resultado de despacho no mesmo formato dos demais caminhos de falha.
+
+        Efeitos no sistema:
+        - registra o evento na memoria episodica.
+        """
+
+        result = {
+            "status": "failed",
+            "status_ptbr": traduzir_status("failed"),
+            "task": task,
+            "worker": worker_id,
+            "worker_response": worker_response,
+            "reason": reason,
+            "reason_ptbr": traduzir_motivo(reason),
+        }
+        self.memory["episodic"].remember(
+            {
+                "event": "dispatch",
+                "event_ptbr": "despachar",
+                "status": result["status"],
+                "status_ptbr": result["status_ptbr"],
+                "task_id": task.get("task_id"),
+                "worker": worker_id,
+                "reason": result["reason"],
+                "reason_ptbr": result["reason_ptbr"],
+            }
+        )
+        return result
 
     def enqueue_task(self, task: Dict[str, Any]) -> None:
         """Adiciona uma tarefa na fila controlada pelo runtime."""

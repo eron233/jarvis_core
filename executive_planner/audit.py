@@ -92,6 +92,8 @@ MOTIVOS_PTBR = {
     "guest_restricted_command": "comando_restrito_ao_admin",
     "special_phrase_ignored": "frase_especial_ignorada",
     "runtime_exception": "excecao_no_loop_principal",
+    "worker_exception": "worker_lancou_excecao",
+    "invalid_worker_response": "resposta_do_worker_invalida",
     "missing_request_nonce": "nonce_ausente",
     "missing_request_timestamp": "timestamp_ausente",
     "invalid_request_timestamp": "timestamp_invalido",
