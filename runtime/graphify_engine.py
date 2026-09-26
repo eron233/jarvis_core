@@ -10,6 +10,7 @@ Responsável por:
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -38,7 +39,16 @@ class GraphifyEngine:
 
         # 1. Extração Topológica de Nós
         nodes = []
-        components = raw_components or ["Core Executivo", "Banco de Dados", "API Gateway", "Interface UI", "Módulo de Segurança"]
+        if raw_components:
+            components = list(raw_components)
+            origem_dos_nos = "componentes_informados"
+        else:
+            components = self._extract_components(description)
+            origem_dos_nos = "extraidos_da_descricao" if components else "modelo_generico"
+            if not components:
+                # A versao anterior caia direto neste modelo para qualquer projeto
+                # e ignorava a descricao, devolvendo sempre os mesmos cinco nos.
+                components = ["Core Executivo", "Banco de Dados", "API Gateway", "Interface UI", "Módulo de Segurança"]
         for idx, comp in enumerate(components):
             nodes.append({
                 "id": f"node_{idx + 1}",
@@ -69,6 +79,8 @@ class GraphifyEngine:
             "projeto": project_title,
             "analisado_em": now,
             "metodo": "Graphify_Topological_Structuring",
+            "origem_dos_nos": origem_dos_nos,
+            "descricao_utilizada": origem_dos_nos == "extraidos_da_descricao",
             "estatisticas": {
                 "total_nos": len(nodes),
                 "total_arestas": len(edges),
@@ -79,13 +91,53 @@ class GraphifyEngine:
                 "arestas": edges,
             },
             "resumo_topologico_ptbr": (
-                f"Análise Graphify de '{project_title}': Mapeados {len(nodes)} nós e {len(edges)} arestas "
-                "de dependência topológica. Fluxo totalmente fechado e resiliente."
+                f"Análise Graphify de '{project_title}': {len(nodes)} nós e {len(edges)} arestas. "
+                + (
+                    "Nós informados pelo chamador."
+                    if origem_dos_nos == "componentes_informados"
+                    else "Nós extraídos da descrição."
+                    if origem_dos_nos == "extraidos_da_descricao"
+                    else "A descrição não permitiu extrair componentes; foi usado um modelo genérico."
+                )
             ),
         }
 
         self._save_graphify_record(graph_result)
         return graph_result
+
+    @staticmethod
+    def _extract_components(description: str) -> List[str]:
+        """
+        Extrai componentes candidatos a partir da descricao do projeto.
+
+        Parametros:
+        - description: texto livre descrevendo o projeto.
+
+        Retorno:
+        - lista de componentes encontrados, possivelmente vazia.
+
+        Efeitos no sistema:
+        - nenhum.
+
+        A separacao e deliberadamente simples e previsivel: o texto e quebrado
+        por virgula, ponto e virgula, barra, quebra de linha e pela conjuncao
+        " e ". Nao ha inferencia semantica aqui, e o relatorio diz de onde os
+        nos vieram para que ninguem leia isto como analise profunda.
+        """
+
+        if not description or not description.strip():
+            return []
+
+        partes = re.split(r"[,;/\n]| \be\b ", description)
+        componentes = []
+        for parte in partes:
+            limpo = parte.strip(" .\t")
+            if len(limpo) < 3 or len(limpo) > 60:
+                continue
+            if limpo.lower() in {termo.lower() for termo in componentes}:
+                continue
+            componentes.append(limpo)
+        return componentes[:12]
 
     def _save_graphify_record(self, record: Dict[str, Any]) -> None:
         """Salva a análise Graphify em disco."""
