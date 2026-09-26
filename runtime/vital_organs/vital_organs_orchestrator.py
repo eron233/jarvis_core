@@ -125,11 +125,15 @@ class VitalOrgansOrchestrator:
     def run_cycle(self, runtime: Any) -> Dict[str, Any]:
         """Executa uma rodada sincronizada dos orgaos vitais."""
 
-        structural_report = self.structural_integrity_monitor.run(runtime)
-        optimization_report = self.self_optimization_core.run(runtime)
-        hygiene_report = self.runtime_hygiene_engine.run(runtime)
-        prevention_report = self.failure_prevention_engine.run(runtime)
-        sync_report = self.autonomous_sync_engine.run(runtime)
+        # Cada orgao roda isolado: antes bastava o primeiro levantar excecao para
+        # que os outros quatro nao executassem e a rodada inteira ficasse sem
+        # relatorio. Um orgao com defeito permanente desligava em silencio a
+        # manutencao que os demais fazem, inclusive a prevencao de falhas.
+        structural_report = self._run_organ("structural_integrity_monitor", self.structural_integrity_monitor, runtime)
+        optimization_report = self._run_organ("self_optimization_core", self.self_optimization_core, runtime)
+        hygiene_report = self._run_organ("runtime_hygiene_engine", self.runtime_hygiene_engine, runtime)
+        prevention_report = self._run_organ("failure_prevention_engine", self.failure_prevention_engine, runtime)
+        sync_report = self._run_organ("autonomous_sync_engine", self.autonomous_sync_engine, runtime)
 
         report = {
             "version": "0.1.0",
@@ -158,6 +162,47 @@ class VitalOrgansOrchestrator:
         self._persist_report_if_changed(report)
         self._last_report = deepcopy(report)
         return deepcopy(report)
+
+    def _run_organ(self, nome: str, orgao: Any, runtime: Any) -> Dict[str, Any]:
+        """
+        Executa um orgao vital contendo a falha dentro dele.
+
+        Parametros:
+        - nome: identificador do orgao no relatorio.
+        - orgao: instancia com o metodo `run`.
+        - runtime: runtime compartilhado da rodada.
+
+        Retorno:
+        - relatorio do orgao, ou um relatorio de falha no mesmo formato.
+
+        Efeitos no sistema:
+        - registra a excecao no log; nao interrompe os demais orgaos.
+        """
+
+        try:
+            relatorio = orgao.run(runtime)
+        except Exception as erro:  # noqa: BLE001 - a falha vira parte do relatorio
+            self.logger.exception("[vital_organs] orgao '%s' falhou na rodada: %s", nome, erro)
+            return {
+                "status": "critico",
+                "orgao": nome,
+                "executado": False,
+                "erro_tipo": erro.__class__.__name__,
+                "erro_mensagem": str(erro),
+                "observacao": "O orgao falhou nesta rodada; os demais seguiram executando.",
+            }
+
+        if not isinstance(relatorio, dict) or "status" not in relatorio:
+            return {
+                "status": "critico",
+                "orgao": nome,
+                "executado": False,
+                "erro_tipo": "RelatorioInvalido",
+                "erro_mensagem": f"O orgao devolveu {type(relatorio).__name__} sem campo 'status'.",
+                "observacao": "O orgao falhou nesta rodada; os demais seguiram executando.",
+            }
+
+        return relatorio
 
     def snapshot(self) -> Dict[str, Any] | None:
         """Retorna o ultimo relatorio interno conhecido."""
