@@ -122,6 +122,7 @@ class ExecutivePlanner:
             "dispatch_result": None,
             "rejected_tasks": [],
             "deferred_tasks": [],
+            "discarded_tasks": [],
             "reason": "no_tasks",
             "reason_ptbr": traduzir_motivo("no_tasks"),
         }
@@ -134,7 +135,7 @@ class ExecutivePlanner:
         valid_tasks, rejected_tasks = self._validate_tasks(ranked_tasks)
         selected_task, deferred_tasks = self._schedule_task(valid_tasks)
         dispatch_result = self._execute_task(selected_task)
-        self._commit_queue_state(selected_task, deferred_tasks, dispatch_result)
+        discarded_tasks = self._commit_queue_state(selected_task, deferred_tasks, dispatch_result)
 
         cycle_status = dispatch_result["status"] if dispatch_result else "idle"
         cycle_reason = dispatch_result.get("reason") if dispatch_result else "no_executable_task"
@@ -146,6 +147,7 @@ class ExecutivePlanner:
             "dispatch_result": dispatch_result,
             "rejected_tasks": rejected_tasks,
             "deferred_tasks": deferred_tasks,
+            "discarded_tasks": discarded_tasks,
             "reason": cycle_reason,
             "reason_ptbr": traduzir_motivo(cycle_reason) if cycle_reason else None,
         }
@@ -157,6 +159,8 @@ class ExecutivePlanner:
                 "selected_task_id": self._task_id(cycle_summary["selected_task"]),
                 "rejected_count": len(rejected_tasks),
                 "deferred_count": len(deferred_tasks),
+                "discarded_count": len(discarded_tasks),
+                "discarded_reasons": [item["reason"] for item in discarded_tasks],
             },
         )
         return cycle_summary
@@ -368,7 +372,7 @@ class ExecutivePlanner:
         selected_task: Optional[Dict[str, Any]],
         deferred_tasks: List[Dict[str, Any]],
         dispatch_result: Optional[Dict[str, Any]],
-    ) -> None:
+    ) -> List[Dict[str, Any]]:
         """
         Consolida a fila persistente somente apos o resultado do ciclo.
 
@@ -380,17 +384,35 @@ class ExecutivePlanner:
         Retorno:
         - nenhum.
 
+        Retorno adicional:
+        - tarefas que deixaram a fila sem terem sido concluidas.
+
         Efeitos no sistema:
         - substitui o estado da fila de forma atomica, evitando perda silenciosa em falhas.
+
+        Tarefas com status `rejected` nao voltam para a fila, para nao criarem
+        uma retentativa infinita quando o worker nao existe ou recusa a tarefa.
+        Antes elas simplesmente sumiam: a fila encolhia sem que nada dissesse
+        que aquela tarefa saiu sem concluir. O descarte agora e declarado.
         """
 
         next_tasks = list(deferred_tasks)
+        discarded: List[Dict[str, Any]] = []
         if selected_task is not None and dispatch_result is not None:
             final_status = dispatch_result.get("status")
             if final_status in {"blocked", "failed"}:
                 next_tasks.append(selected_task["task"])
+            elif final_status == "rejected":
+                discarded.append(
+                    {
+                        "task": selected_task["task"],
+                        "reason": dispatch_result.get("reason"),
+                        "reason_ptbr": dispatch_result.get("reason_ptbr"),
+                    }
+                )
 
         self.task_queue.replace(next_tasks)
+        return discarded
 
     @staticmethod
     def _task_id(task: Optional[Dict[str, Any]]) -> Optional[str]:
