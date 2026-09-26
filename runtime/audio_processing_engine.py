@@ -23,6 +23,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RECORDINGS_DIR = PROJECT_ROOT / "data" / "audio_recordings"
 
 # Tabela de Decodificação de Código Morse
+# Tabela de referencia mantida para quando houver um demodulador de verdade.
+# Hoje nada a consome: o decodificador anterior usava-a sobre uma sequencia fixa.
 MORSE_CODE_DICT = {
     '.-': 'A', '-...': 'B', '-.-.': 'C', '-..': 'D', '.': 'E',
     '..-.': 'F', '--.': 'G', '....': 'H', '..': 'I', '.---': 'J',
@@ -96,10 +98,14 @@ class AudioProcessingEngine:
                 "frequencias_filtradas": "Ruídos de fundo < 150Hz e zumbidos > 8000Hz removidos",
             },
             "sinais_radio_detectados": signal_decoding,
-            "transcricao_texto": (
-                f"Transcrição limpa: 'A explicação do professor está salva e sem ruídos.' "
-                f"{signal_decoding['texto_decodificado'] if signal_decoding['sinal_encontrado'] else ''}"
-            ),
+            # O campo devolvia uma frase fixa sobre a explicacao de um professor,
+            # identica para qualquer gravacao, como se fosse a transcricao do
+            # audio. Nao existe transcritor no projeto.
+            "transcricao": {
+                "disponivel": False,
+                "texto": None,
+                "motivo": "Nenhum transcritor esta configurado; o audio limpo foi preservado para transcricao externa.",
+            },
             "concluido_em": now,
         }
 
@@ -141,18 +147,36 @@ class AudioProcessingEngine:
 
     def _detect_and_decode_radio_signals(self, path: Path) -> Dict[str, Any]:
         """
-        Inspeciona o áudio procurando sinais de rádio/código Morse ou Baudot.
+        Relata o estado da deteccao de sinais de radio no audio.
+
+        Parametros:
+        - path: arquivo de audio analisado.
+
+        Retorno:
+        - resultado declarando que a demodulacao nao esta implementada.
+
+        Efeitos no sistema:
+        - nenhum.
+
+        A versao anterior nao lia o arquivo: devolvia sempre `sinal_encontrado`
+        verdadeiro, com uma sequencia Morse fixa que decodificava a palavra
+        "HAPPY" e uma frequencia de 700 Hz apresentada como medida. Toda
+        gravacao, inclusive silencio, era reportada como contendo um sinal de
+        radio decodificado. Nao ha demodulador no projeto, entao o resultado
+        honesto e dizer isso.
         """
-        # Exemplo de verificação de pulso Morse / RTTY
-        morse_pattern = ".... .- .--. .--. -.--" # "HAPPY" em morse
-        decoded_text = "".join(MORSE_CODE_DICT.get(code, "") for code in morse_pattern.split())
 
         return {
-            "sinal_encontrado": True,
-            "tipo_sinal": "Código Morse / Sinais de Rádio",
-            "frequencia_sinal_hz": 700,
-            "codigo_morse_raw": morse_pattern,
-            "texto_decodificado": f"[Sinal Rádio Decodificado: {decoded_text}]",
+            "sinal_encontrado": False,
+            "analise_disponivel": False,
+            "tipo_sinal": None,
+            "frequencia_sinal_hz": None,
+            "codigo_morse_raw": None,
+            "texto_decodificado": None,
+            "motivo": (
+                "A deteccao de sinais de radio nao esta implementada. Nenhum sinal foi "
+                "procurado neste audio; a ausencia aqui nao significa ausencia de sinal."
+            ),
         }
 
     def _generate_sample_wav(self, path: Path) -> None:

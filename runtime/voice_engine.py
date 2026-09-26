@@ -78,11 +78,18 @@ class LocalVoiceEngine:
         if not path.exists():
             return {"status": "erro", "motivo": f"Arquivo de áudio {audio_path} não encontrado."}
 
-        # Transcrição com fallback local
+        # A versao anterior devolvia sempre o texto "Jarvis status do sistema"
+        # com confianca 0.98, para qualquer audio, citando um transcritor que
+        # nao existe. Qualquer fluxo de voz ligado a isto executaria sempre o
+        # mesmo comando, e com aparencia de alta confianca.
         return {
-            "status": "sucesso",
+            "status": "indisponivel",
             "arquivo_audio": str(path),
-            "transcricao": "Jarvis status do sistema",
-            "confianca": 0.98,
-            "metodo": "local_speech_transcriber",
+            "transcricao": None,
+            "confianca": None,
+            "metodo": None,
+            "motivo": (
+                "Nenhum transcritor de fala esta configurado neste ambiente. "
+                "O arquivo foi preservado para transcricao externa."
+            ),
         }
