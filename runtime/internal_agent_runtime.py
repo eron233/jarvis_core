@@ -815,7 +815,13 @@ class InternalAgentRuntime:
                 password=password,
             )
 
-            if source_device_id:
+            # Este ponto apenas atualiza os metadados de um dispositivo que ja
+            # passou pela camada de acesso; nunca deve conceder confianca. O modo
+            # emergencial de acesso web chega aqui com um identificador fixo e
+            # publico, que era gravado como dispositivo confiavel e permanecia no
+            # registro depois de o modo ser desligado, deixando o token sozinho
+            # suficiente para passar pela verificacao de dispositivo.
+            if source_device_id and self.device_registry.is_trusted(source_device_id):
                 self.device_registry.ensure_device(
                     device_id=source_device_id,
                     nome=source_device_id,
