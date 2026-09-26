@@ -1,0 +1,12 @@
+# Configuracao minima do projeto. Antes nao havia nenhuma, entao a suite
+# dependia de o desenvolvedor passar o caminho certo na linha de comando.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+# A raiz precisa estar no sys.path para que `from runtime...` resolva ao rodar
+# `pytest` de qualquer diretorio do repositorio.
+pythonpath = ["."]
+filterwarnings = [
+    "ignore::DeprecationWarning:starlette.*",
+]
