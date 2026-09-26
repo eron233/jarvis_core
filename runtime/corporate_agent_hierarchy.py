@@ -30,7 +30,7 @@ class CorporateSubAgent:
         self.heavy_model = heavy_model
         self.state = "hibernating"  # 'hibernating' | 'active'
         self.last_active_at: Optional[str] = None
-        self.tasks_completed = 0
+        self.tasks_dispatched = 0
 
     def wake_up(self) -> None:
         """Desperta o sub-agente para execução."""
@@ -73,7 +73,7 @@ class CorporateSubAgent:
             "estado": self.state,
             "modelo_leve": self.light_model,
             "modelo_pesado": self.heavy_model,
-            "tarefas_concluidas": self.tasks_completed,
+            "tarefas_despachadas": self.tasks_dispatched,
             "ultimo_despertar": self.last_active_at,
         }
 
@@ -132,8 +132,24 @@ class CorporateAgentHierarchyEngine:
         task_complexity: str = "intermediaria",
     ) -> Dict[str, Any]:
         """
-        Localiza o sub-agente responsável pelo departamento, desperta-o, seleciona o modelo
-        ideal, executa a tarefa atribuída e imediatamente o coloca em hibernação.
+        Roteia uma tarefa para o sub-agente do departamento e decide o modelo.
+
+        Parametros:
+        - department: setor de destino.
+        - task_title: titulo da tarefa roteada.
+        - task_payload: conteudo da tarefa, registrado para quem for executa-la.
+        - task_complexity: complexidade usada na escolha do porte do modelo.
+
+        Retorno:
+        - decisao de roteamento, com o sub-agente e o modelo escolhidos.
+
+        Efeitos no sistema:
+        - desperta e hiberna o sub-agente e grava o registro do despacho.
+
+        A versao anterior dizia "executa a tarefa atribuida" e montava um resumo
+        afirmando que o sub-agente a executara, mas `task_payload` nunca era
+        lido e nenhum modelo era chamado. O que existe de real aqui e a escolha
+        do setor, a escolha do porte do modelo e o ciclo de vida do agente.
         """
         now = datetime.now(timezone.utc).isoformat()
 
@@ -153,12 +169,14 @@ class CorporateAgentHierarchyEngine:
         # 3. Seleção do Modelo Adaptativo (Leve vs Pesado)
         model_selection = matching_agent.select_model_tier(task_complexity)
 
-        # 4. Execução da Tarefa Exclusiva do Setor
-        execution_summary = (
-            f"Sub-agente '{matching_agent.role_title}' executou a tarefa '{task_title}' "
-            f"no setor '{matching_agent.department}' utilizando o modelo {model_selection['tier'].upper()} ({model_selection['modelo_selecionado']})."
+        # 4. Decisao de roteamento. Nenhum modelo e chamado neste ponto.
+        payload = task_payload or {}
+        routing_decision = (
+            f"Tarefa '{task_title}' roteada para '{matching_agent.role_title}' "
+            f"no setor '{matching_agent.department}', com o modelo "
+            f"{model_selection['tier'].upper()} ({model_selection['modelo_selecionado']})."
         )
-        matching_agent.tasks_completed += 1
+        matching_agent.tasks_dispatched += 1
 
         # 5. Ciclo de Vida: Hibernação Imediata
         matching_agent.hibernate()
@@ -168,13 +186,22 @@ class CorporateAgentHierarchyEngine:
             "departamento": matching_agent.department,
             "subagente_responsavel": matching_agent.to_dict(),
             "roteamento_modelo": model_selection,
-            "executado_em": now,
-            "resumo_execucao": execution_summary,
+            "roteado_em": now,
+            "decisao_roteamento": routing_decision,
+            "tarefa_executada": False,
+            "motivo_nao_execucao": (
+                "Este motor decide o setor e o porte do modelo. A execucao em si "
+                "depende de um executor que ainda nao esta ligado a esta hierarquia."
+            ),
+            "carga_recebida": {
+                "possui_conteudo": bool(payload),
+                "campos": sorted(payload.keys()),
+            },
             "estado_final_subagente": matching_agent.state,
             "resumo_ptbr": (
-                f"Tarefa corporativa concluída pelo setor '{matching_agent.department}'. "
-                f"Modelo utilizado: {model_selection['modelo_selecionado']} ({model_selection['tier']}). "
-                f"O sub-agente retornou ao estado de hibernação."
+                f"Tarefa corporativa roteada para o setor '{matching_agent.department}'. "
+                f"Modelo escolhido: {model_selection['modelo_selecionado']} ({model_selection['tier']}). "
+                f"O sub-agente retornou ao estado de hibernação. A tarefa ainda nao foi executada."
             ),
         }
 

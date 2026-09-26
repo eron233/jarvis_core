@@ -1049,16 +1049,16 @@ def create_app(
     # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
 
     @app.post("/api/corporativo/despachar", dependencies=[Depends(require_trusted_device)])
-    def dispatch_corporate_task_endpoint(request: Request, departamento: str = Query(min_length=1), titulo_tarefa: str = Query(min_length=1), complexidade: str = Query(default="intermediaria")) -> Dict[str, Any]:
-        """Despacha tarefa para o departamento corporativo exclusivo com seleção de modelo leve/pesado e ciclo de vida de hibernação."""
+    def dispatch_corporate_task_endpoint(request: Request, departamento: str = Query(min_length=1), titulo_tarefa: str = Query(min_length=1), complexidade: str = Query(default="intermediaria"), carga: Dict[str, Any] | None = Body(default=None)) -> Dict[str, Any]:
+        """Roteia a tarefa para o departamento e escolhe o porte do modelo; nao executa a tarefa."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.corporate_hierarchy_engine.dispatch_corporate_task(
             department=departamento,
             task_title=titulo_tarefa,
-            task_payload={},
+            task_payload=carga or {},
             task_complexity=complexidade,
         )
-        return {"mensagem": "Tarefa corporativa despachada com sucesso.", "relatorio_dispatch": res}
+        return {"mensagem": "Tarefa corporativa roteada. A execucao ainda nao foi realizada.", "relatorio_dispatch": res}
 
     @app.get("/api/corporativo/status", dependencies=[Depends(require_trusted_device)])
     def get_corporate_hierarchy_status(request: Request) -> Dict[str, Any]:
