@@ -49,7 +49,18 @@ class TestUltraLightweightSandbox(unittest.TestCase):
         )
         self.assertTrue(result["sucesso"])
         self.assertEqual(result["status"], "sucesso")
-        self.assertLess(result["pegada_memoria_mb"], 5.0)
+        # A asserção anterior era `< 5.0` e passava contra uma constante de 3.8
+        # embutida no motor: nada media memoria. O valor agora vem do pico real
+        # medido pelo processo filho, entao o que se verifica e que houve
+        # medicao e que ela ficou dentro do limite configurado.
+        self.assertTrue(result["memoria_medida"])
+        self.assertIsNotNone(result["pegada_memoria_mb"])
+        self.assertGreater(result["pegada_memoria_mb"], 0)
+        # O pico nao e comparado com o limite: `ru_maxrss` cobre toda a vida do
+        # processo, inclusive a inicializacao do interpretador, que acontece
+        # antes de o limite ser imposto. Quem verifica a imposicao do limite e
+        # `test_aplica_limite_real_de_memoria`.
+        self.assertEqual(result["limite_memoria_mb"], 64)
 
     def test_microsandbox_ast_security_blocking(self):
         code = "global x; x = 100"
@@ -71,6 +82,70 @@ class TestUltraLightweightSandbox(unittest.TestCase):
         data = response.json()
         self.assertIn("resultado_sandbox", data)
         self.assertTrue(data["resultado_sandbox"]["sucesso"])
+
+
+    def test_bloqueia_importacao_de_modulos_do_sistema(self) -> None:
+        """
+        O portao AST recusava apenas `global` e `nonlocal`, que nao tem relacao
+        com seguranca, enquanto `import os` e `import subprocess` passavam.
+        """
+
+        for codigo in (
+            "import os\nos.system('id')",
+            "import subprocess\nsubprocess.run(['id'])",
+            "from socket import socket",
+            "import shutil",
+        ):
+            with self.subTest(codigo=codigo.splitlines()[0]):
+                resultado = self.sandbox.execute_in_microsandbox(codigo, "import_proibido")
+                self.assertEqual(resultado["status"], "bloqueado_por_seguranca")
+                self.assertFalse(resultado["sucesso"])
+
+    def test_bloqueia_execucao_dinamica_de_codigo(self) -> None:
+        """`eval`, `exec` e `__import__` contornariam a analise estatica."""
+
+        for codigo in ("eval('1+1')", "exec('x=1')", "__import__('os')", "open('/etc/passwd')"):
+            with self.subTest(codigo=codigo):
+                resultado = self.sandbox.execute_in_microsandbox(codigo, "chamada_proibida")
+                self.assertEqual(resultado["status"], "bloqueado_por_seguranca")
+
+    def test_bloqueia_caminho_de_volta_pelos_atributos_internos(self) -> None:
+        """`().__class__.__bases__` alcanca os builtins a partir de qualquer objeto."""
+
+        resultado = self.sandbox.execute_in_microsandbox(
+            "x = ().__class__.__bases__[0].__subclasses__()",
+            "fuga_dunder",
+        )
+        self.assertEqual(resultado["status"], "bloqueado_por_seguranca")
+
+    def test_aplica_limite_real_de_memoria(self) -> None:
+        """
+        `max_memory_mb` era guardado e nunca usado: o invólucro so limitava CPU,
+        entao uma ferramenta podia alocar toda a RAM disponivel.
+        """
+
+        resultado = self.sandbox.execute_in_microsandbox(
+            "x = bytearray(300 * 1024 * 1024)",
+            "estouro_de_memoria",
+        )
+        self.assertEqual(resultado["status"], "limite_memoria_excedido")
+        self.assertFalse(resultado["sucesso"])
+
+    def test_declara_quais_limites_foram_aplicados(self) -> None:
+        """O relatorio precisa dizer o que foi de fato imposto pelo SO."""
+
+        resultado = self.sandbox.execute_in_microsandbox("a = 1", "limites")
+        self.assertIn("RLIMIT_AS", resultado["limites_aplicados"])
+        self.assertIn("RLIMIT_CPU", resultado["limites_aplicados"])
+
+    def test_codigo_legitimo_continua_executando(self) -> None:
+        """As restricoes nao podem impedir uma ferramenta comum de rodar."""
+
+        resultado = self.sandbox.execute_in_microsandbox(
+            "total = sum(i * i for i in range(1000))",
+            "calculo_legitimo",
+        )
+        self.assertTrue(resultado["sucesso"])
 
 
 if __name__ == "__main__":
