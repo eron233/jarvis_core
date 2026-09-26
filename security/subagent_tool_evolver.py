@@ -4,7 +4,7 @@ JARVIS - Evoluidor Sub-Agente de Ferramentas (SubAgent Tool Evolver)
 Responsável por:
 - capturar falhas, exceções ou limitações de ferramentas de segurança/automação
 - analisar o traceback/código da ferramenta e gerar correções automatizadas via AST/refatoração
-- validar o patch em ambiente sandbox seguro
+- verificar que o patch ao menos compila antes de ser considerado aplicavel
 - aprimorar iterativamente ferramentas para níveis superiores de capacidade e superação de limitações
 """
 
@@ -80,7 +80,7 @@ class SubAgentToolEvolver:
             applied_fixes.append("Invólucro de captura e mitigação autônoma de exceções não mapeadas.")
 
         # 3. Teste de Validação em Sandbox Temp
-        sandbox_success, sandbox_output = self._validate_in_sandbox(patched_code)
+        compilou, saida_compilacao = self._check_code_compiles(patched_code)
 
         evolution_record = {
             "ferramenta": tool_name,
@@ -89,9 +89,10 @@ class SubAgentToolEvolver:
             "log_falha_original": failure_log,
             "correcoes_aplicadas": applied_fixes,
             "ast_valido": ast_valid,
-            "validacao_sandbox": {
-                "sucesso": sandbox_success,
-                "saida": sandbox_output,
+            "verificacao_compilacao": {
+                "sucesso": compilou,
+                "saida": saida_compilacao,
+                "observacao": "Verificacao de sintaxe apenas; o codigo nao foi executado.",
             },
             "codigo_evoluido": patched_code,
             "resumo_ptbr": (
@@ -103,8 +104,25 @@ class SubAgentToolEvolver:
         self._save_evolution_record(tool_name, evolution_record)
         return evolution_record
 
-    def _validate_in_sandbox(self, code: str) -> tuple[bool, str]:
-        """Executa o código corrigido em um processo subprocess temporário e isolado."""
+    def _check_code_compiles(self, code: str) -> tuple[bool, str]:
+        """
+        Confere que o codigo corrigido compila, sem executa-lo.
+
+        Parametros:
+        - code: codigo resultante do patch.
+
+        Retorno:
+        - par (compilou, mensagem) descrevendo o resultado.
+
+        Efeitos no sistema:
+        - grava um arquivo temporario e o remove ao final.
+
+        Isto e uma verificacao de sintaxe, nao uma execucao em sandbox. O nome
+        anterior e a mensagem de sucesso afirmavam que o codigo tinha sido
+        executado e validado em isolamento, o que nunca aconteceu: `py_compile`
+        apenas compila. Quem executa codigo dinamico com limites de recurso e
+        portao AST e o UltraLightweightSandboxEngine.
+        """
         with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as temp_file:
             temp_file.write(code)
             temp_path = temp_file.name
@@ -117,10 +135,10 @@ class SubAgentToolEvolver:
                 timeout=10,
             )
             if proc.returncode == 0:
-                return True, "Sintaxe e compilação verificadas com sucesso no sandbox."
-            return False, f"Erro de compilação: {proc.stderr}"
+                return True, "Codigo compila; nenhuma execucao foi realizada."
+            return False, f"Erro de compilacao: {proc.stderr}"
         except Exception as e:
-            return False, f"Falha na validação do sandbox: {str(e)}"
+            return False, f"Falha ao verificar a compilacao: {e}"
         finally:
             Path(temp_path).unlink(missing_ok=True)
 

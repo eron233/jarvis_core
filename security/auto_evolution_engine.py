@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import logging
 from pathlib import Path
 import subprocess
 from typing import Any, Dict, List, Optional
@@ -22,6 +23,8 @@ from security.security_validation_engine import SecurityValidationEngine
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_EVOLUTION_STATE_PATH = PROJECT_ROOT / "data" / "auto_evolution_state.json"
+
+LOGGER = logging.getLogger("jarvis.security.auto_evolution")
 
 
 class AutoEvolutionEngine:
@@ -49,7 +52,7 @@ class AutoEvolutionEngine:
             runtime.bootstrap()
 
         # 1. Checkpoint preventivo
-        checkpoint_tag = self._create_state_checkpoint()
+        checkpoint = self._create_state_checkpoint()
 
         # 2. Sincroniza estado do gêmeo
         self.twin.create_twin_snapshot(runtime=runtime)
@@ -70,12 +73,13 @@ class AutoEvolutionEngine:
             # Verifica integridade pós-remediação. Se houver erro grave, aciona rollback.
             post_check = self.validator.run_all_validations()
             if post_check.get("fraquezas_detectadas") and len(post_check["fraquezas_detectadas"]) > len(weaknesses):
-                self._rollback_to_checkpoint(checkpoint_tag)
-                rollback_executed = True
+                rollback_executed = self._rollback_to_checkpoint(checkpoint)
 
         evolution_report = {
             "ciclo_executado_em": now,
-            "checkpoint_tag": checkpoint_tag,
+            "checkpoint_tag": checkpoint["tag"],
+            "checkpoint_commit": checkpoint["commit"],
+            "checkpoint_disponivel": checkpoint["disponivel"],
             "rollback_executado": rollback_executed,
             "versao_gemeo": validation_results.get("twin_version"),
             "nivel_resistencia": "alto" if not weaknesses else ("medio" if len(weaknesses) <= 2 else "baixo"),
@@ -98,30 +102,82 @@ class AutoEvolutionEngine:
         except Exception:
             return None
 
-    def _create_state_checkpoint(self) -> str:
-        """Cria uma marcação/stash de checkpoint antes da alteração."""
+    def _create_state_checkpoint(self) -> Dict[str, Any]:
+        """
+        Registra o estado da arvore de trabalho antes de qualquer alteracao.
+
+        Retorno:
+        - dicionario com a etiqueta, o commit do checkpoint quando existe,
+          se a arvore ja estava limpa e se o checkpoint pode ser usado.
+
+        Efeitos no sistema:
+        - nenhum na arvore de trabalho; `git stash create` apenas monta um commit
+          solto com o estado atual e devolve o identificador dele.
+
+        O identificador precisa ser guardado: `git stash create` nao registra o
+        commit em lugar nenhum, entao descartar a saida equivale a nao ter
+        checkpoint algum.
+        """
+
         tag = f"auto_evolution_checkpoint_{int(datetime.now(timezone.utc).timestamp())}"
         try:
-            subprocess.run(
+            resultado = subprocess.run(
                 ["git", "stash", "create", tag],
                 cwd=str(PROJECT_ROOT),
                 capture_output=True,
+                text=True,
                 check=False,
             )
         except Exception:
-            pass
-        return tag
+            return {"tag": tag, "commit": None, "arvore_limpa": False, "disponivel": False}
 
-    def _rollback_to_checkpoint(self, tag: str) -> bool:
-        """Executa o rollback restaurando o estado anterior caso ocorra regressão."""
+        if resultado.returncode != 0:
+            return {"tag": tag, "commit": None, "arvore_limpa": False, "disponivel": False}
+
+        commit = resultado.stdout.strip()
+        if not commit:
+            # Sem saida, a arvore ja estava limpa: qualquer alteracao presente
+            # depois deste ponto foi produzida pelo proprio ciclo de evolucao.
+            return {"tag": tag, "commit": None, "arvore_limpa": True, "disponivel": True}
+
+        return {"tag": tag, "commit": commit, "arvore_limpa": False, "disponivel": True}
+
+    def _rollback_to_checkpoint(self, checkpoint: Dict[str, Any]) -> bool:
+        """
+        Desfaz as alteracoes do ciclo restaurando o estado registrado.
+
+        Parametros:
+        - checkpoint: descricao devolvida por `_create_state_checkpoint`.
+
+        Retorno:
+        - `True` quando a restauracao foi executada.
+
+        Efeitos no sistema:
+        - restaura os arquivos versionados ao estado do checkpoint.
+
+        Sem checkpoint utilizavel nada e revertido. A versao anterior executava
+        `git checkout -- .` de forma incondicional, o que descartava tambem
+        qualquer trabalho nao commitado do dono que nada tinha a ver com o ciclo.
+        """
+
+        if not checkpoint.get("disponivel"):
+            LOGGER.warning(
+                "[auto_evolution] rollback recusado: nenhum checkpoint utilizavel foi registrado."
+            )
+            return False
+
+        commit = checkpoint.get("commit")
+        comando = ["git", "checkout", commit, "--", "."] if commit else ["git", "checkout", "--", "."]
+
         try:
-            res = subprocess.run(
-                ["git", "checkout", "--", "."],
+            resultado = subprocess.run(
+                comando,
                 cwd=str(PROJECT_ROOT),
                 capture_output=True,
+                text=True,
                 check=False,
             )
-            return res.returncode == 0
+            return resultado.returncode == 0
         except Exception:
             return False
 
