@@ -183,12 +183,12 @@ class LocalDevelopmentContextGovernor:
         if not candidate.is_absolute():
             candidate = self.config.project_root / candidate
         try:
+            if candidate.exists() and candidate.is_symlink():
+                return None, "SYMLINK_REFUSED"
             resolved = candidate.resolve(strict=False)
             resolved.relative_to(self.config.project_root.resolve())
         except (ValueError, OSError):
             return None, "OUTSIDE_PROJECT"
-        if resolved.is_symlink():
-            return None, "SYMLINK_REFUSED"
         return resolved, None
 
     def _graftignore_patterns(self) -> List[str]:
