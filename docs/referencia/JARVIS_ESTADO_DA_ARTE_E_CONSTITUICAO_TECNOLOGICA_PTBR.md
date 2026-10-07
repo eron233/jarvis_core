@@ -52,7 +52,7 @@ Nenhum item B/C é tratado como inferior por definição; ele simplesmente exige
 | Gerência local de modelos | **Ollama** | Instalação/serviço/API e modelos locais | ADAPTER VALIDADO / modelo pendente | Fallback/gerenciamento; core não depende dele |
 | Gateway multi-modelo | **LiteLLM** | Interface unificada, políticas e roteamento amplo | EXPERIMENTAL — próximo nível | Avaliar quando houver múltiplos provedores além dos runtimes locais |
 | Orquestração tipada | **PydanticAI** | Padrões de tools, outputs, dependências e subagentes | EXPERIMENTAL / padrões | Não substituir o planner constitucional por padrão |
-| Protocolo de ferramentas | **MCP oficial** | Integração interoperável de ferramentas/contexto | EXPERIMENTAL → provável CORE | Substitui implementações MCP simuladas |
+| Protocolo de ferramentas | **MCP Python SDK v2 oficial** | Tools/resources/prompts interoperáveis | VALIDADO opcional / least privilege | SDK 2.x, spec 2026-07-28; execução exige allowlist |
 | Memória vetorial | **Qdrant** | Índice vetorial persistente | VALIDADO | Já integrado de forma opcional |
 | Embedding | **Qwen3-Embedding 0.6B** | Representação semântica multilíngue | VALIDADO/condicional | Já integrado; validar consumo no hardware |
 | Reranking | **Qwen3-Reranker 0.6B** | Reordenação semântica | VALIDADO/condicional | Já integrado; validar consumo no hardware |
