@@ -412,7 +412,11 @@ class InternalAgentRuntime:
             self.mcp_manager = OfficialMCPClientManager()
 
             from learning.codebase_intelligence_engine import CodebaseIntelligenceEngine
+            from learning.development_context_engine import DevelopmentContextEngine
             self.codebase_intelligence_engine = CodebaseIntelligenceEngine(
+                mcp_manager=self.mcp_manager,
+            )
+            self.development_context_engine = DevelopmentContextEngine(
                 mcp_manager=self.mcp_manager,
             )
 
