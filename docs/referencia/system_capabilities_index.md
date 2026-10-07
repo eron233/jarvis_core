@@ -213,3 +213,15 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Enhancement | Implementado opcional | `runtime/voice_stack.py` | DeepFilterNet Python/CLI isolado |
 | Captura de microfone | Implementada opcional | `runtime/audio_processing_engine.py` | sounddevice; nao simula captura |
 | DSP fallback | Implementado | `runtime/audio_processing_engine.py` | noise gate mensuravel; nao inventa SNR |
+
+
+## Visão/OCR — Ponto 3
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| OCR real leve | Implementado opcional | `learning/vision_stack.py` | PP-OCRv6 small por padrão; tiny configurável |
+| Metadados de imagem | Implementado opcional | `learning/image_vision_engine.py` | Pillow; sem inferir dados ausentes |
+| Documento visual complexo | Implementado opcional | `learning/vision_stack.py` | PaddleOCR-VL, somente sob demanda |
+| Visão geral / VQA | Implementado opcional | `learning/vision_stack.py` | endpoint local Moondream |
+| Pré-contexto visual | Implementado | `learning/image_vision_engine.py` | inclui apenas percepções realmente produzidas |
+| Pseudo-OCR por bytes | Removido | `learning/image_vision_engine.py` | strings binárias nunca são tratadas como texto visto |
