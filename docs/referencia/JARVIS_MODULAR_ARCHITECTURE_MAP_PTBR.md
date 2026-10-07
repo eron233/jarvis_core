@@ -4,13 +4,15 @@ Este documento consolida a arquitetura técnica dos **6 Módulos Especializados*
 
 ---
 
-## 1. Módulo de Autoevolução e Segurança (Gêmeo de Segurança)
+## 1. Módulo de Autoevolução, Segurança e Melhoria (JARVIS Experimental Twin)
 
-**Conceito:** O JARVIS opera sobre um espelho sanitizado do seu próprio estado (`security/security_twin.py`) para diagnosticar, simular cenários de ataque e identificar vulnerabilidades sem risco de corrupção ao ambiente vivo.
+**Conceito:** O JARVIS passa a tratar o atual gêmeo de segurança como uma especialização de um laboratório mais amplo: o **JARVIS Experimental Twin**. O Twin usa um baseline congelado para testar segurança, qualidade, desempenho, novas tecnologias, ferramentas e, futuramente, modelos/adapters sem alterar diretamente o ambiente validado. O snapshot sanitizado existente em `security/security_twin.py` continua útil, mas não é considerado sozinho um gêmeo experimental completo.
 
 **Componentes Implementados:**
 - **Security Knowledge Core (`security/security_knowledge_core.py`):** Mapeia controles e regras de autodefesa.
-- **Security Twin (`security/security_twin.py`):** Espelho sanitizado do estado atual (fila, memória, runtime) com validação de integridade.
+- **Security Twin (`security/security_twin.py`):** Espelho sanitizado do estado atual (fila, memória, runtime) com validação de integridade; será um subsistema do Experimental Twin.
+- **Experimental Twin (arquitetura):** Orquestra experimentos baseline vs candidato com evidence bundles reproduzíveis, isolamento por risco e gates de promoção.
+- **Trilhos de melhoria:** Segurança, qualidade, desempenho/recursos, capacidade/integração e, futuramente, modelo/adapters.
 - **Security Validation Engine (`security/security_validation_engine.py`):** Executa suítes de teste e simulações defensivas no gêmeo.
 - **Remediation Engine (`security/remediation_engine.py`):** Gera planos de correção (imediato, estrutural e mitigação) e aplica correções seguras de forma autônoma.
 - **Relatório Semanal de Segurança (`security/security_report_engine.py`):** Consolida vulnerabilidades, ações automáticas e riscos críticos em pt-BR (Bloco 12.6).
@@ -66,3 +68,15 @@ Este documento consolida a arquitetura técnica dos **6 Módulos Especializados*
 **Componentes Implementados:**
 - **Diagnóstico do Runtime (`workers/worker_runtime.py`):** Mapeamento de recursos do sistema, status do host e diagnóstico de integridade.
 - **Profile & Optimization Simulator:** Simulação interna de ajustes de ambiente e geração de recomendações otimizadas para decisão do usuário.
+
+
+---
+
+## 7. Constituição Tecnológica
+
+A seleção de ferramentas e motores do JARVIS passa a seguir:
+- `docs/referencia/JARVIS_ESTADO_DA_ARTE_E_CONSTITUICAO_TECNOLOGICA_PTBR.md`
+- `docs/referencia/JARVIS_EXPERIMENTAL_TWIN_PTBR.md`
+- `constitutional_core/technology_constitution.json`
+
+A regra central é **evidência acima de propaganda**. Tecnologias externas são candidatas até vencerem a implementação atual em experimentos reproduzíveis. Componentes podem ser classificados como CORE, ON_DEMAND, EXPERIMENTAL, WATCHLIST ou REJECT/REPLACE.
