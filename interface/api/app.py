@@ -1115,6 +1115,60 @@ def create_app(
             explicit_model=modelo,
         )
 
+    # --- Endpoints MCP Oficial ---
+
+    @app.get("/api/mcp/status", dependencies=[Depends(require_trusted_device)])
+    def mcp_status(request: Request) -> Dict[str, Any]:
+        """Mostra servidores MCP cadastrados e o estado do SDK oficial."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.status()
+
+    @app.get("/api/mcp/{server_name}/discover", dependencies=[Depends(require_trusted_device)])
+    def mcp_discover(request: Request, server_name: str) -> Dict[str, Any]:
+        """Descobre tools/resources/prompts sem conceder permissão de execução."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.discover(server_name)
+
+    @app.post("/api/mcp/{server_name}/tools/{tool_name}", dependencies=[Depends(require_trusted_device)])
+    def mcp_call_tool(
+        request: Request,
+        server_name: str,
+        tool_name: str,
+        arguments: Dict[str, Any] | None = Body(default=None),
+    ) -> Dict[str, Any]:
+        """Executa apenas tools explicitamente autorizadas no registro MCP."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.call_tool(
+            server_name,
+            tool_name,
+            arguments=arguments or {},
+        )
+
+    @app.get("/api/mcp/{server_name}/resource", dependencies=[Depends(require_trusted_device)])
+    def mcp_read_resource(
+        request: Request,
+        server_name: str,
+        uri: str = Query(min_length=1),
+    ) -> Dict[str, Any]:
+        """Lê somente resources explicitamente autorizados."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.read_resource(server_name, uri)
+
+    @app.post("/api/mcp/{server_name}/prompt/{prompt_name}", dependencies=[Depends(require_trusted_device)])
+    def mcp_get_prompt(
+        request: Request,
+        server_name: str,
+        prompt_name: str,
+        arguments: Dict[str, str] | None = Body(default=None),
+    ) -> Dict[str, Any]:
+        """Obtém somente prompts explicitamente autorizados."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.get_prompt(
+            server_name,
+            prompt_name,
+            arguments=arguments or {},
+        )
+
     # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
 
     @app.post("/api/corporativo/despachar", dependencies=[Depends(require_trusted_device)])
