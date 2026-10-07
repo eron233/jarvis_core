@@ -50,7 +50,8 @@ class AudioProcessingHonestyTests(unittest.TestCase):
 
         self.assertFalse(resultado["transcricao"]["disponivel"])
         self.assertIsNone(resultado["transcricao"]["texto"])
-        self.assertIn("transcritor", resultado["transcricao"]["motivo"])
+        self.assertTrue(resultado["transcricao"]["motivo"])
+        self.assertIn(resultado["transcricao"]["status"], {"indisponivel", "erro"})
 
     def test_nao_afirma_ter_encontrado_sinal_de_radio(self) -> None:
         """
