@@ -78,6 +78,21 @@
       "capability": "lightweight_web_fetch",
       "component": "stdlib HTTP extractor with SSRF gate",
       "state": "validated"
+    },
+    {
+      "capability": "local_inference_runtime",
+      "component": "llama.cpp OpenAI-compatible adapter",
+      "state": "validated_optional_model_provisioning_pending"
+    },
+    {
+      "capability": "local_model_manager",
+      "component": "Ollama OpenAI-compatible adapter",
+      "state": "validated_optional_model_provisioning_pending"
+    },
+    {
+      "capability": "model_routing",
+      "component": "LocalInferenceRouter",
+      "state": "validated_no_model_selected"
     }
   ],
   "high_priority_experiments": [
@@ -90,7 +105,8 @@
     "Bandit",
     "OSV-Scanner",
     "py-spy",
-    "Optuna"
+    "Optuna",
+    "LiteLLM_gateway"
   ],
   "on_demand_candidates": [
     "Joern",
@@ -140,5 +156,16 @@
     "validado",
     "staging_when_authorized",
     "master_when_authorized"
-  ]
+  ],
+  "model_policy": {
+    "selected_base_model": null,
+    "aliases": {
+      "light": null,
+      "heavy": null,
+      "general": null,
+      "coding": null,
+      "reasoning": null
+    },
+    "rule": "no model name is constitutional until benchmarked on target hardware"
+  }
 }

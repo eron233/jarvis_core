@@ -399,13 +399,17 @@ class InternalAgentRuntime:
                 web_browser_engine=self.web_browser_engine,
             )
 
-            # Motores de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e Micro-Sandbox
+            # Inferencia local + Hierarquia Corporativa, Cache, Git Patcher e Micro-Sandbox
+            from runtime.inference_stack import LocalInferenceRouter
             from runtime.corporate_agent_hierarchy import CorporateAgentHierarchyEngine
             from memory_system.semantic_cache_engine import SemanticCacheEngine
             from security.git_branch_patcher import GitBranchPatcherEngine
             from security.lightweight_sandbox_engine import UltraLightweightSandboxEngine
 
-            self.corporate_hierarchy_engine = CorporateAgentHierarchyEngine()
+            self.inference_router = LocalInferenceRouter()
+            self.corporate_hierarchy_engine = CorporateAgentHierarchyEngine(
+                inference_router=self.inference_router,
+            )
             self.semantic_cache_engine = SemanticCacheEngine()
             self.git_branch_patcher_engine = GitBranchPatcherEngine()
             self.lightweight_sandbox_engine = UltraLightweightSandboxEngine()

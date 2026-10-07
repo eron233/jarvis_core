@@ -1,11 +1,9 @@
 """
-JARVIS - Arquitetura de Sub-Agentes Corporativos e Roteamento Adaptativo (Corporate Agent Hierarchy)
+JARVIS - Hierarquia Corporativa e Roteamento por Capacidade
 
-Responsável por:
-- organizar o JARVIS como uma empresa estruturada em departamentos especializados
-- aplicar o ciclo de vida sob demanda: o sub-agente desperta para a tarefa e adormece (hiberna) logo após a conclusão
-- selecionar o modelo apropriado (modelo leve para tarefas rotineiras vs modelo pesado para tarefas estratégicas/críticas)
-- economizar recursos computacionais, memória e tokens
+Organiza subagentes especializados e seleciona somente um tier/capacidade de
+inferência. O modelo concreto é resolvido pelo LocalInferenceRouter e pode
+permanecer indefinido até o benchmark do hardware real.
 """
 
 from __future__ import annotations
@@ -14,113 +12,130 @@ from datetime import datetime, timezone
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 LOGGER = logging.getLogger("jarvis.runtime.corporate_hierarchy")
 
 
 class CorporateSubAgent:
-    """Representa um sub-agente especializado pertencente a um departamento corporativo."""
+    """Representa um papel especializado sem acoplamento a nome de modelo."""
 
-    def __init__(self, agent_id: str, department: str, role_title: str, light_model: str, heavy_model: str) -> None:
+    def __init__(
+        self,
+        agent_id: str,
+        department: str,
+        role_title: str,
+        preferred_capability: str = "general",
+    ) -> None:
         self.agent_id = agent_id
         self.department = department
         self.role_title = role_title
-        self.light_model = light_model
-        self.heavy_model = heavy_model
-        self.state = "hibernating"  # 'hibernating' | 'active'
+        self.preferred_capability = preferred_capability
+        self.state = "hibernating"
         self.last_active_at: Optional[str] = None
         self.tasks_dispatched = 0
 
     def wake_up(self) -> None:
-        """Desperta o sub-agente para execução."""
         self.state = "active"
         self.last_active_at = datetime.now(timezone.utc).isoformat()
-        LOGGER.info("[subagent_wake] %s (%s) despertado para execução.", self.agent_id, self.department)
 
     def hibernate(self) -> None:
-        """Coloca o sub-agente em hibernação para liberar recursos do sistema."""
         self.state = "hibernating"
-        LOGGER.info("[subagent_hibernate] %s (%s) adormecido com sucesso.", self.agent_id, self.department)
 
-    def select_model_tier(self, task_complexity: str) -> Dict[str, Any]:
-        """
-        Seleciona a camada de modelo (leve vs pesado) com base na complexidade da tarefa.
-        'simples' / 'intermediaria' -> Modelo Leve
-        'critica' / 'complexa' -> Modelo Pesado
-        """
-        if task_complexity in ("critica", "complexa", "high"):
-            selected_model = self.heavy_model
-            tier = "pesado"
-            reason = "A tarefa exige raciocínio profundo e validação rigorosa."
-        else:
-            selected_model = self.light_model
-            tier = "leve"
-            reason = "A tarefa é rotineira/direta, otimizando o consumo de tokens e tempo."
+    def select_model_tier(
+        self,
+        task_complexity: str,
+        inference_router: Any = None,
+    ) -> Dict[str, Any]:
+        heavy = str(task_complexity).lower() in {"critica", "complexa", "high", "heavy"}
+        tier_en = "heavy" if heavy else "light"
+        tier_pt = "pesado" if heavy else "leve"
+
+        resolution = {
+            "status": "indisponivel",
+            "modelo": None,
+            "origem": None,
+            "motivo": "Nenhum roteador de inferencia foi conectado.",
+        }
+        if inference_router is not None and hasattr(inference_router, "resolve_model"):
+            resolution = inference_router.resolve_model(
+                tier=tier_en,
+                capability=self.preferred_capability,
+            )
 
         return {
-            "modelo_selecionado": selected_model,
-            "tier": tier,
-            "motivo_selecao": reason,
+            "tier": tier_pt,
+            "tier_id": tier_en,
+            "capacidade": self.preferred_capability,
+            "modelo_selecionado": resolution.get("modelo"),
+            "modelo_resolvido": resolution.get("status") == "sucesso",
+            "origem_modelo": resolution.get("origem"),
+            "motivo_modelo": resolution.get("motivo"),
+            "motivo_selecao": (
+                "Tarefa crítica/complexa pede o tier pesado."
+                if heavy
+                else "Tarefa simples/intermediária pede o tier leve."
+            ),
         }
 
     def to_dict(self) -> Dict[str, Any]:
-        """Retorna estado e atributos do sub-agente."""
         return {
             "agent_id": self.agent_id,
             "departamento": self.department,
             "cargo": self.role_title,
             "estado": self.state,
-            "modelo_leve": self.light_model,
-            "modelo_pesado": self.heavy_model,
+            "capacidade_preferida": self.preferred_capability,
             "tarefas_despachadas": self.tasks_dispatched,
             "ultimo_despertar": self.last_active_at,
         }
 
 
 class CorporateAgentHierarchyEngine:
-    """Orquestrador corporativo dos departamentos e sub-agentes do JARVIS."""
+    """Roteia tarefas por departamento e tier, sem inventar nomes de modelos."""
 
-    def __init__(self, data_dir: Optional[Path] = None) -> None:
-        self.data_dir = Path(data_dir) if data_dir else Path(__file__).resolve().parents[1] / "data" / "corporate_hierarchy"
+    def __init__(
+        self,
+        data_dir: Optional[Path] = None,
+        inference_router: Any = None,
+    ) -> None:
+        self.data_dir = (
+            Path(data_dir)
+            if data_dir
+            else Path(__file__).resolve().parents[1] / "data" / "corporate_hierarchy"
+        )
         self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.inference_router = inference_router
 
-        # Cadastro Oficial de Departamentos e Sub-Agentes Corporativos
         self.agents: Dict[str, CorporateSubAgent] = {
             "ceo_executive": CorporateSubAgent(
-                agent_id="ceo_executive",
-                department="Gabinete_Executivo",
-                role_title="Diretor Executivo de Estratégia e Decisões JEV",
-                light_model="claude-3-5-haiku-local",
-                heavy_model="claude-3-7-sonnet-supreme",
+                "ceo_executive",
+                "Gabinete_Executivo",
+                "Diretor Executivo de Estratégia e Decisões JEV",
+                "reasoning",
             ),
             "security_director": CorporateSubAgent(
-                agent_id="security_director",
-                department="Diretoria_de_Seguranca_e_Auditoria",
-                role_title="Especialista em Defesa, Gêmeo de Segurança e Caça Zero-Day",
-                light_model="security-checker-fast",
-                heavy_model="claude-3-7-sonnet-security",
+                "security_director",
+                "Diretoria_de_Seguranca_e_Auditoria",
+                "Especialista em Defesa, Twin e Auditoria",
+                "reasoning",
             ),
             "engineering_lead": CorporateSubAgent(
-                agent_id="engineering_lead",
-                department="Engenharia_de_Software_e_Arquitetura",
-                role_title="Líder de Desenvolvimento, AST e Refatoração de Código",
-                light_model="coder-light-fast",
-                heavy_model="claude-3-7-sonnet-coder",
+                "engineering_lead",
+                "Engenharia_de_Software_e_Arquitetura",
+                "Líder de Desenvolvimento e Arquitetura",
+                "coding",
             ),
             "web_research_agent": CorporateSubAgent(
-                agent_id="web_research_agent",
-                department="Inteligencia_de_Mercado_e_Navegacao_Web",
-                role_title="Pesquisador Web, ScrapeGraph e Coletor de Dados MCP",
-                light_model="web-scraper-lite",
-                heavy_model="claude-3-5-sonnet-researcher",
+                "web_research_agent",
+                "Inteligencia_de_Mercado_e_Navegacao_Web",
+                "Pesquisador Web e Coletor de Evidências",
+                "general",
             ),
             "finance_trader": CorporateSubAgent(
-                agent_id="finance_trader",
-                department="Analise_Financeira_e_Day_Trade",
-                role_title="Analista de Fluxo de Ordens, Tape Reading B3 e Riscos",
-                light_model="market-ticker-fast",
-                heavy_model="claude-3-7-sonnet-financial",
+                "finance_trader",
+                "Analise_Financeira_e_Day_Trade",
+                "Analista Financeiro e de Riscos",
+                "reasoning",
             ),
         }
 
@@ -131,56 +146,36 @@ class CorporateAgentHierarchyEngine:
         task_payload: Dict[str, Any],
         task_complexity: str = "intermediaria",
     ) -> Dict[str, Any]:
-        """
-        Roteia uma tarefa para o sub-agente do departamento e decide o modelo.
-
-        Parametros:
-        - department: setor de destino.
-        - task_title: titulo da tarefa roteada.
-        - task_payload: conteudo da tarefa, registrado para quem for executa-la.
-        - task_complexity: complexidade usada na escolha do porte do modelo.
-
-        Retorno:
-        - decisao de roteamento, com o sub-agente e o modelo escolhidos.
-
-        Efeitos no sistema:
-        - desperta e hiberna o sub-agente e grava o registro do despacho.
-
-        A versao anterior dizia "executa a tarefa atribuida" e montava um resumo
-        afirmando que o sub-agente a executara, mas `task_payload` nunca era
-        lido e nenhum modelo era chamado. O que existe de real aqui e a escolha
-        do setor, a escolha do porte do modelo e o ciclo de vida do agente.
-        """
         now = datetime.now(timezone.utc).isoformat()
 
-        # 1. Encontrar o sub-agente do departamento
         matching_agent = None
         for agent in self.agents.values():
-            if agent.department.lower() in department.lower() or department.lower() in agent.department.lower():
+            if (
+                agent.department.lower() in department.lower()
+                or department.lower() in agent.department.lower()
+            ):
                 matching_agent = agent
                 break
-
         if matching_agent is None:
-            matching_agent = self.agents["ceo_executive"]  # Fallback para o CEO
+            matching_agent = self.agents["ceo_executive"]
 
-        # 2. Ciclo de Vida: Despertar
         matching_agent.wake_up()
-
-        # 3. Seleção do Modelo Adaptativo (Leve vs Pesado)
-        model_selection = matching_agent.select_model_tier(task_complexity)
-
-        # 4. Decisao de roteamento. Nenhum modelo e chamado neste ponto.
-        payload = task_payload or {}
-        routing_decision = (
-            f"Tarefa '{task_title}' roteada para '{matching_agent.role_title}' "
-            f"no setor '{matching_agent.department}', com o modelo "
-            f"{model_selection['tier'].upper()} ({model_selection['modelo_selecionado']})."
+        model_selection = matching_agent.select_model_tier(
+            task_complexity,
+            inference_router=self.inference_router,
         )
         matching_agent.tasks_dispatched += 1
-
-        # 5. Ciclo de Vida: Hibernação Imediata
         matching_agent.hibernate()
 
+        selected_model = model_selection.get("modelo_selecionado")
+        model_text = selected_model or "ainda não definido pelo benchmark local"
+        routing_decision = (
+            f"Tarefa '{task_title}' roteada para '{matching_agent.role_title}' "
+            f"no setor '{matching_agent.department}', tier {model_selection['tier'].upper()}, "
+            f"capacidade '{model_selection['capacidade']}', modelo {model_text}."
+        )
+
+        payload = task_payload or {}
         report = {
             "tarefa": task_title,
             "departamento": matching_agent.department,
@@ -190,8 +185,9 @@ class CorporateAgentHierarchyEngine:
             "decisao_roteamento": routing_decision,
             "tarefa_executada": False,
             "motivo_nao_execucao": (
-                "Este motor decide o setor e o porte do modelo. A execucao em si "
-                "depende de um executor que ainda nao esta ligado a esta hierarquia."
+                "Este módulo roteia departamento/tier/capacidade. O executor de inferencia "
+                "ainda nao esta ligado a esta etapa; a execução deve passar pelo motor de "
+                "inferência e pelo planner constitucional."
             ),
             "carga_recebida": {
                 "possui_conteudo": bool(payload),
@@ -199,9 +195,9 @@ class CorporateAgentHierarchyEngine:
             },
             "estado_final_subagente": matching_agent.state,
             "resumo_ptbr": (
-                f"Tarefa corporativa roteada para o setor '{matching_agent.department}'. "
-                f"Modelo escolhido: {model_selection['modelo_selecionado']} ({model_selection['tier']}). "
-                f"O sub-agente retornou ao estado de hibernação. A tarefa ainda nao foi executada."
+                f"Tarefa roteada para {matching_agent.department}; tier "
+                f"{model_selection['tier']}; modelo {model_text}. Nenhuma execução "
+                "foi simulada neste módulo."
             ),
         }
 
@@ -209,20 +205,25 @@ class CorporateAgentHierarchyEngine:
         return report
 
     def get_hierarchy_status(self) -> Dict[str, Any]:
-        """Retorna o status de todos os departamentos e sub-agentes."""
-        active_count = sum(1 for a in self.agents.values() if a.state == "active")
-        hibernating_count = sum(1 for a in self.agents.values() if a.state == "hibernating")
-
+        active_count = sum(1 for agent in self.agents.values() if agent.state == "active")
+        hibernating_count = sum(
+            1 for agent in self.agents.values() if agent.state == "hibernating"
+        )
         return {
             "total_departamentos": len(self.agents),
             "subagentes_ativos": active_count,
             "subagentes_em_hibernacao": hibernating_count,
-            "economia_recursos_status": "otimizado_sob_demanda",
+            "economia_recursos_status": "roteamento_sob_demanda",
+            "modelos_hardcoded": False,
             "departamentos": [agent.to_dict() for agent in self.agents.values()],
         }
 
     def _save_dispatch_record(self, task_title: str, report: Dict[str, Any]) -> None:
-        """Salva o registro do dispatch em JSON."""
         clean_title = task_title.replace(" ", "_").replace("/", "_")[:30]
-        file_path = self.data_dir / f"dispatch_{clean_title}_{int(datetime.now(timezone.utc).timestamp())}.json"
-        file_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+        file_path = self.data_dir / (
+            f"dispatch_{clean_title}_{int(datetime.now(timezone.utc).timestamp())}.json"
+        )
+        file_path.write_text(
+            json.dumps(report, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
