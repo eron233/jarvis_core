@@ -342,27 +342,34 @@ class LocalInferenceRouter:
             "coding": self.config.model_coding,
             "reasoning": self.config.model_reasoning,
         }
-        requested = (capability or tier or "general").strip().lower()
-        model = aliases.get(requested)
-        if model is None and requested not in aliases:
-            model = aliases.get(tier.strip().lower())
-        if model is None and requested != "general":
-            model = aliases.get("general")
+        candidates = []
+        if capability:
+            candidates.append(str(capability).strip().lower())
+        if tier:
+            candidates.append(str(tier).strip().lower())
+        candidates.append("general")
 
-        if not model:
-            return {
-                "status": "indisponivel",
-                "modelo": None,
-                "origem": None,
-                "motivo": (
-                    "Nenhum modelo foi escolhido para este tier/capacidade. "
-                    "A selecao do modelo-base permanece adiada ate o benchmark local."
-                ),
-            }
+        seen = set()
+        for alias in candidates:
+            if alias in seen:
+                continue
+            seen.add(alias)
+            model = aliases.get(alias)
+            if model:
+                return {
+                    "status": "sucesso",
+                    "modelo": model,
+                    "origem": f"alias:{alias}",
+                }
+
         return {
-            "status": "sucesso",
-            "modelo": model,
-            "origem": f"alias:{requested}",
+            "status": "indisponivel",
+            "modelo": None,
+            "origem": None,
+            "motivo": (
+                "Nenhum modelo foi escolhido para este tier/capacidade. "
+                "A selecao do modelo-base permanece adiada ate o benchmark local."
+            ),
         }
 
     def chat(
