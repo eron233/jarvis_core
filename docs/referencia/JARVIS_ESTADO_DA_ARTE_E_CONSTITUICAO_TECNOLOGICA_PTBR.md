@@ -48,9 +48,9 @@ Nenhum item B/C é tratado como inferior por definição; ele simplesmente exige
 
 | Domínio | Candidato / tecnologia | Papel no JARVIS | Classe inicial | Observação |
 |---|---|---|---|---|
-| Runtime de LLM local | **llama.cpp** | Inferência GGUF quantizada, CPU/GPU offload, servidor local | EXPERIMENTAL → provável CORE | Excelente candidato para PC fraco; modelo ainda não escolhido |
-| Gerência local de modelos | **Ollama** | Instalação/serviço/API e modelos locais | EXPERIMENTAL | Conveniência; não deve aprisionar o core |
-| Gateway multi-modelo | **LiteLLM** | Interface unificada e roteamento | EXPERIMENTAL | Útil quando houver múltiplos backends; revisar licença/overhead |
+| Runtime de LLM local | **llama.cpp** | Inferência GGUF quantizada, CPU/GPU offload, servidor local | ADAPTER VALIDADO / modelo pendente | Runtime principal de baixo nível; nenhum modelo escolhido |
+| Gerência local de modelos | **Ollama** | Instalação/serviço/API e modelos locais | ADAPTER VALIDADO / modelo pendente | Fallback/gerenciamento; core não depende dele |
+| Gateway multi-modelo | **LiteLLM** | Interface unificada, políticas e roteamento amplo | EXPERIMENTAL — próximo nível | Avaliar quando houver múltiplos provedores além dos runtimes locais |
 | Orquestração tipada | **PydanticAI** | Padrões de tools, outputs, dependências e subagentes | EXPERIMENTAL / padrões | Não substituir o planner constitucional por padrão |
 | Protocolo de ferramentas | **MCP oficial** | Integração interoperável de ferramentas/contexto | EXPERIMENTAL → provável CORE | Substitui implementações MCP simuladas |
 | Memória vetorial | **Qdrant** | Índice vetorial persistente | VALIDADO | Já integrado de forma opcional |
