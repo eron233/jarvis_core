@@ -97,6 +97,29 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
         ).stdout.strip()
         self.assertEqual(len(head), 40)
 
+        direct = subprocess.run(
+            [
+                str(Path(GRAFT_BINARY).resolve()),
+                "--cwd",
+                str(self.temp_repo),
+                "read",
+                "safe",
+                "small.py",
+                "--json",
+            ],
+            cwd=self.temp_repo,
+            env=os.environ.copy(),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(
+            direct.returncode,
+            0,
+            f"Graft CLI preflight failed. stdout={direct.stdout!r} stderr={direct.stderr!r}",
+        )
+        self.assertIn("content", direct.stdout)
+
         registry = self.temp_repo / "graft_registry_runtime.json"
         relative_repo = self.temp_repo.relative_to(self.project_root).as_posix()
         registry.write_text(
