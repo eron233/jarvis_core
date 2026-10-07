@@ -69,9 +69,9 @@ class _FakeClient:
     async def call_tool(self, name, arguments):
         self.calls.append(("tool", name, arguments))
         return SimpleNamespace(
-            structured_content={"ok": True, "name": name, "arguments": arguments},
+            structured_content={"ok": name != "error_tool", "name": name, "arguments": arguments},
             content=[],
-            is_error=False,
+            is_error=name == "error_tool",
         )
 
     async def read_resource(self, uri):
@@ -101,7 +101,7 @@ class MCPStackTests(unittest.TestCase):
                             "enabled": True,
                             "transport": "streamable-http",
                             "url": "http://127.0.0.1:8000/mcp",
-                            "allowed_tools": ["safe_tool"],
+                            "allowed_tools": ["safe_tool", "error_tool"],
                             "allowed_resources": ["jarvis://allowed"],
                             "allowed_prompts": ["allowed_prompt"],
                         },
@@ -170,6 +170,14 @@ class MCPStackTests(unittest.TestCase):
 
         self.assertEqual(blocked["status"], "bloqueado")
         self.assertEqual(before, after)
+
+    def test_protocol_tool_error_is_not_reported_as_success(self):
+        manager = self._manager()
+        result = manager.call_tool("local", "error_tool", {"x": 1})
+
+        self.assertEqual(result["status"], "erro")
+        self.assertIn("isError=true", result["motivo"])
+        self.assertTrue(result["resultado"]["is_error"])
 
     def test_resource_and_prompt_have_independent_allowlists(self):
         manager = self._manager()
