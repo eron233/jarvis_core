@@ -93,10 +93,19 @@
       "capability": "model_routing",
       "component": "LocalInferenceRouter",
       "state": "validated_no_model_selected"
+    },
+    {
+      "capability": "official_mcp_protocol",
+      "component": "Model Context Protocol Python SDK v2",
+      "state": "validated_optional_least_privilege"
+    },
+    {
+      "capability": "mcp_tool_governance",
+      "component": "OfficialMCPClientManager allowlists",
+      "state": "validated"
     }
   ],
   "high_priority_experiments": [
-    "official_mcp_python_sdk",
     "codebase-memory-mcp",
     "Graft_development_context",
     "Hypothesis",
@@ -167,5 +176,16 @@
       "reasoning": null
     },
     "rule": "no model name is constitutional until benchmarked on target hardware"
+  },
+  "mcp_policy": {
+    "sdk": "mcp>=2.2,<3",
+    "protocol_revision": "2026-07-28",
+    "default_client_scope": "local_only",
+    "discovery_grants_execution": false,
+    "tool_execution_requires_allowlist": true,
+    "resources_require_allowlist": true,
+    "prompts_require_allowlist": true,
+    "jarvis_server_default": "read_only",
+    "remote_http_default": false
   }
 }
