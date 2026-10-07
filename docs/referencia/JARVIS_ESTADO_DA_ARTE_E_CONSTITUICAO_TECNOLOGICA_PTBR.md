@@ -58,7 +58,7 @@ Nenhum item B/C é tratado como inferior por definição; ele simplesmente exige
 | Reranking | **Qwen3-Reranker 0.6B** | Reordenação semântica | VALIDADO/condicional | Já integrado; validar consumo no hardware |
 | Memória conversacional | **Mem0 OSS** | Consolidação/recuperação de memória longa | VALIDADO/condicional | Integração opcional; backend local preferido |
 | Memória temporal/relacional | **Graphiti + FalkorDB** | Eventos, entidades, relações e validade temporal | EXPERIMENTAL | Complementa vetores; não substituir Qdrant automaticamente |
-| Conhecimento do próprio código | **codebase-memory-mcp** | Grafo persistente, call graph, impacto, rotas e consultas | EXPERIMENTAL — alta prioridade | Candidato forte para autoconsciência estrutural do código |
+| Conhecimento do próprio código | **codebase-memory-mcp v0.11.0 + AST local** | Grafo persistente, call graph, impacto, rotas e consultas | VALIDADO opcional / interop real | Release pinado testado via MCP; benchmarks do autor ainda exigem reprodução no Twin |
 | Contexto para agentes de desenvolvimento | **Graft** | Reduzir exploração repetitiva do repo por agentes | EXPERIMENTAL — dev only | Ferramenta para construir o JARVIS, não necessariamente cérebro residente |
 | Segurança/dataflow de código | **Joern** | Code Property Graph e análise profunda | ON_DEMAND candidato | Especializado; mais pesado que busca estrutural cotidiana |
 | Busca web privada | **SearXNG** | Metabusca local/self-hosted | ADAPTER VALIDADO / serviço opcional | JSON API; sem fonte fictícia quando indisponível |
