@@ -123,6 +123,11 @@
       "capability": "development_context_governance",
       "component": "LocalDevelopmentContextGovernor",
       "state": "validated_local_evidence_only"
+    },
+    {
+      "capability": "semantic_cache",
+      "component": "Exact SHA-256 cache + optional Qdrant vector adapter",
+      "state": "validated_exact_vector_optional_model_unselected"
     }
   ],
   "high_priority_experiments": [
@@ -243,5 +248,15 @@
     "range_max_lines": 250,
     "secrets_binaries_lockfiles_must_be_refused": true,
     "receipts_measure_bytes_not_unproven_token_savings": true
+  },
+  "semantic_cache_policy": {
+    "exact_cache_without_model": true,
+    "heuristic_jaccard_as_semantic_cache": false,
+    "vector_backend": "Qdrant_optional",
+    "vector_enabled_default": false,
+    "embedding_model_selected": null,
+    "owner_or_benchmark_must_select_embedding_model": true,
+    "measured_hits_and_misses_only": true,
+    "unmeasured_token_savings_forbidden": true
   }
 }

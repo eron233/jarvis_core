@@ -313,3 +313,15 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | API dev-context | Validado | `interface/api/app.py` | dispositivo confiável |
 | flyingrobots/graft v0.14.0 | Quarentena | adapter MCP em `development_context_engine.py` | CLI real falhou com Git code 128 no ambiente reproduzido |
 | TrailHQ/Nanonets Graft | Watchlist challenger | Experimental Twin futuro | sobreposição forte com ponto 8 |
+
+
+## Cache Semantico — Ponto 10
+
+| Capacidade | Estado | Implementacao | Observacao |
+|---|---|---|---|
+| Cache exato normalizado | Validado | `memory_system/semantic_cache_engine.py` | SHA-256; funciona sem modelo |
+| Similaridade Jaccard heuristica | Removida | — | nao e tratada como semantica real |
+| Backend vetorial Qdrant | Implementado opcional | `QdrantSemanticCacheBackend` | so ativa com configuracao explicita |
+| Modelo de embedding | Nao selecionado | configuracao vazia por default | escolha fica para benchmark/decisao do proprietario |
+| Threshold vetorial | Configuravel | `JARVIS_SEMANTIC_CACHE_SIMILARITY_THRESHOLD` | default operacional 0.90; nao escolhe modelo |
+| Metricas do cache | Validado | `SemanticCacheEngine.get_stats` | hits/misses observados; sem economia de tokens inventada |
