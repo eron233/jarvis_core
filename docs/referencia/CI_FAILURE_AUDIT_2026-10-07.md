@@ -118,9 +118,20 @@ Correção:
 
 ### Starlette/httpx
 
-Estado: **ANOTADO / NÃO INICIADO**.
+Estado: **CORRIGIDO NESTE LOTE**.
 
-A depreciação do `TestClient` será tratada em lote separado.
+Causa:
+- Starlette passou a preferir `httpx2` no `TestClient`;
+- com apenas `httpx` instalado, o fallback ainda funcionava, mas emitia
+  `StarletteDeprecationWarning` em toda execução da suíte.
+
+Correção:
+- `httpx2>=2.0,<3.0` adicionado às dependências do projeto;
+- `httpx` foi mantido por compatibilidade até uma auditoria separada confirmar
+  que nenhum consumidor direto ainda depende dele.
+
+Critério de fechamento:
+- suíte completa verde sem `StarletteDeprecationWarning`.
 
 ## 6. Inconsistência separada: defaults antigos de modelo
 
