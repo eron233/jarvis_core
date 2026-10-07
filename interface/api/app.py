@@ -1031,13 +1031,13 @@ def create_app(
         return {"mensagem": "Campanha de caça a vulnerabilidades concluída com sucesso.", "relatorio_campanha": res}
 
     @app.post("/api/web/scrapegraph/extrair", dependencies=[Depends(require_trusted_device)])
-    def extract_structured_scrapegraph(request: Request, url: str = Query(min_length=1), html: str = Body(...), schema: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    def extract_structured_scrapegraph(request: Request, url: str = Query(min_length=1), html: str = Body(...), extraction_schema: Dict[str, Any] = Body(..., alias="schema")) -> Dict[str, Any]:
         """Executa extração estruturada real via schema JSON-CSS do Crawl4AI."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.scrapegraph_engine.extract_structured_graph(
             target_url=url,
             html_content=html,
-            extraction_schema=schema,
+            extraction_schema=extraction_schema,
         )
         return {
             "mensagem": "Extração estruturada processada; consulte o campo status.",
