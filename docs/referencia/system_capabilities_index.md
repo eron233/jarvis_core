@@ -295,5 +295,5 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Trace callers/callees | Implementado | `learning/codebase_intelligence_engine.py` | profundidade 1–5 |
 | Impacto estrutural | Implementado | `learning/codebase_intelligence_engine.py` | não inventa score de risco |
 | Snippet por símbolo | Implementado | `learning/codebase_intelligence_engine.py` | leitura localizada |
-| codebase-memory-mcp | Integração MCP opcional | `learning/codebase_intelligence_engine.py` | v0.11.0 pinado no teste externo |
+| codebase-memory-mcp | Validado opcional / interop real | `learning/codebase_intelligence_engine.py` | v0.11.0 pinado por SHA-256 no CI |
 | Graphify heurístico | Endurecido | `runtime/graphify_engine.py` | não fabrica dependências/ciclos |
