@@ -3,11 +3,17 @@
 O workflow dedicado baixa o tarball oficial pinado, verifica SHA-256, instala
 em diretório isolado e informa GRAFT_CONTEXT_BINARY. A suite core pula este
 teste quando o binário externo não está provisionado.
+
+A prova usa um repositório Git temporário próprio dentro da árvore de testes,
+evitando depender de particularidades do checkout do GitHub Actions.
 """
 
 from pathlib import Path
 import json
 import os
+import shutil
+import subprocess
+import tempfile
 import unittest
 
 from runtime.mcp_stack import MCPStackConfig, OfficialMCPClientManager
@@ -23,10 +29,17 @@ GRAFT_BINARY = os.environ.get("GRAFT_CONTEXT_BINARY")
 class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.project_root = Path(__file__).resolve().parents[1]
-        self.fixture_dir = self.project_root / "tests" / "fixtures" / "graft_context_sample"
-        self.large_file = self.fixture_dir / "large_runtime.py"
-        self.secret_file = self.fixture_dir / ".env.graft-runtime"
-        self.large_file.write_text(
+        fixtures_root = self.project_root / "tests" / "fixtures"
+        fixtures_root.mkdir(parents=True, exist_ok=True)
+        self.temp_repo = Path(
+            tempfile.mkdtemp(prefix="graft-runtime-", dir=str(fixtures_root))
+        )
+
+        (self.temp_repo / "small.py").write_text(
+            "def add(a: int, b: int) -> int:\n    return a + b\n",
+            encoding="utf-8",
+        )
+        (self.temp_repo / "large.py").write_text(
             "\n".join(
                 [
                     "def giant(value: int) -> int:",
@@ -38,12 +51,54 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        self.secret_file.write_text(
+        (self.temp_repo / ".env.graft-runtime").write_text(
             "SUPER_SECRET_VALUE=never-return-this\n",
             encoding="utf-8",
         )
 
-        registry = self.fixture_dir / "graft_registry_runtime.json"
+        git_env = {
+            **os.environ,
+            "GIT_AUTHOR_NAME": "Jarvis CI",
+            "GIT_AUTHOR_EMAIL": "jarvis-ci@example.invalid",
+            "GIT_COMMITTER_NAME": "Jarvis CI",
+            "GIT_COMMITTER_EMAIL": "jarvis-ci@example.invalid",
+        }
+        subprocess.run(
+            ["git", "init", "-q"],
+            cwd=self.temp_repo,
+            env=git_env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "add", "."],
+            cwd=self.temp_repo,
+            env=git_env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-qm", "fixture"],
+            cwd=self.temp_repo,
+            env=git_env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.temp_repo,
+            env=git_env,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertEqual(len(head), 40)
+
+        registry = self.temp_repo / "graft_registry_runtime.json"
+        relative_repo = self.temp_repo.relative_to(self.project_root).as_posix()
         registry.write_text(
             json.dumps(
                 {
@@ -54,7 +109,7 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
                             "transport": "stdio",
                             "command": str(Path(GRAFT_BINARY).resolve()),
                             "args": ["serve"],
-                            "cwd": ".",
+                            "cwd": relative_repo,
                             "env_allowlist": [
                                 "PATH",
                                 "HOME",
@@ -87,11 +142,7 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
         )
 
     def tearDown(self):
-        for path in (self.large_file, self.secret_file, self.registry):
-            try:
-                path.unlink()
-            except FileNotFoundError:
-                pass
+        shutil.rmtree(self.temp_repo, ignore_errors=True)
 
     @staticmethod
     def _text(result):
@@ -108,7 +159,7 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
             "graft-context",
             "safe_read",
             {
-                "path": "tests/fixtures/graft_context_sample/small.py",
+                "path": "small.py",
                 "intent": "understand fixture",
             },
         )
@@ -121,9 +172,7 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
         large = self.manager.call_tool(
             "graft-context",
             "safe_read",
-            {
-                "path": "tests/fixtures/graft_context_sample/large_runtime.py",
-            },
+            {"path": "large.py"},
         )
         self.assertEqual(large["status"], "sucesso", large)
         large_text = self._text(large["resultado"])
@@ -134,9 +183,7 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
         outline = self.manager.call_tool(
             "graft-context",
             "file_outline",
-            {
-                "path": "tests/fixtures/graft_context_sample/large_runtime.py",
-            },
+            {"path": "large.py"},
         )
         self.assertEqual(outline["status"], "sucesso", outline)
         outline_text = self._text(outline["resultado"])
@@ -146,7 +193,7 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
             "graft-context",
             "read_range",
             {
-                "path": "tests/fixtures/graft_context_sample/large_runtime.py",
+                "path": "large.py",
                 "start": 1,
                 "end": 10,
             },
@@ -159,9 +206,7 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
         secret = self.manager.call_tool(
             "graft-context",
             "safe_read",
-            {
-                "path": "tests/fixtures/graft_context_sample/.env.graft-runtime",
-            },
+            {"path": ".env.graft-runtime"},
         )
         self.assertEqual(secret["status"], "sucesso", secret)
         secret_text = self._text(secret["resultado"])
