@@ -282,3 +282,18 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Servidor MCP do JARVIS | Implementado opcional | `runtime/mcp_stack.py`, `runtime/mcp_server.py` | read-only por padrão |
 | API MCP interna | Implementado | `interface/api/app.py` | protegida por dispositivo confiável |
 | MCP simulado | Rejeitado | Constituição | envelope legado não conta como protocolo |
+
+
+## Inteligência do Código — Ponto 8
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Grafo AST Python local | Implementado | `learning/codebase_intelligence_engine.py` | baseline determinístico + SQLite |
+| Símbolos/classes/funções | Implementado | `learning/codebase_intelligence_engine.py` | path/linha auditáveis |
+| Call graph local | Implementado | `learning/codebase_intelligence_engine.py` | ambiguidades permanecem não resolvidas |
+| Imports e rotas HTTP | Implementado | `learning/codebase_intelligence_engine.py` | evidência estrutural |
+| Trace callers/callees | Implementado | `learning/codebase_intelligence_engine.py` | profundidade 1–5 |
+| Impacto estrutural | Implementado | `learning/codebase_intelligence_engine.py` | não inventa score de risco |
+| Snippet por símbolo | Implementado | `learning/codebase_intelligence_engine.py` | leitura localizada |
+| codebase-memory-mcp | Integração MCP opcional | `learning/codebase_intelligence_engine.py` | v0.11.0 pinado no teste externo |
+| Graphify heurístico | Endurecido | `runtime/graphify_engine.py` | não fabrica dependências/ciclos |
