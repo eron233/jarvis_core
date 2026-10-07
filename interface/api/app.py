@@ -1169,6 +1169,88 @@ def create_app(
             arguments=arguments or {},
         )
 
+    # --- Endpoints de Inteligencia Estrutural do Codigo ---
+
+    @app.get("/api/codebase/status", dependencies=[Depends(require_trusted_device)])
+    def codebase_status(request: Request) -> Dict[str, Any]:
+        """Mostra o backend estrutural local/externo e seu estado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.status()
+
+    @app.post("/api/codebase/indexar", dependencies=[Depends(require_trusted_device)])
+    def codebase_index(
+        request: Request,
+        preferir_externo: bool = Query(default=True),
+    ) -> Dict[str, Any]:
+        """Indexa o repositório atual; backend externo só roda quando explicitamente habilitado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.index(prefer_external=preferir_externo)
+
+    @app.get("/api/codebase/arquitetura", dependencies=[Depends(require_trusted_device)])
+    def codebase_architecture(
+        request: Request,
+        preferir_externo: bool = Query(default=True),
+    ) -> Dict[str, Any]:
+        """Retorna visão estrutural do código baseada em grafo real."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.architecture(
+            prefer_external=preferir_externo
+        )
+
+    @app.get("/api/codebase/buscar", dependencies=[Depends(require_trusted_device)])
+    def codebase_search(
+        request: Request,
+        q: str = Query(min_length=1),
+        limite: int = Query(default=30, ge=1, le=200),
+        preferir_externo: bool = Query(default=True),
+    ) -> Dict[str, Any]:
+        """Busca símbolos/estruturas no grafo do código."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.search(
+            q,
+            limit=limite,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/codebase/rastrear", dependencies=[Depends(require_trusted_device)])
+    def codebase_trace(
+        request: Request,
+        simbolo: str = Query(min_length=1),
+        direcao: str = Query(default="both"),
+        profundidade: int = Query(default=3, ge=1, le=5),
+        preferir_externo: bool = Query(default=True),
+    ) -> Dict[str, Any]:
+        """Rastreia callers/callees com evidência estrutural."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.trace(
+            simbolo,
+            direction=direcao,
+            depth=profundidade,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/codebase/impacto", dependencies=[Depends(require_trusted_device)])
+    def codebase_impact(
+        request: Request,
+        simbolo: str = Query(min_length=1),
+        profundidade: int = Query(default=3, ge=1, le=5),
+    ) -> Dict[str, Any]:
+        """Calcula dependências inbound observadas sem inventar risco."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.impact(
+            simbolo,
+            depth=profundidade,
+        )
+
+    @app.get("/api/codebase/snippet", dependencies=[Depends(require_trusted_device)])
+    def codebase_snippet(
+        request: Request,
+        simbolo: str = Query(min_length=1),
+    ) -> Dict[str, Any]:
+        """Lê somente o trecho-fonte do símbolo estrutural encontrado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.snippet(simbolo)
+
     # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
 
     @app.post("/api/corporativo/despachar", dependencies=[Depends(require_trusted_device)])
