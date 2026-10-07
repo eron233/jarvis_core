@@ -1345,7 +1345,7 @@ def create_app(
 
     @app.get("/api/cache/semantico/estatisticas", dependencies=[Depends(require_trusted_device)])
     def get_semantic_cache_stats(request: Request) -> Dict[str, Any]:
-        """Retorna estatísticas do cache semântico local e estimativa de tokens economizados."""
+        """Retorna métricas observadas do cache exato e do backend vetorial opcional."""
         runtime = _ensure_runtime_initialized(request)
         return runtime.semantic_cache_engine.get_stats()
 
