@@ -72,6 +72,7 @@ class SemanticMemory:
     auto_persist: bool = False
     entries: List[Dict[str, Any]] = field(default_factory=list)
     facts: Dict[str, Any] = field(default_factory=dict)
+    advanced_retriever: Any = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         """
@@ -88,6 +89,13 @@ class SemanticMemory:
         """
 
         self.storage_path = Path(self.storage_path)
+        if self.advanced_retriever is None:
+            try:
+                from memory_system.advanced_memory import AdvancedMemoryRetriever
+
+                self.advanced_retriever = AdvancedMemoryRetriever()
+            except Exception:
+                self.advanced_retriever = None
 
     def add_entry(
         self,
@@ -115,13 +123,19 @@ class SemanticMemory:
 
         self.entries.append(entry)
 
+        if self.advanced_retriever is not None:
+            try:
+                self.advanced_retriever.index_entry(entry)
+            except Exception:
+                pass
+
         if self.auto_persist:
             self._write_storage()
 
         return deepcopy(entry)
 
     def search(self, query: str, domain: Optional[str] = None, limit: int = 5) -> List[Dict[str, Any]]:
-        """Recupera as entradas mais relevantes usando pontuacao deterministica."""
+        """Recupera memoria por busca hibrida, com fallback deterministico."""
 
         query_tokens = self._tokenize(query)
         normalized_domain = None if domain is None else str(domain)
@@ -134,13 +148,7 @@ class SemanticMemory:
             score = self._score_entry(entry, query_tokens, normalized_domain)
             if query_tokens and score == 0:
                 continue
-
-            ranked_entries.append(
-                {
-                    "entry": entry,
-                    "score": score,
-                }
-            )
+            ranked_entries.append({"entry": entry, "score": score})
 
         ranked_entries.sort(
             key=lambda item: (
@@ -151,10 +159,78 @@ class SemanticMemory:
             )
         )
 
+        lexical_by_id = {str(item["entry"]["id"]): item for item in ranked_entries}
+        advanced_results: List[Dict[str, Any]] = []
+        if query_tokens and self.advanced_retriever is not None:
+            try:
+                entries_by_id = {str(entry["id"]): entry for entry in self.entries}
+                advanced_results = self.advanced_retriever.search(
+                    query=query,
+                    entries_by_id=entries_by_id,
+                    domain=normalized_domain,
+                    limit=max(limit, 5),
+                )
+            except Exception:
+                advanced_results = []
+
+        if advanced_results:
+            max_lexical = max(
+                [float(item["score"]) for item in ranked_entries] or [1.0]
+            )
+            merged: Dict[str, Dict[str, Any]] = {}
+            for item in advanced_results:
+                entry = item["entry"]
+                entry_id = str(entry["id"])
+                lexical = float(lexical_by_id.get(entry_id, {}).get("score", 0.0))
+                lexical_norm = lexical / max(max_lexical, 1.0)
+                merged[entry_id] = {
+                    "entry": entry,
+                    "score": (0.82 * float(item["score"])) + (0.18 * lexical_norm),
+                    "retrieval": {
+                        "mode": "hybrid_vector_qwen",
+                        "lexical_score": lexical,
+                        "vector_score": float(item.get("vector_score", 0.0)),
+                        "rerank_score": float(item.get("rerank_score", 0.0)),
+                    },
+                }
+
+            for item in ranked_entries:
+                entry_id = str(item["entry"]["id"])
+                if entry_id not in merged:
+                    lexical_norm = float(item["score"]) / max(max_lexical, 1.0)
+                    merged[entry_id] = {
+                        "entry": item["entry"],
+                        "score": 0.18 * lexical_norm,
+                        "retrieval": {
+                            "mode": "hybrid_lexical_fallback",
+                            "lexical_score": float(item["score"]),
+                            "vector_score": 0.0,
+                            "rerank_score": 0.0,
+                        },
+                    }
+
+            ordered = sorted(
+                merged.values(),
+                key=lambda item: (
+                    -float(item["score"]),
+                    -int(item["entry"]["importance"]),
+                    item["entry"]["created_at"],
+                    item["entry"]["id"],
+                ),
+            )
+            results: List[Dict[str, Any]] = []
+            for item in ordered[: max(limit, 0)]:
+                result = deepcopy(item["entry"])
+                result["score"] = round(float(item["score"]), 6)
+                result["retrieval"] = deepcopy(item["retrieval"])
+                results.append(result)
+            return results
+
         results: List[Dict[str, Any]] = []
         for item in ranked_entries[: max(limit, 0)]:
             result = deepcopy(item["entry"])
             result["score"] = item["score"]
+            result["retrieval"] = {"mode": "deterministic_token_search"}
             results.append(result)
         return results
 
@@ -194,6 +270,11 @@ class SemanticMemory:
         loaded_entries = snapshot.get("entries", [])
         self.entries = [self._normalize_entry(entry) for entry in loaded_entries]
         self.facts = deepcopy(snapshot.get("facts", {}))
+        if self.advanced_retriever is not None and self.entries:
+            try:
+                self.advanced_retriever.rebuild(self.entries)
+            except Exception:
+                pass
         return self._build_snapshot()
 
     def upsert(
@@ -225,6 +306,55 @@ class SemanticMemory:
 
         value = self.facts.get(concept)
         return deepcopy(value)
+
+    def remember_conversation(
+        self,
+        messages: Any,
+        user_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Persiste fatos conversacionais no Mem0 quando a camada estiver ativa."""
+
+        if self.advanced_retriever is not None:
+            try:
+                return self.advanced_retriever.mem0.remember(
+                    messages=messages,
+                    user_id=user_id,
+                    metadata=metadata,
+                )
+            except Exception as exc:
+                return {"status": "indisponivel", "motivo": str(exc)}
+        return {"status": "indisponivel", "motivo": "Camada avancada de memoria desativada."}
+
+    def recall_conversation(
+        self,
+        query: str,
+        user_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Consulta a memoria conversacional persistente do Mem0."""
+
+        if self.advanced_retriever is not None:
+            try:
+                return self.advanced_retriever.mem0.recall(query=query, user_id=user_id)
+            except Exception as exc:
+                return {"status": "indisponivel", "motivo": str(exc), "results": []}
+        return {
+            "status": "indisponivel",
+            "motivo": "Camada avancada de memoria desativada.",
+            "results": [],
+        }
+
+    def advanced_memory_status(self) -> Dict[str, Any]:
+        """Explica quais componentes avancados estao efetivamente ativos."""
+
+        if self.advanced_retriever is None:
+            return {
+                "enabled": False,
+                "vector_available": False,
+                "mem0_available": False,
+                "fallback": "deterministic_token_search",
+            }
+        return self.advanced_retriever.status()
 
     def _score_entry(
         self,

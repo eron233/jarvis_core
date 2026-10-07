@@ -307,7 +307,10 @@ class InternalAgentRuntime:
             if not self.memory:
                 self.memory = {}
 
-            self.memory.setdefault("episodic", EpisodicMemory())
+            self.memory.setdefault(
+                "episodic",
+                EpisodicMemory(storage_path=deployment_config.episodic_storage_path),
+            )
             self.memory.setdefault(
                 "semantic",
                 SemanticMemory(storage_path=deployment_config.semantic_storage_path),
@@ -401,12 +404,18 @@ class InternalAgentRuntime:
             self.git_branch_patcher_engine = GitBranchPatcherEngine()
             self.lightweight_sandbox_engine = UltraLightweightSandboxEngine()
 
+            episodic_memory = self.memory["episodic"]
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
+            if getattr(episodic_memory, "storage_path", None) is None:
+                episodic_memory.storage_path = deployment_config.episodic_storage_path
             if getattr(semantic_memory, "storage_path", None) is None:
                 semantic_memory.storage_path = deployment_config.semantic_storage_path
             if getattr(procedural_memory, "storage_path", None) is None:
                 procedural_memory.storage_path = deployment_config.procedural_storage_path
+            if not episodic_memory.episodes:
+                episodic_memory.load_snapshot()
+            episodic_memory.auto_persist = True
             if not semantic_memory.entries and not semantic_memory.facts:
                 semantic_memory.load_snapshot()
             semantic_memory.auto_persist = True

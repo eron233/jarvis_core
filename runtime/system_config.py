@@ -163,6 +163,7 @@ class JarvisEnvironmentConfig:
     admin_bootstrap_report_path: Path | None = None
     queue_storage_path: Path | None = None
     semantic_storage_path: Path | None = None
+    episodic_storage_path: Path | None = None
     procedural_storage_path: Path | None = None
     goals_storage_path: Path | None = None
     device_registry_path: Path | None = None
@@ -208,6 +209,11 @@ class JarvisEnvironmentConfig:
             self.semantic_storage_path = self.data_dir / "semantic_memory_store.json"
         else:
             self.semantic_storage_path = Path(self.semantic_storage_path)
+
+        if self.episodic_storage_path is None:
+            self.episodic_storage_path = self.data_dir / "episodic_memory_store.json"
+        else:
+            self.episodic_storage_path = Path(self.episodic_storage_path)
 
         if self.procedural_storage_path is None:
             self.procedural_storage_path = self.data_dir / "procedural_memory_store.json"
@@ -292,6 +298,7 @@ class JarvisEnvironmentConfig:
             admin_bootstrap_report_path=env_map.get("JARVIS_ADMIN_BOOTSTRAP_REPORT_PATH"),
             queue_storage_path=env_map.get("JARVIS_QUEUE_STORAGE_PATH"),
             semantic_storage_path=env_map.get("JARVIS_SEMANTIC_STORAGE_PATH"),
+            episodic_storage_path=env_map.get("JARVIS_EPISODIC_STORAGE_PATH"),
             procedural_storage_path=env_map.get("JARVIS_PROCEDURAL_STORAGE_PATH"),
             goals_storage_path=env_map.get("JARVIS_GOALS_STORAGE_PATH"),
             device_registry_path=env_map.get("JARVIS_DEVICE_REGISTRY_PATH"),

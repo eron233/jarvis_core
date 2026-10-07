@@ -20,8 +20,11 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Planejador executivo deterministico | Implementada | `executive_planner/planner.py`, `executive_planner/prioritizer.py`, `executive_planner/validator.py`, `executive_planner/audit.py` | Auditoria persistente configuravel + memoria | `tests/test_planner.py`, `tests/test_audit_persistence.py` |
 | Fila persistente de tarefas | Implementada | `executive_planner/queue.py` | JSON configuravel | `tests/test_task_queue_persistence.py` |
 | Camada de objetivos | Implementada | `intent_layer/goal_manager.py` | JSON configuravel | `tests/test_goal_manager.py` |
-| Memoria semantica persistente | Implementada | `memory_system/semantic_memory.py` | JSON configuravel | `tests/test_semantic_memory.py` |
+| Memoria semantica persistente | Implementada + camada avancada opcional | `memory_system/semantic_memory.py`, `memory_system/advanced_memory.py` | JSON + Qdrant opcional | `tests/test_semantic_memory.py`, `tests/test_advanced_memory.py` |
+| Memoria episodica persistente | Implementada | `memory_system/episodic_memory.py` | JSON atomico configuravel | `tests/test_advanced_memory.py`, `tests/test_runtime_bootstrap.py` |
 | Memoria procedural persistente | Implementada | `memory_system/procedural_memory.py` | JSON configuravel | `tests/test_procedural_memory.py` |
+| Recuperacao vetorial Qdrant + Qwen3 | Opcional, implementada | `memory_system/advanced_memory.py` | Qdrant local/remoto | `tests/test_advanced_memory.py` |
+| Memoria conversacional Mem0 OSS | Opcional, implementada | `memory_system/advanced_memory.py` | Mem0 + Qdrant + Ollama | `tests/test_advanced_memory.py` |
 | Mapa evolutivo cognitivo | Implementada | `runtime/cognitive_evolution.py`, `interface/brain_avatar/evolution_map.js`, `interface/dashboard/index.html` | `data/cognitive_evolution_history.json` | `tests/test_cognitive_evolution.py`, `tests/test_api.py`, `tests/test_dashboard.py` |
 | Loop continuo local | Implementada | `main.py`, `startup_bootstrap.py` | Persistencia final de fila e memoria | `tests/test_main_loop.py`, `tests/test_startup_portability.py` |
 | Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py`, `runtime/runtime_identity.py`, `constitutional_core/policy.py` | Reaproveita fila, memoria, auditoria e objetivos | `tests/test_runtime_bootstrap.py`, `tests/test_constitutional_policy.py`, `tests/test_operational_reports.py` |
