@@ -1,0 +1,30 @@
+name: MCP oficial
+
+on:
+  push:
+    branches:
+      - dev
+      - validado
+  pull_request:
+    branches:
+      - validado
+
+jobs:
+  mcp-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar SDK MCP oficial
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest -r requirements-mcp.txt
+
+      - name: Executar roundtrip MCP real
+        run: python -m pytest tests/test_mcp_official_sdk.py -q
