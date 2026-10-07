@@ -1,0 +1,66 @@
+name: Graft context real
+
+on:
+  push:
+    branches:
+      - dev
+      - validado
+    paths:
+      - "learning/development_context_engine.py"
+      - "runtime/mcp_stack.py"
+      - "tests/test_graft_context_external.py"
+      - "tests/fixtures/graft_context_sample/**"
+      - ".github/workflows/graft-context-tests.yml"
+  pull_request:
+    branches:
+      - validado
+    paths:
+      - "learning/development_context_engine.py"
+      - "runtime/mcp_stack.py"
+      - "tests/test_graft_context_external.py"
+      - "tests/fixtures/graft_context_sample/**"
+      - ".github/workflows/graft-context-tests.yml"
+
+jobs:
+  graft-context-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar SDK MCP oficial
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest -r requirements-mcp.txt
+
+      - name: Baixar Graft v0.14.0 pinado
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 \
+            https://github.com/flyingrobots/graft/releases/download/v0.14.0/flyingrobots-graft-0.14.0.tgz \
+            -o /tmp/flyingrobots-graft-0.14.0.tgz
+          echo "0322579bb8e9d3e26840eabdeec2fcb7a3c795f1424c3514e49eacefcbb1ef02  /tmp/flyingrobots-graft-0.14.0.tgz" | sha256sum -c -
+
+      - name: Instalar Graft isoladamente
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/graft-install"
+          npm install --prefix "$RUNNER_TEMP/graft-install" /tmp/flyingrobots-graft-0.14.0.tgz
+          GRAFT_BIN="$RUNNER_TEMP/graft-install/node_modules/.bin/graft"
+          test -x "$GRAFT_BIN"
+          echo "GRAFT_CONTEXT_BINARY=$GRAFT_BIN" >> "$GITHUB_ENV"
+
+      - name: Executar leituras governadas reais via MCP
+        run: python -m pytest tests/test_graft_context_external.py -q
