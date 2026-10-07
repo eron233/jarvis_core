@@ -363,7 +363,7 @@ class InternalAgentRuntime:
 
             # Motor de Gravação de Áudio, Filtro de Ruído DSP e Decodificação de Sinais
             from runtime.audio_processing_engine import AudioProcessingEngine
-            self.audio_processing_engine = AudioProcessingEngine()
+            self.audio_processing_engine = AudioProcessingEngine(voice_engine=self.voice_engine)
 
             # Motor de Fracionamento de Carga Multi-Dispositivo
             from device.distributed_task_sharding_engine import DistributedTaskShardingEngine

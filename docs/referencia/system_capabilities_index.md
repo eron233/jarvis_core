@@ -201,3 +201,15 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - o relatorio consolidado de seguranca e a consolidacao por excecao ainda nao foram implementados
 - a geracao controlada de tarefas ainda nao foi implementada
 - o monitoramento externo de infraestrutura ainda nao foi adicionado
+
+
+## Voz local — Ponto 2
+
+| Capacidade | Estado | Implementacao | Observacao |
+|---|---|---|---|
+| STT local | Implementado opcional | `runtime/voice_stack.py` | faster-whisper + Silero VAD integrado |
+| TTS pt-BR leve | Implementado opcional | `runtime/voice_stack.py` | Kokoro ONNX; fallback nativo |
+| Wake word | Implementado opcional | `runtime/voice_stack.py` | openWakeWord com modelo local |
+| Enhancement | Implementado opcional | `runtime/voice_stack.py` | DeepFilterNet Python/CLI isolado |
+| Captura de microfone | Implementada opcional | `runtime/audio_processing_engine.py` | sounddevice; nao simula captura |
+| DSP fallback | Implementado | `runtime/audio_processing_engine.py` | noise gate mensuravel; nao inventa SNR |
