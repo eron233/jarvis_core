@@ -6,6 +6,25 @@ A camada de memoria foi evoluida sem remover o fallback deterministico existente
 O runtime continua funcional sem dependencias pesadas, mas pode ativar uma pilha
 local de recuperacao semantica e memoria conversacional persistente.
 
+## Regra constitucional: Qwen3 aqui nao e o modelo-base
+
+**NAO REMOVER POR "MODELO-BASE NAO ESCOLHIDO".**
+
+Os tres usos de Qwen3 nesta pilha sao componentes especializados de memoria e
+nao representam a escolha do modelo-base, geral, de codigo ou de raciocinio do
+JARVIS.
+
+| Componente | Para que serve | Onde e usado | Pode remover? | O que quebra | Substituicao permitida |
+| --- | --- | --- | --- | --- | --- |
+| `Qwen/Qwen3-Embedding-0.6B` | transforma memorias/textos em vetores para busca por significado | `memory_system/advanced_memory.py` → Qdrant | Nao, sem benchmark | indexacao e recuperacao semantica avancada | somente alternativa igual/superior validada no hardware alvo + testes de memoria verdes |
+| `Qwen/Qwen3-Reranker-0.6B` | reordena candidatos recuperados pelo Qdrant | `AdvancedMemoryRetriever` | Nao, sem benchmark | qualidade/ordem do ranking semantico | somente alternativa igual/superior em benchmark + regressao verde |
+| `qwen3:4b` via Ollama | backend LLM opcional do Mem0 para extrair/consolidar memoria conversacional | `Mem0Bridge` | Nao enquanto for o backend configurado | Mem0 perde extracao/consolidacao quando habilitado | outro backend local compativel validado com testes de memoria conversacional |
+
+A politica `selected_base_model = null` da Constituicao vale para o runtime de
+inferencia geral do JARVIS. Ela **nao** invalida estes modelos especializados da
+memoria. O cache semantico do Ponto 10 tambem tem configuracao de embedding
+separada e nao substitui automaticamente a pilha de memoria do Ponto 1.
+
 ## Componentes
 
 - **Qwen3-Embedding-0.6B**: embeddings locais para similaridade semantica.
