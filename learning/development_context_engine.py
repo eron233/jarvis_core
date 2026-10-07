@@ -633,12 +633,13 @@ class FlyingRobotsGraftAdapter:
     def _call(self, tool: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         if not self.enabled:
             return {"status": "indisponivel", "motivo": "Graft externo desativado."}
-        payload = dict(arguments)
-        payload.setdefault("cwd", str(self.config.project_root))
+        # No modo repo-local, o processo `graft serve` ja e iniciado com cwd
+        # na raiz autorizada. Nao roteamos cwd por chamada; isso e reservado
+        # para uma futura integracao daemon/multi-repo explicitamente governada.
         return self.mcp_manager.call_tool(
             self.config.graft_server_name,
             tool,
-            payload,
+            dict(arguments),
         )
 
     def safe_read(self, path: str, intent: Optional[str] = None) -> Dict[str, Any]:
