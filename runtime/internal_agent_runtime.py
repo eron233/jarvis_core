@@ -411,6 +411,11 @@ class InternalAgentRuntime:
             from runtime.mcp_stack import OfficialMCPClientManager
             self.mcp_manager = OfficialMCPClientManager()
 
+            from learning.codebase_intelligence_engine import CodebaseIntelligenceEngine
+            self.codebase_intelligence_engine = CodebaseIntelligenceEngine(
+                mcp_manager=self.mcp_manager,
+            )
+
             self.corporate_hierarchy_engine = CorporateAgentHierarchyEngine(
                 inference_router=self.inference_router,
             )

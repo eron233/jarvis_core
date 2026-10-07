@@ -1,0 +1,57 @@
+name: Codebase Memory real
+
+on:
+  push:
+    branches:
+      - dev
+      - validado
+    paths:
+      - "learning/codebase_intelligence_engine.py"
+      - "runtime/mcp_stack.py"
+      - "tests/test_codebase_memory_external.py"
+      - "tests/fixtures/codebase_sample/**"
+      - ".github/workflows/codebase-memory-tests.yml"
+  pull_request:
+    branches:
+      - validado
+    paths:
+      - "learning/codebase_intelligence_engine.py"
+      - "runtime/mcp_stack.py"
+      - "tests/test_codebase_memory_external.py"
+      - "tests/fixtures/codebase_sample/**"
+      - ".github/workflows/codebase-memory-tests.yml"
+
+jobs:
+  codebase-memory-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar SDK MCP oficial
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest -r requirements-mcp.txt
+
+      - name: Baixar codebase-memory-mcp v0.11.0 pinado
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .cbm-bin
+          curl -fL --retry 3 \
+            https://github.com/DeusData/codebase-memory-mcp/releases/download/v0.11.0/codebase-memory-mcp-linux-amd64.tar.gz \
+            -o /tmp/cbm.tar.gz
+          echo "032b33c1833919a2d1de67ff6367fa6ea46aee8689c86ef223c88fae3b6e4536  /tmp/cbm.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/cbm.tar.gz -C .cbm-bin
+          CBM_PATH="$(find "$PWD/.cbm-bin" -type f -name codebase-memory-mcp | head -n 1)"
+          test -n "$CBM_PATH"
+          chmod +x "$CBM_PATH"
+          echo "CBM_BINARY=$CBM_PATH" >> "$GITHUB_ENV"
+
+      - name: Executar index/search/trace real via MCP
+        run: python -m pytest tests/test_codebase_memory_external.py -q

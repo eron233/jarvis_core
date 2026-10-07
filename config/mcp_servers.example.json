@@ -13,10 +13,37 @@
       "enabled": false,
       "transport": "stdio",
       "command": "python",
-      "args": ["-m", "meu_servidor_mcp"],
+      "args": [
+        "-m",
+        "meu_servidor_mcp"
+      ],
       "cwd": ".",
       "env_allowlist": [],
       "allowed_tools": [],
+      "allowed_resources": [],
+      "allowed_prompts": []
+    },
+    "codebase-memory": {
+      "enabled": false,
+      "transport": "stdio",
+      "command": "codebase-memory-mcp",
+      "args": [],
+      "cwd": ".",
+      "env_allowlist": [],
+      "allowed_tools": [
+        "index_repository",
+        "list_projects",
+        "index_status",
+        "check_index_coverage",
+        "search_graph",
+        "trace_path",
+        "detect_changes",
+        "get_graph_schema",
+        "get_code_snippet",
+        "get_file_outline",
+        "get_architecture",
+        "search_code"
+      ],
       "allowed_resources": [],
       "allowed_prompts": []
     }

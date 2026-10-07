@@ -103,10 +103,24 @@
       "capability": "mcp_tool_governance",
       "component": "OfficialMCPClientManager allowlists",
       "state": "validated"
+    },
+    {
+      "capability": "local_code_structure_graph",
+      "component": "LocalPythonCodeGraph (AST + SQLite)",
+      "state": "validated_baseline_python"
+    },
+    {
+      "capability": "persistent_codebase_intelligence",
+      "component": "codebase-memory-mcp v0.11.0 via official MCP",
+      "state": "validated_optional_real_interop_pinned_release"
+    },
+    {
+      "capability": "code_impact_trace",
+      "component": "CodebaseIntelligenceEngine",
+      "state": "validated_evidence_only"
     }
   ],
   "high_priority_experiments": [
-    "codebase-memory-mcp",
     "Graft_development_context",
     "Hypothesis",
     "Schemathesis",
@@ -187,5 +201,15 @@
     "prompts_require_allowlist": true,
     "jarvis_server_default": "read_only",
     "remote_http_default": false
+  },
+  "codebase_intelligence_policy": {
+    "baseline": "python_ast_local",
+    "preferred_backend": "codebase-memory-mcp",
+    "pinned_validation_release": "v0.11.0",
+    "external_auto_index_default": false,
+    "external_persistence_default": false,
+    "structural_evidence_is_not_risk_score": true,
+    "unresolved_edges_must_not_be_guessed": true,
+    "graphify_fabricated_edges_forbidden": true
   }
 }

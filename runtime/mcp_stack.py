@@ -406,18 +406,31 @@ class OfficialMCPClientManager:
                 self._call_tool_async(prepared, tool_name, dict(arguments or {}))
             )
             serialized = json.dumps(payload, ensure_ascii=False)
+            protocol_error = bool(
+                isinstance(payload, dict)
+                and (
+                    payload.get("isError") is True
+                    or payload.get("is_error") is True
+                )
+            )
             truncated = len(serialized) > self.config.max_result_chars
             if truncated:
                 payload = {
                     "truncated": True,
                     "preview": serialized[: self.config.max_result_chars],
+                    "is_error": protocol_error,
                 }
             return {
-                "status": "sucesso",
+                "status": "erro" if protocol_error else "sucesso",
                 "server": server_name,
                 "tool": tool_name,
                 "resultado": payload,
                 "truncado": truncated,
+                "motivo": (
+                    "Servidor MCP retornou isError=true."
+                    if protocol_error
+                    else None
+                ),
                 "executado_em": datetime.now(timezone.utc).isoformat(),
             }
         except Exception as exc:

@@ -28,7 +28,8 @@ class GraphifyEngineTests(unittest.TestCase):
 
         self.assertEqual(res["projeto"], "Sistema de Pagamentos")
         self.assertEqual(len(res["grafo"]["nos"]), 4)
-        self.assertGreater(len(res["grafo"]["arestas"]), 0)
+        self.assertEqual(len(res["grafo"]["arestas"]), 0)
+        self.assertFalse(res["arestas_inferidas_sem_evidencia"])
         self.assertIn("resumo_topologico_ptbr", res)
 
     def test_runtime_integration_of_graphify_engine(self) -> None:
@@ -81,14 +82,17 @@ class GraphifyDescriptionUsageTests(unittest.TestCase):
             [no["label"] for no in segundo["grafo"]["nos"]],
         )
 
-    def test_descricao_vazia_declara_o_modelo_generico(self) -> None:
-        """Quando nada pode ser extraido, o relatorio precisa dizer isso."""
+    def test_descricao_vazia_nao_fabrica_modelo_generico(self) -> None:
+        """Quando nada pode ser extraido, o motor deve retornar vazio/indisponivel."""
 
         resultado = self.engine.analyze_and_graphify(project_title="Vazio", description="")
 
-        self.assertEqual(resultado["origem_dos_nos"], "modelo_generico")
+        self.assertEqual(resultado["status"], "indisponivel")
+        self.assertEqual(resultado["origem_dos_nos"], "indisponivel")
         self.assertFalse(resultado["descricao_utilizada"])
-        self.assertIn("modelo genérico", resultado["resumo_topologico_ptbr"])
+        self.assertEqual(resultado["grafo"]["nos"], [])
+        self.assertEqual(resultado["grafo"]["arestas"], [])
+        self.assertIn("nenhum grafo foi fabricado", resultado["resumo_topologico_ptbr"])
 
     def test_componentes_informados_tem_prioridade(self) -> None:
         """Quem passa componentes explicitos continua mandando no grafo."""
