@@ -315,6 +315,19 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | TrailHQ/Nanonets Graft | Watchlist challenger | Experimental Twin futuro | sobreposição forte com ponto 8 |
 
 
+## Modelos especializados da memoria — nao confundir com modelo-base
+
+| Componente | Papel | Estado | Regra |
+|---|---|---|---|
+| Qwen3-Embedding-0.6B | embedding da memoria semantica para Qdrant | Especializado / opcional | nao remover sem benchmark + regressao |
+| Qwen3-Reranker-0.6B | reranking de memorias recuperadas | Especializado / opcional | nao remover sem benchmark + regressao |
+| qwen3:4b via Ollama | backend opcional do Mem0 | Especializado / opcional | nao remover sem backend substituto validado |
+| Modelo-base do JARVIS | inferencia geral | Nao selecionado | escolha adiada ate benchmark no hardware alvo |
+
+A ausencia de modelo-base selecionado **nao** significa ausencia de modelos
+especializados. Ponto 1 (memoria) e Ponto 10 (cache semantico) possuem contratos
+separados.
+
 ## Cache Semantico — Ponto 10
 
 | Capacidade | Estado | Implementacao | Observacao |
