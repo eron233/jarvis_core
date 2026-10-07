@@ -43,6 +43,16 @@
       "capability": "conversational_memory",
       "component": "Mem0 OSS",
       "state": "validated_optional"
+    },
+    {
+      "capability": "ocr",
+      "component": "PP-OCRv6 small/tiny",
+      "state": "validated_optional_pending_local_model_provisioning"
+    },
+    {
+      "capability": "general_vision_interface",
+      "component": "Moondream local endpoint adapter",
+      "state": "validated_optional_backend_not_provisioned"
     }
   ],
   "high_priority_experiments": [
@@ -50,7 +60,6 @@
     "codebase-memory-mcp",
     "Graft_development_context",
     "Docling",
-    "PaddleOCR_PP-OCRv6",
     "Playwright",
     "SearXNG",
     "Crawl4AI",
@@ -73,7 +82,8 @@
     "Syft",
     "Grype",
     "AFL++",
-    "Wasmtime"
+    "Wasmtime",
+    "PaddleOCR-VL-1.6"
   ],
   "future_model_benchmark": [
     "llama.cpp",
