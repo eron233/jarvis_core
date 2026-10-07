@@ -244,7 +244,7 @@ class DevelopmentContextExternalTests(unittest.TestCase):
             self.assertEqual(tool, "safe_read")
             self.assertEqual(args["path"], "a.py")
             self.assertEqual(args["intent"], "understand file")
-            self.assertEqual(args["cwd"], str(root))
+            self.assertNotIn("cwd", args)
 
     def test_external_failure_falls_back_to_local_governor(self):
         with tempfile.TemporaryDirectory() as temp_dir:
