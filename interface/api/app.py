@@ -1094,6 +1094,27 @@ def create_app(
             explicit_model=modelo,
         )
 
+    @app.post("/api/inferencia/benchmark", dependencies=[Depends(require_trusted_device)])
+    def inference_benchmark(
+        request: Request,
+        prompts: list[str] = Body(...),
+        repeticoes: int = Query(default=1, ge=1, le=5),
+        tier: str = Query(default="general"),
+        capacidade: Optional[str] = Query(default=None),
+        provider: Optional[str] = Query(default=None),
+        modelo: Optional[str] = Query(default=None),
+    ) -> Dict[str, Any]:
+        """Executa benchmark operacional local sem selecionar automaticamente um vencedor."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.inference_router.benchmark_model(
+            prompts=prompts,
+            repetitions=repeticoes,
+            tier=tier,
+            capability=capacidade,
+            provider=provider,
+            explicit_model=modelo,
+        )
+
     # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
 
     @app.post("/api/corporativo/despachar", dependencies=[Depends(require_trusted_device)])
