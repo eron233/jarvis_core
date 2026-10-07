@@ -127,6 +127,29 @@ class InferenceRouterTests(unittest.TestCase):
         self.assertEqual(first.calls[0]["model"], "modelo-teste")
         self.assertEqual(second.calls[0]["model"], "modelo-teste")
 
+    def test_benchmark_reports_measured_runtime_without_claiming_quality(self):
+        config = InferenceStackConfig(
+            enabled=True,
+            provider_order=("llamacpp",),
+            model_general="modelo-teste",
+        )
+        router = LocalInferenceRouter(config)
+        router.backends = {"llamacpp": _FakeBackend("llamacpp", status="sucesso")}
+
+        result = router.benchmark_model(
+            ["Diga olá.", "Resuma 2+2."],
+            repetitions=2,
+            tier="general",
+        )
+
+        self.assertEqual(result["status"], "sucesso")
+        self.assertEqual(result["total_execucoes"], 4)
+        self.assertEqual(result["sucessos"], 4)
+        self.assertEqual(result["falhas"], 0)
+        self.assertEqual(result["latencia_media_ms"], 25.0)
+        self.assertEqual(result["tokens_por_segundo_medio"], 200.0)
+        self.assertIn("Qualidade", result["observacao"])
+
     def test_disabled_router_does_not_call_backend(self):
         router = LocalInferenceRouter(
             InferenceStackConfig(
