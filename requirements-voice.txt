@@ -1,0 +1,20 @@
+# Dependencias opcionais do ponto 2: voz local.
+# Mantidas fora de requirements.txt para o runtime principal continuar leve.
+#
+# STT local + Silero VAD integrado no faster-whisper
+faster-whisper
+#
+# TTS leve pt-BR (Kokoro 82M em ONNX)
+kokoro-onnx
+soundfile
+misaki-fork[en]
+#
+# Captura real de microfone
+sounddevice
+#
+# Wake word local
+openwakeword
+#
+# DeepFilterNet NAO e fixado aqui: versoes atuais podem conflitar com o
+# NumPy exigido por kokoro-onnx. Use um ambiente isolado e configure
+# JARVIS_DEEPFILTER_COMMAND para o executavel deepFilter/deep-filter.
