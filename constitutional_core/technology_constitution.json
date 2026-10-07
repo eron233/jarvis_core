@@ -53,13 +53,17 @@
       "capability": "general_vision_interface",
       "component": "Moondream local endpoint adapter",
       "state": "validated_optional_backend_not_provisioned"
+    },
+    {
+      "capability": "structured_document_ingestion",
+      "component": "Docling adapter + native parsers + persistent chunks",
+      "state": "validated_optional_backend_provisioning_pending"
     }
   ],
   "high_priority_experiments": [
     "official_mcp_python_sdk",
     "codebase-memory-mcp",
     "Graft_development_context",
-    "Docling",
     "Playwright",
     "SearXNG",
     "Crawl4AI",

@@ -225,3 +225,16 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Visão geral / VQA | Implementado opcional | `learning/vision_stack.py` | endpoint local Moondream |
 | Pré-contexto visual | Implementado | `learning/image_vision_engine.py` | inclui apenas percepções realmente produzidas |
 | Pseudo-OCR por bytes | Removido | `learning/image_vision_engine.py` | strings binárias nunca são tratadas como texto visto |
+
+
+## Documentos — Ponto 4
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Parsing estrutural | Adapter implementado opcional | `learning/document_stack.py` | Docling; backend real requer provisionamento |
+| TXT/JSON/CSV/código | Implementado | `learning/universal_file_extractor.py` | Parsers nativos leves e estritos |
+| PDF/Office/EPUB/etc. | Implementado opcional | `learning/document_stack.py` | Sem scraping de bytes |
+| Chunking integral | Implementado | `learning/document_stack.py` | Determinístico, configurável |
+| Persistência de chunks | Implementado | `learning/research_knowledge_engine.py` | tabela `document_chunks` |
+| Artefato Markdown + manifesto | Implementado | `learning/universal_file_extractor.py` | SHA-256 e metadados auditáveis |
+| Extração de strings binárias | Removido | `learning/universal_file_extractor.py` | formato sem parser retorna indisponível |
