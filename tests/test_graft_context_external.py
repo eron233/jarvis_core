@@ -109,7 +109,6 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
             "safe_read",
             {
                 "path": "tests/fixtures/graft_context_sample/small.py",
-                "cwd": str(self.project_root),
                 "intent": "understand fixture",
             },
         )
@@ -124,7 +123,6 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
             "safe_read",
             {
                 "path": "tests/fixtures/graft_context_sample/large_runtime.py",
-                "cwd": str(self.project_root),
             },
         )
         self.assertEqual(large["status"], "sucesso", large)
@@ -138,7 +136,6 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
             "file_outline",
             {
                 "path": "tests/fixtures/graft_context_sample/large_runtime.py",
-                "cwd": str(self.project_root),
             },
         )
         self.assertEqual(outline["status"], "sucesso", outline)
@@ -152,7 +149,6 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
                 "path": "tests/fixtures/graft_context_sample/large_runtime.py",
                 "start": 1,
                 "end": 10,
-                "cwd": str(self.project_root),
             },
         )
         self.assertEqual(ranged["status"], "sucesso", ranged)
@@ -165,7 +161,6 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
             "safe_read",
             {
                 "path": "tests/fixtures/graft_context_sample/.env.graft-runtime",
-                "cwd": str(self.project_root),
             },
         )
         self.assertEqual(secret["status"], "sucesso", secret)
