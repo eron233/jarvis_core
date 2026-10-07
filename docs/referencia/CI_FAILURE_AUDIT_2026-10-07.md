@@ -96,14 +96,31 @@ Critério de fechamento:
 
 ## 5. Warnings ainda não corrigidos
 
+Estado: **PARCIALMENTE RESOLVIDO**.
+
+A suíte atualmente verde reportou:
+- depreciação de `httpx` via `starlette.testclient`;
+- warning do Pydantic: campo `schema` sombreando atributo de `BaseModel`.
+
+### Pydantic `schema`
+
+Estado: **CORRIGIDO NESTE LOTE**.
+
+Causa:
+- o parâmetro Python `schema` do endpoint `/api/web/scrapegraph/extrair`
+  fazia o FastAPI gerar um modelo Pydantic com campo interno chamado `schema`,
+  colidindo com atributo de `BaseModel`.
+
+Correção:
+- o nome interno agora é `extraction_schema`;
+- o contrato HTTP continua aceitando a chave JSON pública `schema` por alias;
+- foi adicionado teste de regressão do endpoint.
+
+### Starlette/httpx
+
 Estado: **ANOTADO / NÃO INICIADO**.
 
-A suíte atualmente verde ainda reportou:
-- depreciação de `httpx` via `starlette.testclient`;
-- warning do Pydantic: campo `schema` sombreando atributo de `BaseModel`;
-- dezenas de warnings derivados desses pontos.
-
-Esses itens devem ser analisados em lote separado. Não foram alterados nesta sessão.
+A depreciação do `TestClient` será tratada em lote separado.
 
 ## 6. Inconsistência separada: defaults antigos de modelo
 
