@@ -1251,6 +1251,78 @@ def create_app(
         runtime = _ensure_runtime_initialized(request)
         return runtime.codebase_intelligence_engine.snippet(simbolo)
 
+    # --- Endpoints de Governanca de Contexto de Desenvolvimento ---
+
+    @app.get("/api/dev-context/status", dependencies=[Depends(require_trusted_device)])
+    def development_context_status(request: Request) -> Dict[str, Any]:
+        """Mostra baseline local, backend Graft e limiares de leitura."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.status()
+
+    @app.get("/api/dev-context/read", dependencies=[Depends(require_trusted_device)])
+    def development_context_read(
+        request: Request,
+        path: str = Query(min_length=1),
+        session_id: str = Query(default="default"),
+        session_depth: str = Query(default="unknown"),
+        budget_remaining: Optional[int] = Query(default=None, ge=0),
+        intent: Optional[str] = Query(default=None),
+        preferir_externo: Optional[bool] = Query(default=None),
+    ) -> Dict[str, Any]:
+        """Le um arquivo sob politica de contexto; arquivos grandes viram outline."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.safe_read(
+            path,
+            session_id=session_id,
+            session_depth=session_depth,
+            budget_remaining=budget_remaining,
+            intent=intent,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/dev-context/outline", dependencies=[Depends(require_trusted_device)])
+    def development_context_outline(
+        request: Request,
+        path: str = Query(min_length=1),
+        session_id: str = Query(default="default"),
+        preferir_externo: Optional[bool] = Query(default=None),
+    ) -> Dict[str, Any]:
+        """Retorna a estrutura do arquivo sem despejar o corpo inteiro."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.file_outline(
+            path,
+            session_id=session_id,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/dev-context/range", dependencies=[Depends(require_trusted_device)])
+    def development_context_range(
+        request: Request,
+        path: str = Query(min_length=1),
+        inicio: int = Query(ge=1),
+        fim: int = Query(ge=1),
+        session_id: str = Query(default="default"),
+        preferir_externo: Optional[bool] = Query(default=None),
+    ) -> Dict[str, Any]:
+        """Le somente um intervalo limitado de linhas."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.read_range(
+            path,
+            inicio,
+            fim,
+            session_id=session_id,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/dev-context/session/{session_id}", dependencies=[Depends(require_trusted_device)])
+    def development_context_session(
+        request: Request,
+        session_id: str,
+    ) -> Dict[str, Any]:
+        """Expõe recibos cumulativos do baseline local para auditoria."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.session_status(session_id)
+
     # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
 
     @app.post("/api/corporativo/despachar", dependencies=[Depends(require_trusted_device)])

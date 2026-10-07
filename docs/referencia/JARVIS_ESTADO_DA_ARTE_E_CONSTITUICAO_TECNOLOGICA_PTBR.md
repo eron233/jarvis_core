@@ -59,7 +59,7 @@ Nenhum item B/C é tratado como inferior por definição; ele simplesmente exige
 | Memória conversacional | **Mem0 OSS** | Consolidação/recuperação de memória longa | VALIDADO/condicional | Integração opcional; backend local preferido |
 | Memória temporal/relacional | **Graphiti + FalkorDB** | Eventos, entidades, relações e validade temporal | EXPERIMENTAL | Complementa vetores; não substituir Qdrant automaticamente |
 | Conhecimento do próprio código | **codebase-memory-mcp v0.11.0 + AST local** | Grafo persistente, call graph, impacto, rotas e consultas | VALIDADO opcional / interop real | Release pinado testado via MCP; benchmarks do autor ainda exigem reprodução no Twin |
-| Contexto para agentes de desenvolvimento | **Graft** | Reduzir exploração repetitiva do repo por agentes | EXPERIMENTAL — dev only | Ferramenta para construir o JARVIS, não necessariamente cérebro residente |
+| Contexto para agentes de desenvolvimento | **Governor local + flyingrobots/graft v0.14.0** | Leitura mínima segura, outlines, ranges e recibos | LOCAL VALIDADO / Graft externo QUARENTENA | CLI oficial reproduziu Git code 128; adapter permanece desligado até nova prova |
 | Segurança/dataflow de código | **Joern** | Code Property Graph e análise profunda | ON_DEMAND candidato | Especializado; mais pesado que busca estrutural cotidiana |
 | Busca web privada | **SearXNG** | Metabusca local/self-hosted | ADAPTER VALIDADO / serviço opcional | JSON API; sem fonte fictícia quando indisponível |
 | Extração web | **Crawl4AI 0.9.4** | Web → Markdown/dados limpos para agentes | ADAPTER VALIDADO / backend opcional | Release de segurança; substitui scraping heurístico improvisado |

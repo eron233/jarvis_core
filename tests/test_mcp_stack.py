@@ -86,6 +86,18 @@ class _FakeClient:
         )
 
 
+class _ToolsOnlyFakeClient(_FakeClient):
+    def __init__(self, target):
+        super().__init__(target)
+        self.server_capabilities = {"tools": True}
+
+    async def list_resources(self):
+        raise AssertionError("resources/list nao deve ser chamado sem capability")
+
+    async def list_prompts(self):
+        raise AssertionError("prompts/list nao deve ser chamado sem capability")
+
+
 class MCPStackTests(unittest.TestCase):
     def setUp(self):
         _FakeClient.instances.clear()
@@ -156,6 +168,23 @@ class MCPStackTests(unittest.TestCase):
         self.assertEqual(len(result["resources"]), 2)
         self.assertEqual(len(result["prompts"]), 2)
         self.assertEqual(_FakeClient.instances[-1].calls, [])
+
+    def test_discovery_respects_negotiated_capabilities(self):
+        manager = OfficialMCPClientManager(
+            config=MCPStackConfig(
+                enabled=True,
+                registry_path=self.registry,
+                allow_remote_http=False,
+                allowed_stdio_commands=("python", "python3", "uv", "uvx"),
+            ),
+            client_factory=_ToolsOnlyFakeClient,
+        )
+        result = manager.discover("local")
+
+        self.assertEqual(result["status"], "sucesso")
+        self.assertEqual(len(result["tools"]), 2)
+        self.assertEqual(result["resources"], [])
+        self.assertEqual(result["prompts"], [])
 
     def test_allowed_tool_executes_and_blocked_tool_does_not_connect(self):
         manager = self._manager()

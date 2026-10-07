@@ -297,3 +297,19 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Snippet por símbolo | Implementado | `learning/codebase_intelligence_engine.py` | leitura localizada |
 | codebase-memory-mcp | Validado opcional / interop real | `learning/codebase_intelligence_engine.py` | v0.11.0 pinado por SHA-256 no CI |
 | Graphify heurístico | Endurecido | `runtime/graphify_engine.py` | não fabrica dependências/ciclos |
+
+
+## Governança de Contexto — Ponto 9
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Governor de leitura local | Validado | `learning/development_context_engine.py` | determinístico, sem LLM |
+| Arquivo pequeno → conteúdo | Validado | `LocalDevelopmentContextGovernor` | ≤150 linhas e ≤12 KiB por default |
+| Arquivo grande → outline | Validado | `LocalDevelopmentContextGovernor` | Python AST / Markdown headings |
+| Recusa de secrets/binários/lockfiles | Validado | `LocalDevelopmentContextGovernor` | conteúdo recusado nunca é retornado |
+| Read range limitado | Validado | `LocalDevelopmentContextGovernor` | máximo 250 linhas |
+| Recibos de consumo | Validado | `_SessionLedger` | bytes retornados/evitados; sem inventar tokens |
+| Tripwires de leitura | Validado | `_SessionLedger` | repeated path / runaway loop |
+| API dev-context | Validado | `interface/api/app.py` | dispositivo confiável |
+| flyingrobots/graft v0.14.0 | Quarentena | adapter MCP em `development_context_engine.py` | CLI real falhou com Git code 128 no ambiente reproduzido |
+| TrailHQ/Nanonets Graft | Watchlist challenger | Experimental Twin futuro | sobreposição forte com ponto 8 |

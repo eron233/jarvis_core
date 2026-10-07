@@ -88,6 +88,21 @@ def _run_async(coro: Any) -> Any:
     return result.get("value")
 
 
+def _exception_message(exc: BaseException) -> str:
+    """Preserva causas internas, inclusive ExceptionGroup/TaskGroup."""
+
+    parts = [f"{exc.__class__.__name__}: {exc}"]
+    nested = getattr(exc, "exceptions", None)
+    if isinstance(nested, (list, tuple)):
+        for child in nested:
+            if isinstance(child, BaseException):
+                parts.append(_exception_message(child))
+    cause = getattr(exc, "__cause__", None)
+    if isinstance(cause, BaseException):
+        parts.append("caused_by=" + _exception_message(cause))
+    return " | ".join(dict.fromkeys(parts))
+
+
 @dataclass(frozen=True)
 class MCPStackConfig:
     enabled: bool = False
@@ -332,22 +347,42 @@ class OfficialMCPClientManager:
         values = server.get(key) or []
         return isinstance(values, list) and str(name) in {str(item) for item in values}
 
+    @staticmethod
+    def _capability_enabled(capabilities: Any, name: str) -> bool:
+        if capabilities is None:
+            return False
+        if isinstance(capabilities, dict):
+            value = capabilities.get(name)
+        else:
+            value = getattr(capabilities, name, None)
+        return value is not None and value is not False
+
     async def _discover_async(self, prepared: Dict[str, Any]) -> Dict[str, Any]:
         factory = prepared["client_factory"]
         async with factory(prepared["target"]) as client:
-            tools_result = await client.list_tools()
-            resources_result = await client.list_resources()
-            prompts_result = await client.list_prompts()
+            capabilities = getattr(client, "server_capabilities", None)
 
-            tools = [_serialize(item) for item in getattr(tools_result, "tools", [])]
-            resources = [_serialize(item) for item in getattr(resources_result, "resources", [])]
-            prompts = [_serialize(item) for item in getattr(prompts_result, "prompts", [])]
+            tools = []
+            resources = []
+            prompts = []
+
+            if self._capability_enabled(capabilities, "tools"):
+                tools_result = await client.list_tools()
+                tools = [_serialize(item) for item in getattr(tools_result, "tools", [])]
+
+            if self._capability_enabled(capabilities, "resources"):
+                resources_result = await client.list_resources()
+                resources = [_serialize(item) for item in getattr(resources_result, "resources", [])]
+
+            if self._capability_enabled(capabilities, "prompts"):
+                prompts_result = await client.list_prompts()
+                prompts = [_serialize(item) for item in getattr(prompts_result, "prompts", [])]
 
             return {
                 "status": "sucesso",
                 "protocol_version": getattr(client, "protocol_version", None),
                 "server_info": _serialize(getattr(client, "server_info", None)),
-                "server_capabilities": _serialize(getattr(client, "server_capabilities", None)),
+                "server_capabilities": _serialize(capabilities),
                 "instructions": getattr(client, "instructions", None),
                 "tools": tools,
                 "resources": resources,
@@ -370,7 +405,7 @@ class OfficialMCPClientManager:
             return {
                 "status": "erro",
                 "server": server_name,
-                "motivo": f"Falha real no MCP discover: {exc.__class__.__name__}: {exc}",
+                "motivo": f"Falha real no MCP discover: {_exception_message(exc)}",
             }
 
     async def _call_tool_async(
@@ -438,7 +473,7 @@ class OfficialMCPClientManager:
                 "status": "erro",
                 "server": server_name,
                 "tool": tool_name,
-                "motivo": f"Falha real na tool MCP: {exc.__class__.__name__}: {exc}",
+                "motivo": f"Falha real na tool MCP: {_exception_message(exc)}",
             }
 
     async def _read_resource_async(self, prepared: Dict[str, Any], uri: str) -> Dict[str, Any]:
@@ -469,7 +504,7 @@ class OfficialMCPClientManager:
                 "status": "erro",
                 "server": server_name,
                 "uri": uri,
-                "motivo": f"Falha real ao ler resource MCP: {exc.__class__.__name__}: {exc}",
+                "motivo": f"Falha real ao ler resource MCP: {_exception_message(exc)}",
             }
 
     async def _get_prompt_async(
@@ -516,7 +551,7 @@ class OfficialMCPClientManager:
                 "status": "erro",
                 "server": server_name,
                 "prompt": prompt_name,
-                "motivo": f"Falha real ao obter prompt MCP: {exc.__class__.__name__}: {exc}",
+                "motivo": f"Falha real ao obter prompt MCP: {_exception_message(exc)}",
             }
 
     def status(self) -> Dict[str, Any]:

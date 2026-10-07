@@ -46,6 +46,30 @@
       ],
       "allowed_resources": [],
       "allowed_prompts": []
+    },
+    "graft-context": {
+      "enabled": false,
+      "transport": "stdio",
+      "command": "graft",
+      "args": [
+        "serve"
+      ],
+      "cwd": ".",
+      "env_allowlist": [
+        "PATH",
+        "HOME",
+        "USERPROFILE",
+        "LOCALAPPDATA",
+        "APPDATA"
+      ],
+      "allowed_tools": [
+        "safe_read",
+        "file_outline",
+        "read_range",
+        "changed_since"
+      ],
+      "allowed_resources": [],
+      "allowed_prompts": []
     }
   }
 }
