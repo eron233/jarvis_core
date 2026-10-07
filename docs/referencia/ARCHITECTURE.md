@@ -77,19 +77,24 @@ Divide o conhecimento em tres formas:
 - memoria semantica para fatos e entradas pesquisaveis
 - memoria procedural para sequencias reutilizaveis
 
-No estado atual, a memoria semantica e a memoria procedural ja possuem persistencia configuravel e recuperacao segura no startup.
+No estado atual, as memorias episodica, semantica e procedural possuem persistencia configuravel. A memoria semantica mantem a busca deterministica como fallback e pode ativar recuperacao hibrida com Qdrant, Qwen3-Embedding e Qwen3-Reranker. A memoria conversacional de longo prazo pode ser delegada ao Mem0 OSS com Ollama local.
 
 Artefatos principais:
 
 - `memory_system/episodic_memory.py`
 - `memory_system/semantic_memory.py`
 - `memory_system/procedural_memory.py`
+- `memory_system/advanced_memory.py`
+- `docs/referencia/MEMORY_STACK_PTBR.md`
 
 Capacidades atuais:
 
 - procedimentos estruturados com dominio, tipo de tarefa, heuristica, contexto e evidencias
-- persistencia configuravel em JSON
-- busca deterministica por texto, dominio, tipo e sucesso
+- persistencia configuravel em JSON para memoria episodica, semantica e procedural
+- busca deterministica por texto como fallback seguro
+- busca vetorial opcional em Qdrant com embeddings Qwen3 e reranking Qwen3
+- Mem0 OSS opcional para memoria conversacional consolidada
+- degradacao graciosa quando dependencias/modelos avancados nao estiverem disponiveis
 - reaproveitamento de guidance procedural pelo runtime antes da execucao
 
 ## Workers
