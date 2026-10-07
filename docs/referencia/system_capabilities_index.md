@@ -238,3 +238,18 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Persistência de chunks | Implementado | `learning/research_knowledge_engine.py` | tabela `document_chunks` |
 | Artefato Markdown + manifesto | Implementado | `learning/universal_file_extractor.py` | SHA-256 e metadados auditáveis |
 | Extração de strings binárias | Removido | `learning/universal_file_extractor.py` | formato sem parser retorna indisponível |
+
+
+## Web/Pesquisa/Navegação — Ponto 5
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Metabusca | Adapter implementado opcional | `runtime/web_stack.py` | SearXNG JSON API |
+| Crawling/Markdown | Adapter implementado opcional | `runtime/web_stack.py` | Crawl4AI 0.9.4 |
+| Browser JS determinístico | Adapter implementado opcional | `runtime/web_stack.py` | Playwright |
+| Fetch HTTP leve | Implementado | `runtime/web_stack.py` | fallback real sem browser |
+| Gate SSRF | Implementado | `runtime/web_stack.py` | bloqueia destinos locais/privados por padrão |
+| Pesquisa ativa | Implementado | `runtime/web_browser_engine.py` | zero fonte fictícia quando backend cai |
+| Extração estruturada | Implementado opcional | `learning/scrapegraph_engine.py` | JSON-CSS Crawl4AI; sem placeholders |
+| Envelope web legado | Corrigido | `runtime/scrapling_mcp_engine.py` | não afirma MCP/stealth/bypass |
+| Agregação multi-fonte | Corrigido | `learning/agent_reach_engine.py` | mede cobertura, não inventa confiança |

@@ -1,29 +1,51 @@
 """
-JARVIS - Motor de Extração por Grafo Adaptativo (ScrapeGraphAI Concept)
+JARVIS - Extracao Estruturada Web
 
-Responsável por:
-- extrair dados estruturados de HTML/Páginas Web sem depender de seletores CSS/XPath rígidos
-- construir um grafo de nós conceituais para mapeamento semântico de elementos
-- adaptar automaticamente a extração mesmo quando a estrutura do DOM for alterada
+Compatibilidade com o antigo ScrapeGraphEngine, agora baseada em extracao real
+do Crawl4AI. O motor nao inventa campos ausentes nem valores de placeholder.
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
-import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-LOGGER = logging.getLogger("jarvis.learning.scrapegraph")
+from runtime.web_stack import WebStack
 
 
 class ScrapeGraphEngine:
-    """Motor de raspagem adaptativa baseada em grafos semânticos e nós de conhecimento."""
+    """Extracao estruturada auditavel a partir de HTML ja fornecido."""
 
-    def __init__(self, data_dir: Optional[Path] = None) -> None:
-        self.data_dir = Path(data_dir) if data_dir else Path(__file__).resolve().parents[1] / "data" / "scrapegraph_nodes"
+    def __init__(
+        self,
+        data_dir: Optional[Path] = None,
+        web_stack: Optional[WebStack] = None,
+    ) -> None:
+        self.data_dir = (
+            Path(data_dir)
+            if data_dir
+            else Path(__file__).resolve().parents[1] / "data" / "scrapegraph_nodes"
+        )
         self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.web_stack = web_stack or WebStack()
+
+    @staticmethod
+    def _is_crawl4ai_schema(schema: Dict[str, Any]) -> bool:
+        return bool(
+            isinstance(schema, dict)
+            and isinstance(schema.get("baseSelector"), str)
+            and schema.get("baseSelector", "").strip()
+            and isinstance(schema.get("fields"), list)
+            and all(
+                isinstance(field, dict)
+                and isinstance(field.get("name"), str)
+                and field.get("name", "").strip()
+                for field in schema.get("fields", [])
+            )
+        )
 
     def extract_structured_graph(
         self,
@@ -31,49 +53,64 @@ class ScrapeGraphEngine:
         html_content: str,
         extraction_schema: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """
-        Converte o HTML bruto em um Grafo de Dados Estruturados adaptativo.
-        Exemplo de schema: {"titulo": "str", "precos": "list[float]", "links_relacionados": "list[str]"}
-        """
+        """Executa schema CSS real via Crawl4AI e registra a proveniencia."""
+
+        now = datetime.now(timezone.utc).isoformat()
         parsed_url = urlparse(target_url)
         domain = parsed_url.netloc or "local"
 
-        # 1. Construção do Grafo de Elementos Semânticos
-        graph_nodes = []
+        graph_nodes = [
+            {
+                "id": "node_root",
+                "label": f"SiteRoot:{domain}",
+                "tipo": "dominio",
+            }
+        ]
         edges = []
 
-        # Extração heurística simulada de elementos estruturados baseados no schema
-        extracted_data: Dict[str, Any] = {}
+        if not self._is_crawl4ai_schema(extraction_schema):
+            result = {
+                "status": "indisponivel",
+                "url_alvo": target_url,
+                "dominio": domain,
+                "schema_solicitado": extraction_schema,
+                "grafo_extracao": {"nos": graph_nodes, "arestas": edges},
+                "dados_estruturados_extraidos": None,
+                "metodo": None,
+                "motivo": (
+                    "O schema legado baseado apenas em tipos nao prova como cada campo deve "
+                    "ser extraido. Use schema Crawl4AI JSON-CSS com baseSelector e fields."
+                ),
+                "executado_em": now,
+            }
+            self._save_graph_snapshot(domain, result)
+            return result
 
-        lines = [line.strip() for line in html_content.splitlines() if line.strip()]
+        for field in extraction_schema["fields"]:
+            node_id = f"node_{field['name']}"
+            graph_nodes.append(
+                {
+                    "id": node_id,
+                    "label": field["name"],
+                    "selector": field.get("selector"),
+                    "tipo_extracao": field.get("type"),
+                }
+            )
+            edges.append(
+                {
+                    "origem": "node_root",
+                    "destino": node_id,
+                    "relacao": "extrai_campo",
+                }
+            )
 
-        # Mapeamento do nó raiz (Domain Node)
-        graph_nodes.append({
-            "id": "node_root",
-            "label": f"SiteRoot:{domain}",
-            "tipo": "dominio",
-        })
-
-        for key, field_type in extraction_schema.items():
-            node_id = f"node_{key}"
-            graph_nodes.append({
-                "id": node_id,
-                "label": key,
-                "tipo_esperado": str(field_type),
-            })
-            edges.append({"origem": "node_root", "destino": node_id, "relacao": "contem_campo"})
-
-            # Preenchimento heurístico adaptativo dos dados
-            if field_type == "list[str]":
-                items = [line for line in lines if len(line) > 5 and not line.startswith("<")][:5]
-                extracted_data[key] = items or ["Item extraído 1", "Item extraído 2"]
-            elif field_type in ("int", "float"):
-                extracted_data[key] = 100.0
-            else:
-                text_matches = [line for line in lines if not line.startswith("<") and len(line) > 3]
-                extracted_data[key] = text_matches[0] if text_matches else f"Valor adaptativo para {key}"
+        extraction = self.web_stack.extract_structured_html(
+            str(html_content),
+            extraction_schema,
+        )
 
         result = {
+            "status": extraction.get("status", "erro"),
             "url_alvo": target_url,
             "dominio": domain,
             "schema_solicitado": extraction_schema,
@@ -81,19 +118,19 @@ class ScrapeGraphEngine:
                 "nos": graph_nodes,
                 "arestas": edges,
             },
-            "dados_estruturados_extraidos": extracted_data,
-            "adaptabilidade_status": "sucesso_sem_dependencia_css",
-            "resumo_ptbr": (
-                f"Extração adaptativa por grafo concluída para '{target_url}'. "
-                f"{len(extracted_data)} campo(s) estruturado(s) mapeado(s) sem seletores rígidos."
-            ),
+            "dados_estruturados_extraidos": extraction.get("dados"),
+            "metodo": extraction.get("metodo"),
+            "motivo": extraction.get("motivo"),
+            "executado_em": now,
+            "fabricated_values": False,
         }
-
         self._save_graph_snapshot(domain, result)
         return result
 
     def _save_graph_snapshot(self, domain: str, result: Dict[str, Any]) -> None:
-        """Salva a captura do grafo em arquivo JSON."""
         clean_domain = domain.replace(":", "_").replace("/", "_")
         file_path = self.data_dir / f"scrapegraph_{clean_domain}.json"
-        file_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+        file_path.write_text(
+            json.dumps(result, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )

@@ -389,9 +389,15 @@ class InternalAgentRuntime:
 
             self.subagent_tool_evolver = SubAgentToolEvolver()
             self.vulnerability_hunter = AgenticVulnerabilityHunter(tool_evolver=self.subagent_tool_evolver)
-            self.scrapegraph_engine = ScrapeGraphEngine()
-            self.scrapling_mcp_engine = ScraplingMCPEngine()
-            self.agent_reach_engine = AgentReachEngine()
+            self.scrapegraph_engine = ScrapeGraphEngine(
+                web_stack=self.web_browser_engine.web_stack,
+            )
+            self.scrapling_mcp_engine = ScraplingMCPEngine(
+                web_browser_engine=self.web_browser_engine,
+            )
+            self.agent_reach_engine = AgentReachEngine(
+                web_browser_engine=self.web_browser_engine,
+            )
 
             # Motores de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e Micro-Sandbox
             from runtime.corporate_agent_hierarchy import CorporateAgentHierarchyEngine

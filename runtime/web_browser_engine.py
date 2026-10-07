@@ -1,141 +1,143 @@
 """
-JARVIS - Motor de Pesquisa Ativa e Navegação Web
+JARVIS - Motor de Pesquisa e Navegacao Web
 
-Responsável por:
-- realizar pesquisas ativas na internet sobre tópicos informados
-- buscar e extrair o conteúdo principal de páginas web de forma limpa
-- tratar falhas de rede e timeouts de forma resiliente
+Facade de alto nivel sobre o stack web real:
+- SearXNG para descoberta/metabusca
+- Crawl4AI para crawling/Markdown quando disponivel
+- Playwright para paginas JavaScript quando necessario
+- HTTP stdlib como fallback leve e real
+
+Nenhum caminho fabrica fontes, snippets ou conteudo.
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import json
-import re
-from typing import Any, Dict, List, Optional
-import urllib.parse
-import urllib.request
+from typing import Any, Dict, Optional
 
-
-# `urllib.request.urlopen` atende varios esquemas, nao apenas web: `file://`
-# leria arquivos do disco do hospedeiro e `ftp://` abriria outra rede. Buscar
-# uma pagina so faz sentido por HTTP.
-ALLOWED_URL_SCHEMES = ("http", "https")
-
-# Endereco de metadados das nuvens principais. Uma requisicao vinda de dentro da
-# maquina costuma receber credenciais da instancia sem qualquer autenticacao.
-CLOUD_METADATA_HOSTS = ("169.254.169.254", "metadata.google.internal", "[fd00:ec2::254]")
-
-
-def validate_fetchable_url(url: str) -> Optional[str]:
-    """
-    Verifica se uma URL pode ser buscada pelo motor.
-
-    Parametros:
-    - url: endereco recebido de quem chamou.
-
-    Retorno:
-    - `None` quando a URL e aceitavel, ou o motivo da recusa.
-
-    Efeitos no sistema:
-    - nenhum; apenas inspeciona o endereco antes de qualquer requisicao.
-    """
-
-    try:
-        parsed = urllib.parse.urlparse(url.strip())
-    except ValueError:
-        return "Endereco invalido."
-
-    if parsed.scheme.lower() not in ALLOWED_URL_SCHEMES:
-        return (
-            f"Esquema '{parsed.scheme or 'ausente'}' recusado: "
-            f"apenas {' e '.join(ALLOWED_URL_SCHEMES)} sao buscados."
-        )
-    if not parsed.hostname:
-        return "Endereco sem host definido."
-    if parsed.hostname.lower() in CLOUD_METADATA_HOSTS:
-        return "Endereco de metadados de nuvem recusado."
-    return None
+from runtime.web_stack import WebStack, WebStackConfig, validate_fetchable_url
 
 
 class WebBrowserEngine:
-    """Motor de pesquisa, raspagem e extração limpa de conteúdo web."""
+    """Pesquisa, recupera e renderiza paginas com backends substituiveis."""
 
-    def __init__(self, user_agent: Optional[str] = None) -> None:
-        self.user_agent = user_agent or "JarvisActiveResearchEngine/1.0"
+    def __init__(
+        self,
+        user_agent: Optional[str] = None,
+        config: Optional[WebStackConfig] = None,
+        web_stack: Optional[WebStack] = None,
+    ) -> None:
+        if config is None:
+            config = WebStackConfig.from_env()
+        if user_agent:
+            config = WebStackConfig(
+                **{
+                    **config.__dict__,
+                    "user_agent": user_agent,
+                }
+            )
+        self.web_stack = web_stack or WebStack(config=config)
 
-    def search_and_extract(self, query: str, max_results: int = 3) -> Dict[str, Any]:
-        """
-        Realiza uma pesquisa e extrai os principais trechos dos resultados.
-        """
+    def search_and_extract(
+        self,
+        query: str,
+        max_results: int = 3,
+        *,
+        category: Optional[str] = None,
+        time_range: Optional[str] = None,
+        extract_pages: bool = True,
+        max_pages_to_extract: int = 2,
+    ) -> Dict[str, Any]:
+        """Pesquisa via SearXNG e opcionalmente extrai paginas reais."""
+
         now = datetime.now(timezone.utc).isoformat()
-        encoded_query = urllib.parse.quote(query)
-        search_url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
+        clean_query = str(query).strip()
+        if not clean_query:
+            return {
+                "status": "erro",
+                "pesquisa": query,
+                "realizada_em": now,
+                "total_fontes_encontradas": 0,
+                "fontes": [],
+                "motivo": "A consulta nao pode ser vazia.",
+            }
 
-        extracted_sources = []
-        try:
-            req = urllib.request.Request(search_url, headers={"User-Agent": self.user_agent})
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                html_content = resp.read().decode("utf-8", errors="ignore")
+        search = self.web_stack.search_web(
+            clean_query,
+            max_results=max_results,
+            category=category,
+            time_range=time_range,
+        )
+        if search.get("status") != "sucesso":
+            return {
+                "status": search.get("status", "indisponivel"),
+                "pesquisa": clean_query,
+                "realizada_em": now,
+                "total_fontes_encontradas": 0,
+                "fontes": [],
+                "backend_busca": "searxng",
+                "motivo": search.get("motivo"),
+            }
 
-            # Extração simples de títulos e links por regex
-            links = re.findall(r'<a class="result__url" href="([^"]+)">(.*?)</a>', html_content)
-            snippets = re.findall(r'<a class="result__snippet[^"]*">(.*?)</a>', html_content)
+        sources = []
+        extract_budget = max(0, int(max_pages_to_extract))
+        for raw in search.get("resultados", []):
+            source = dict(raw)
+            source["extracao"] = None
 
-            for i in range(min(max_results, len(links))):
-                url = links[i][0]
-                # Decodifica redirecionamento DuckDuckGo
-                if "uddg=" in url:
-                    parsed_url = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
-                    url = parsed_url.get("uddg", [url])[0]
+            if extract_pages and extract_budget > 0:
+                validation = validate_fetchable_url(
+                    source.get("url", ""),
+                    allow_private_targets=self.web_stack.config.allow_private_targets,
+                    resolve_dns=True,
+                )
+                if validation:
+                    source["extracao"] = {
+                        "status": "bloqueado",
+                        "motivo": validation,
+                    }
+                else:
+                    page = self.web_stack.fetch_page(source["url"])
+                    source["extracao"] = {
+                        "status": page.get("status"),
+                        "metodo": page.get("metodo"),
+                        "titulo": page.get("titulo"),
+                        "conteudo_texto_limpo": page.get("conteudo_texto_limpo"),
+                        "tamanho_texto_chars": page.get("tamanho_texto_chars"),
+                        "truncado": page.get("truncado"),
+                        "motivo": page.get("motivo"),
+                    }
+                extract_budget -= 1
 
-                snippet_clean = re.sub(r"<[^>]+>", "", snippets[i]) if i < len(snippets) else "Sem trecho."
-                extracted_sources.append({
-                    "posicao": i + 1,
-                    "url": url,
-                    "resumo_snippet": snippet_clean.strip(),
-                })
-        except Exception as e:
-            # Fallback para resultado resiliente offline
-            extracted_sources.append({
-                "posicao": 1,
-                "url": f"https://pesquisa.local/busca?q={encoded_query}",
-                "resumo_snippet": f"Pesquisa concluída para o termo '{query}'. Ativo offline.",
-            })
+            sources.append(source)
 
         return {
-            "pesquisa": query,
+            "status": "sucesso",
+            "pesquisa": clean_query,
             "realizada_em": now,
-            "total_fontes_encontradas": len(extracted_sources),
-            "fontes": extracted_sources,
+            "total_fontes_encontradas": len(sources),
+            "fontes": sources,
+            "backend_busca": search.get("backend"),
+            "extracao_paginas_habilitada": bool(extract_pages),
         }
 
     def fetch_page_content(self, url: str) -> Dict[str, Any]:
-        """
-        Baixa uma página web e limpa as tags HTML para extrair apenas o texto relevante.
-        """
+        """Recupera conteudo textual real de uma pagina."""
+
         now = datetime.now(timezone.utc).isoformat()
-        recusa = validate_fetchable_url(url)
-        if recusa:
-            return {"status": "bloqueado", "url": url, "motivo": recusa, "avaliado_em": now}
+        result = self.web_stack.fetch_page(url)
+        return {
+            **result,
+            "baixado_em": now if result.get("status") == "sucesso" else None,
+            "avaliado_em": now,
+        }
 
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": self.user_agent})
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                raw_html = resp.read().decode("utf-8", errors="ignore")
+    def render_dynamic_page(self, url: str) -> Dict[str, Any]:
+        """Forca renderizacao Playwright para paginas JS."""
 
-            # Limpeza de scripts, estilos e tags
-            clean_text = re.sub(r"<script.*?>.*?</script>", "", raw_html, flags=re.DOTALL | re.IGNORECASE)
-            clean_text = re.sub(r"<style.*?>.*?</style>", "", clean_text, flags=re.DOTALL | re.IGNORECASE)
-            clean_text = re.sub(r"<[^>]+>", " ", clean_text)
-            clean_text = re.sub(r"\s+", " ", clean_text).strip()
+        now = datetime.now(timezone.utc).isoformat()
+        result = self.web_stack.render_page(url)
+        return {**result, "avaliado_em": now}
 
-            return {
-                "status": "sucesso",
-                "url": url,
-                "baixado_em": now,
-                "tamanho_texto_chars": len(clean_text),
-                "conteudo_texto_limpo": clean_text[:2000],  # Primeiros 2k caracteres
-            }
-        except Exception as e:
-            return {"status": "erro", "url": url, "motivo": str(e)}
+    def describe_capabilities(self) -> Dict[str, Any]:
+        return self.web_stack.status()
