@@ -20,6 +20,8 @@ import math
 import os
 from pathlib import Path
 import shutil
+import subprocess
+import tempfile
 from typing import Any, Dict, Mapping, Optional
 
 
@@ -62,6 +64,7 @@ class VoiceStackConfig:
 
     enhancement_enabled: bool = False
     deepfilter_model: Optional[str] = None
+    deepfilter_command: Optional[str] = None
 
     @classmethod
     def from_env(
@@ -113,6 +116,7 @@ class VoiceStackConfig:
                 env.get("JARVIS_AUDIO_ENHANCEMENT_ENABLED"), False
             ),
             deepfilter_model=(env.get("JARVIS_DEEPFILTER_MODEL") or "").strip() or None,
+            deepfilter_command=(env.get("JARVIS_DEEPFILTER_COMMAND") or "").strip() or None,
         )
 
 
@@ -405,11 +409,12 @@ class DeepFilterNetEnhancer:
 
     @property
     def available(self) -> bool:
-        return (
-            self.config.enabled
-            and self.config.enhancement_enabled
-            and importlib.util.find_spec("df") is not None
-        )
+        if not self.config.enabled or not self.config.enhancement_enabled:
+            return False
+        python_backend = importlib.util.find_spec("df") is not None
+        command = self.config.deepfilter_command
+        cli_backend = bool(command and (Path(command).exists() or shutil.which(command)))
+        return python_backend or cli_backend
 
     def _load(self) -> bool:
         if self._model is not None and self._state is not None:
@@ -446,6 +451,10 @@ class DeepFilterNetEnhancer:
             return False
 
     def enhance(self, source: Path, destination: Path) -> Dict[str, Any]:
+        command = self.config.deepfilter_command
+        if command and (Path(command).exists() or shutil.which(command)):
+            return self._enhance_cli(source, destination, command)
+
         if not self._load():
             return {"status": "indisponivel", "motivo": self._load_error}
         try:
@@ -458,12 +467,56 @@ class DeepFilterNetEnhancer:
             return {
                 "status": "sucesso",
                 "arquivo_audio": str(destination),
-                "metodo": "DeepFilterNet",
+                "metodo": "DeepFilterNet-python",
             }
         except Exception as exc:
             return {
                 "status": "erro",
                 "motivo": f"Falha real no enhancement: {exc.__class__.__name__}: {exc}",
+            }
+
+    def _enhance_cli(self, source: Path, destination: Path, command: str) -> Dict[str, Any]:
+        try:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.TemporaryDirectory() as temp_dir:
+                args = [command]
+                if self.config.deepfilter_model:
+                    args += ["-m", self.config.deepfilter_model]
+                args += ["-o", temp_dir, str(source)]
+                process = subprocess.run(
+                    args,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if process.returncode != 0:
+                    return {
+                        "status": "erro",
+                        "motivo": "DeepFilterNet CLI retornou erro.",
+                        "stderr": process.stderr[-2000:],
+                    }
+
+                candidates = sorted(
+                    Path(temp_dir).glob("*.wav"),
+                    key=lambda path: path.stat().st_mtime,
+                    reverse=True,
+                )
+                if not candidates:
+                    return {
+                        "status": "erro",
+                        "motivo": "DeepFilterNet CLI concluiu sem produzir WAV verificavel.",
+                    }
+                shutil.copy2(candidates[0], destination)
+
+            return {
+                "status": "sucesso",
+                "arquivo_audio": str(destination),
+                "metodo": "DeepFilterNet-cli",
+            }
+        except Exception as exc:
+            return {
+                "status": "erro",
+                "motivo": f"Falha real no enhancement CLI: {exc.__class__.__name__}: {exc}",
             }
 
 
@@ -541,7 +594,8 @@ class VoiceStack:
             },
             "enhancement": {
                 "enabled": self.config.enhancement_enabled,
-                "deepfilternet_available": importlib.util.find_spec("df") is not None,
+                "deepfilternet_python_available": importlib.util.find_spec("df") is not None,
+                "deepfilternet_cli_configured": bool(self.config.deepfilter_command),
             },
             "fallback": "native_system_tts_and_explicit_unavailability",
             "generated_at": datetime.now(timezone.utc).isoformat(),
