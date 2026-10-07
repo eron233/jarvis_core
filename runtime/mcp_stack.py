@@ -347,22 +347,42 @@ class OfficialMCPClientManager:
         values = server.get(key) or []
         return isinstance(values, list) and str(name) in {str(item) for item in values}
 
+    @staticmethod
+    def _capability_enabled(capabilities: Any, name: str) -> bool:
+        if capabilities is None:
+            return False
+        if isinstance(capabilities, dict):
+            value = capabilities.get(name)
+        else:
+            value = getattr(capabilities, name, None)
+        return value is not None and value is not False
+
     async def _discover_async(self, prepared: Dict[str, Any]) -> Dict[str, Any]:
         factory = prepared["client_factory"]
         async with factory(prepared["target"]) as client:
-            tools_result = await client.list_tools()
-            resources_result = await client.list_resources()
-            prompts_result = await client.list_prompts()
+            capabilities = getattr(client, "server_capabilities", None)
 
-            tools = [_serialize(item) for item in getattr(tools_result, "tools", [])]
-            resources = [_serialize(item) for item in getattr(resources_result, "resources", [])]
-            prompts = [_serialize(item) for item in getattr(prompts_result, "prompts", [])]
+            tools = []
+            resources = []
+            prompts = []
+
+            if self._capability_enabled(capabilities, "tools"):
+                tools_result = await client.list_tools()
+                tools = [_serialize(item) for item in getattr(tools_result, "tools", [])]
+
+            if self._capability_enabled(capabilities, "resources"):
+                resources_result = await client.list_resources()
+                resources = [_serialize(item) for item in getattr(resources_result, "resources", [])]
+
+            if self._capability_enabled(capabilities, "prompts"):
+                prompts_result = await client.list_prompts()
+                prompts = [_serialize(item) for item in getattr(prompts_result, "prompts", [])]
 
             return {
                 "status": "sucesso",
                 "protocol_version": getattr(client, "protocol_version", None),
                 "server_info": _serialize(getattr(client, "server_info", None)),
-                "server_capabilities": _serialize(getattr(client, "server_capabilities", None)),
+                "server_capabilities": _serialize(capabilities),
                 "instructions": getattr(client, "instructions", None),
                 "tools": tools,
                 "resources": resources,
