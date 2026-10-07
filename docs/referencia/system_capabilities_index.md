@@ -253,3 +253,17 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Extração estruturada | Implementado opcional | `learning/scrapegraph_engine.py` | JSON-CSS Crawl4AI; sem placeholders |
 | Envelope web legado | Corrigido | `runtime/scrapling_mcp_engine.py` | não afirma MCP/stealth/bypass |
 | Agregação multi-fonte | Corrigido | `learning/agent_reach_engine.py` | mede cobertura, não inventa confiança |
+
+
+## Inferência Local — Ponto 6
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Runtime llama.cpp | Adapter implementado opcional | `runtime/inference_stack.py` | OpenAI-compatible; modelo não escolhido |
+| Runtime Ollama | Adapter implementado opcional | `runtime/inference_stack.py` | fallback/gerenciamento local |
+| Roteamento de modelo | Implementado | `runtime/inference_stack.py` | capability → tier → general |
+| Fallback de provider | Implementado | `runtime/inference_stack.py` | ordem configurável |
+| Métricas de inferência | Implementado | `runtime/inference_stack.py` | latência, usage e tokens/s quando disponível |
+| API de inferência | Implementado | `interface/api/app.py` | status/probe/chat |
+| Hierarquia sem modelo fictício | Implementado | `runtime/corporate_agent_hierarchy.py` | aliases vazios até benchmark |
+| Modelo-base | Deliberadamente pendente | Constituição | escolher somente no hardware real |
