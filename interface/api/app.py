@@ -866,9 +866,21 @@ def create_app(
 
     @app.get("/api/web/pesquisar", dependencies=[Depends(require_trusted_device)])
     def active_web_search(request: Request, q: str = Query(min_length=1)) -> Dict[str, Any]:
-        """Realiza pesquisa web ativa e extrai resumos."""
+        """Pesquisa via stack web real; sem SearXNG configurado retorna indisponível."""
         runtime = _ensure_runtime_initialized(request)
         return runtime.web_browser_engine.search_and_extract(q)
+
+    @app.get("/api/web/fetch", dependencies=[Depends(require_trusted_device)])
+    def fetch_web_page(request: Request, url: str = Query(min_length=1)) -> Dict[str, Any]:
+        """Extrai conteúdo real de uma página, respeitando o gate SSRF."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.web_browser_engine.fetch_page_content(url)
+
+    @app.get("/api/web/status", dependencies=[Depends(require_trusted_device)])
+    def web_stack_status(request: Request) -> Dict[str, Any]:
+        """Expõe quais backends web estão realmente disponíveis."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.web_browser_engine.describe_capabilities()
 
     @app.post("/api/ingestao/universal", dependencies=[Depends(require_trusted_device)])
     def ingest_universal_file(request: Request, caminho_arquivo: str = Query(min_length=1)) -> Dict[str, Any]:
@@ -1020,31 +1032,40 @@ def create_app(
 
     @app.post("/api/web/scrapegraph/extrair", dependencies=[Depends(require_trusted_device)])
     def extract_structured_scrapegraph(request: Request, url: str = Query(min_length=1), html: str = Body(...), schema: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
-        """Realiza extração adaptativa por grafo semântico sem seletores CSS rígidos."""
+        """Executa extração estruturada real via schema JSON-CSS do Crawl4AI."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.scrapegraph_engine.extract_structured_graph(
             target_url=url,
             html_content=html,
             extraction_schema=schema,
         )
-        return {"mensagem": "Extração adaptativa ScrapeGraph concluída com sucesso.", "resultado_grafo": res}
+        return {
+            "mensagem": "Extração estruturada processada; consulte o campo status.",
+            "resultado_grafo": res,
+        }
 
     @app.post("/api/web/scrapling-mcp/raspagem-stealth", dependencies=[Depends(require_trusted_device)])
-    def scrape_stealth_mcp_endpoint(request: Request, url: str = Query(min_length=1), nivel_stealth: str = Query(default="high")) -> Dict[str, Any]:
-        """Executa raspagem stealth e empacota no formato padrão do protocolo MCP."""
+    def scrape_stealth_mcp_endpoint(request: Request, url: str = Query(min_length=1), nivel_stealth: str = Query(default="disabled")) -> Dict[str, Any]:
+        """Endpoint legado: busca página real; não afirma stealth, bypass ou MCP oficial."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.scrapling_mcp_engine.scrape_stealth_mcp(
             target_url=url,
             stealth_level=nivel_stealth,
         )
-        return {"mensagem": "Raspagem stealth MCP concluída com sucesso.", "pacote_mcp": res}
+        return {
+            "mensagem": "Captura web processada; o envelope é legado, não um servidor MCP oficial.",
+            "pacote_mcp": res,
+        }
 
     @app.post("/api/learning/agent-reach/contexto", dependencies=[Depends(require_trusted_device)])
     def reach_multi_source_context_endpoint(request: Request, topico: str = Query(min_length=1)) -> Dict[str, Any]:
-        """Realiza varredura multi-fonte para agregação e validação cruzada de contexto profundo."""
+        """Agrega resultados reais por categorias sem inventar confiança factual."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.agent_reach_engine.reach_multi_source_context(topic_query=topico)
-        return {"mensagem": "Agregação de contexto do Agent Reach concluída com sucesso.", "relatorio_alcance": res}
+        return {
+            "mensagem": "Agregação web processada; cobertura não equivale a validação factual.",
+            "relatorio_alcance": res,
+        }
 
     # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
 
