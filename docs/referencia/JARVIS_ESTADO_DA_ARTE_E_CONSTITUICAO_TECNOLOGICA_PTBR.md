@@ -65,8 +65,8 @@ Nenhum item B/C é tratado como inferior por definição; ele simplesmente exige
 | Extração web | **Crawl4AI** | Web → Markdown/dados limpos para agentes | EXPERIMENTAL | Substitui scraping heurístico improvisado |
 | Browser determinístico | **Playwright** | Navegação, testes e ações web reproduzíveis | EXPERIMENTAL → provável CORE tool | Preferir deterministicidade antes de agente visual |
 | Browser adaptativo | **browser-use** | Tarefas web em páginas difíceis/dinâmicas | ON_DEMAND candidato | Fallback adaptativo, não primeiro caminho |
-| Documentos | **Docling** | Parsing/layout/tabelas/múltiplos formatos | EXPERIMENTAL — alta prioridade | Substitui extração binária improvisada |
-| Conversão difícil | **Marker** | Documento → Markdown/JSON estruturado | ON_DEMAND candidato | Challenger do Docling em documentos difíceis |
+| Documentos | **Docling + parsers nativos** | Parsing/layout/tabelas/múltiplos formatos | ADAPTER VALIDADO / backend opcional | Extração binária improvisada removida; pesos reais ainda exigem provisionamento |
+| Conversão difícil | **Marker** | Documento → Markdown/JSON estruturado | ON_DEMAND challenger | Só substitui Docling se vencer corpus real no Twin |
 | OCR leve | **PaddleOCR PP-OCRv6** | OCR barato e rápido | VALIDADO opcional | Small como padrão; tiny para economia extrema |
 | Visão documental | **PaddleOCR-VL 1.6** | Layout, tabelas, fórmulas/documentos complexos | ON_DEMAND validado por interface / backend pendente | Carregar só quando OCR simples não bastar e validar no hardware |
 | Visão geral leve | **Moondream local endpoint** | Entendimento de imagem/VQA/detecção | INTERFACE VALIDADA / backend pendente | Adaptador local pronto; modelo exato depende de hardware |
