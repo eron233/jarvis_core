@@ -386,6 +386,7 @@ class SemanticCacheEngine:
         return {
             "total_entradas_cache": len(self.cache_entries),
             "consultas_observadas": total_queries,
+            "total_hits_acumulados": hits,
             "hits_exatos": exact_hits,
             "hits_vetoriais": vector_hits,
             "misses": misses,
