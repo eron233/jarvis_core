@@ -1067,6 +1067,33 @@ def create_app(
             "relatorio_alcance": res,
         }
 
+    # --- Endpoints de Inferencia Local ---
+
+    @app.get("/api/inferencia/status", dependencies=[Depends(require_trusted_device)])
+    def inference_status(request: Request, probe: bool = Query(default=False)) -> Dict[str, Any]:
+        """Mostra runtimes/aliases locais configurados; probe consulta /v1/models."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.inference_router.status(probe=probe)
+
+    @app.post("/api/inferencia/chat", dependencies=[Depends(require_trusted_device)])
+    def inference_chat(
+        request: Request,
+        messages: list[Dict[str, Any]] = Body(...),
+        tier: str = Query(default="general"),
+        capacidade: Optional[str] = Query(default=None),
+        provider: Optional[str] = Query(default=None),
+        modelo: Optional[str] = Query(default=None),
+    ) -> Dict[str, Any]:
+        """Executa uma inferencia real em runtime local configurado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.inference_router.chat(
+            messages=messages,
+            tier=tier,
+            capability=capacidade,
+            provider=provider,
+            explicit_model=modelo,
+        )
+
     # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
 
     @app.post("/api/corporativo/despachar", dependencies=[Depends(require_trusted_device)])
