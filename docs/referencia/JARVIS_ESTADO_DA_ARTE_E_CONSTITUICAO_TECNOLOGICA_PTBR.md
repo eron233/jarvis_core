@@ -67,9 +67,9 @@ Nenhum item B/C é tratado como inferior por definição; ele simplesmente exige
 | Browser adaptativo | **browser-use** | Tarefas web em páginas difíceis/dinâmicas | ON_DEMAND candidato | Fallback adaptativo, não primeiro caminho |
 | Documentos | **Docling** | Parsing/layout/tabelas/múltiplos formatos | EXPERIMENTAL — alta prioridade | Substitui extração binária improvisada |
 | Conversão difícil | **Marker** | Documento → Markdown/JSON estruturado | ON_DEMAND candidato | Challenger do Docling em documentos difíceis |
-| OCR leve | **PaddleOCR PP-OCRv6** | OCR barato e rápido | EXPERIMENTAL → provável CORE perception | Modelos pequenos adequados ao PC fraco |
-| Visão documental | **PaddleOCR-VL** | Layout, tabelas, fórmulas/documentos complexos | ON_DEMAND candidato | Carregar só quando OCR simples não bastar |
-| Visão geral leve | **Moondream** | Entendimento de imagem/VQA/detecção | EXPERIMENTAL | 0.5B/2B tornam-no interessante para edge |
+| OCR leve | **PaddleOCR PP-OCRv6** | OCR barato e rápido | VALIDADO opcional | Small como padrão; tiny para economia extrema |
+| Visão documental | **PaddleOCR-VL 1.6** | Layout, tabelas, fórmulas/documentos complexos | ON_DEMAND validado por interface / backend pendente | Carregar só quando OCR simples não bastar e validar no hardware |
+| Visão geral leve | **Moondream local endpoint** | Entendimento de imagem/VQA/detecção | INTERFACE VALIDADA / backend pendente | Adaptador local pronto; modelo exato depende de hardware |
 | VAD | **Silero VAD** | Detectar fala antes do STT | EXPERIMENTAL → provável CORE voice | Muito leve |
 | STT | **faster-whisper** | Transcrição local multilíngue | EXPERIMENTAL — principal | Benchmark pt-BR obrigatório |
 | STT challenger | **Parakeet.cpp** | ASR eficiente quantizado | EXPERIMENTAL | Muito promissor; cobertura pt-BR deve ser provada |
