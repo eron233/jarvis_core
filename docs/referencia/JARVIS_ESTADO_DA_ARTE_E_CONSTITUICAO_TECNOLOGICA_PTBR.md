@@ -61,10 +61,10 @@ Nenhum item B/C é tratado como inferior por definição; ele simplesmente exige
 | Conhecimento do próprio código | **codebase-memory-mcp** | Grafo persistente, call graph, impacto, rotas e consultas | EXPERIMENTAL — alta prioridade | Candidato forte para autoconsciência estrutural do código |
 | Contexto para agentes de desenvolvimento | **Graft** | Reduzir exploração repetitiva do repo por agentes | EXPERIMENTAL — dev only | Ferramenta para construir o JARVIS, não necessariamente cérebro residente |
 | Segurança/dataflow de código | **Joern** | Code Property Graph e análise profunda | ON_DEMAND candidato | Especializado; mais pesado que busca estrutural cotidiana |
-| Busca web privada | **SearXNG** | Metabusca local/self-hosted | EXPERIMENTAL | Descoberta de fontes; respeitar termos/fontes |
-| Extração web | **Crawl4AI** | Web → Markdown/dados limpos para agentes | EXPERIMENTAL | Substitui scraping heurístico improvisado |
-| Browser determinístico | **Playwright** | Navegação, testes e ações web reproduzíveis | EXPERIMENTAL → provável CORE tool | Preferir deterministicidade antes de agente visual |
-| Browser adaptativo | **browser-use** | Tarefas web em páginas difíceis/dinâmicas | ON_DEMAND candidato | Fallback adaptativo, não primeiro caminho |
+| Busca web privada | **SearXNG** | Metabusca local/self-hosted | ADAPTER VALIDADO / serviço opcional | JSON API; sem fonte fictícia quando indisponível |
+| Extração web | **Crawl4AI 0.9.4** | Web → Markdown/dados limpos para agentes | ADAPTER VALIDADO / backend opcional | Release de segurança; substitui scraping heurístico improvisado |
+| Browser determinístico | **Playwright** | Navegação/renderização web reproduzível | ADAPTER VALIDADO / browser opcional | Preferir deterministicidade antes de agente visual |
+| Browser adaptativo | **browser-use / Stagehand** | Workflows web desconhecidos/agentivos | ON_DEMAND challenger | Só após modelo-base; comparar sucesso/tokens/latência no Twin |
 | Documentos | **Docling + parsers nativos** | Parsing/layout/tabelas/múltiplos formatos | ADAPTER VALIDADO / backend opcional | Extração binária improvisada removida; pesos reais ainda exigem provisionamento |
 | Conversão difícil | **Marker** | Documento → Markdown/JSON estruturado | ON_DEMAND challenger | Só substitui Docling se vencer corpus real no Twin |
 | OCR leve | **PaddleOCR PP-OCRv6** | OCR barato e rápido | VALIDADO opcional | Small como padrão; tiny para economia extrema |
@@ -198,9 +198,6 @@ A promoção exige benefício mensurável sem regressão inaceitável.
 Até serem reimplementados com backends reais, os módulos abaixo não podem servir como evidência de capacidade:
 
 - `security/vulnerability_hunter.py`: atualmente contém cenários simulados que produzem achados e até rótulo "zero-day" sem descoberta real.
-- `learning/agent_reach_engine.py`: resultados/confianças simulados.
-- `runtime/scrapling_mcp_engine.py`: conteúdo/claims de extração simulados.
-- `learning/scrapegraph_engine.py`: valores placeholder em determinados caminhos.
 - `runtime/quantum_tree_search_engine.py`: respostas e conclusões de qualidade excessivamente templadas.
 
 A regra para esses módulos é: **real backend + evidência ou estado "indisponível"**.
