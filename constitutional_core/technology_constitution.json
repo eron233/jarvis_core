@@ -1,0 +1,127 @@
+{
+  "schema_version": "1.0",
+  "constitution_version": "0.1.0-draft",
+  "status": "draft_dev",
+  "research_cutoff": "2026-10-07",
+  "model_selection": "deferred_until_local_hardware_benchmark",
+  "principles": [
+    "evidence_over_hype",
+    "never_fabricate_capability_or_success",
+    "modular_and_replaceable_components",
+    "local_first_open_source_preferred",
+    "hardware_aware_routing",
+    "baseline_vs_candidate",
+    "twin_first_experimentation",
+    "reproducible_evidence",
+    "least_privilege_experimental_code",
+    "pt_br_quality_is_a_first_class_metric"
+  ],
+  "classes": [
+    "core",
+    "on_demand",
+    "experimental",
+    "watchlist",
+    "reject_replace"
+  ],
+  "approved_existing": [
+    {
+      "capability": "vector_memory",
+      "component": "Qdrant",
+      "state": "validated_optional"
+    },
+    {
+      "capability": "semantic_embedding",
+      "component": "Qwen3-Embedding-0.6B",
+      "state": "validated_optional_pending_hardware_benchmark"
+    },
+    {
+      "capability": "semantic_reranking",
+      "component": "Qwen3-Reranker-0.6B",
+      "state": "validated_optional_pending_hardware_benchmark"
+    },
+    {
+      "capability": "conversational_memory",
+      "component": "Mem0 OSS",
+      "state": "validated_optional"
+    }
+  ],
+  "high_priority_experiments": [
+    "official_mcp_python_sdk",
+    "codebase-memory-mcp",
+    "Graft_development_context",
+    "Docling",
+    "PaddleOCR_PP-OCRv6",
+    "Playwright",
+    "SearXNG",
+    "Crawl4AI",
+    "Hypothesis",
+    "Schemathesis",
+    "Ruff",
+    "Bandit",
+    "OSV-Scanner",
+    "py-spy",
+    "Optuna"
+  ],
+  "on_demand_candidates": [
+    "Joern",
+    "Marker",
+    "PaddleOCR-VL",
+    "Moondream",
+    "browser-use",
+    "ComfyUI",
+    "Scalene",
+    "Syft",
+    "Grype",
+    "AFL++",
+    "Wasmtime"
+  ],
+  "future_model_benchmark": [
+    "llama.cpp",
+    "Ollama",
+    "PEFT",
+    "TRL",
+    "Unsloth",
+    "lm-evaluation-harness",
+    "Promptfoo"
+  ],
+  "watchlist": [
+    "OpenCut_headless_api_mcp",
+    "Parakeet_cpp_pt_br_quality",
+    "Langfuse_vs_Phoenix_local_resource_cost"
+  ],
+  "integrity_blockers": [
+    {
+      "path": "security/vulnerability_hunter.py",
+      "issue": "simulated findings can be presented as vulnerabilities/zero-days",
+      "required_contract": "no finding without reproducible evidence"
+    },
+    {
+      "path": "learning/agent_reach_engine.py",
+      "issue": "simulated multi-source results/confidence",
+      "required_contract": "real backend or unavailable"
+    },
+    {
+      "path": "runtime/scrapling_mcp_engine.py",
+      "issue": "simulated extraction/anti-bot claims",
+      "required_contract": "real protocol/backend or unavailable"
+    },
+    {
+      "path": "learning/scrapegraph_engine.py",
+      "issue": "placeholder extracted values on some paths",
+      "required_contract": "real extraction or unavailable"
+    },
+    {
+      "path": "runtime/quantum_tree_search_engine.py",
+      "issue": "templated certainty and quality conclusions",
+      "required_contract": "measured evidence and uncertainty"
+    }
+  ],
+  "promotion_flow": [
+    "experimental_twin",
+    "dev",
+    "tests",
+    "validado",
+    "staging_when_authorized",
+    "master_when_authorized"
+  ]
+}
