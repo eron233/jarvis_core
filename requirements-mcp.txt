@@ -1,0 +1,3 @@
+# Dependencias opcionais do ponto 7: Model Context Protocol oficial.
+# v2 e a linha estavel atual e implementa a especificacao 2026-07-28.
+mcp>=2.2,<3

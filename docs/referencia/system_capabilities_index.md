@@ -267,3 +267,18 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | API de inferência | Implementado | `interface/api/app.py` | status/probe/chat |
 | Hierarquia sem modelo fictício | Implementado | `runtime/corporate_agent_hierarchy.py` | aliases vazios até benchmark |
 | Modelo-base | Deliberadamente pendente | Constituição | escolher somente no hardware real |
+
+
+## MCP Oficial — Ponto 7
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Cliente MCP v2 | Adapter implementado opcional | `runtime/mcp_stack.py` | SDK oficial `mcp>=2.2,<3` |
+| Descoberta tools/resources/prompts | Implementado | `runtime/mcp_stack.py` | descoberta não concede execução |
+| Allowlist de tools | Implementado | `runtime/mcp_stack.py` | bloqueio antes da chamada |
+| Allowlist resources/prompts | Implementado | `runtime/mcp_stack.py` | permissões independentes |
+| Transporte stdio | Implementado opcional | `runtime/mcp_stack.py` | command/env/cwd controlados |
+| Streamable HTTP | Implementado opcional | `runtime/mcp_stack.py` | remoto bloqueado por padrão |
+| Servidor MCP do JARVIS | Implementado opcional | `runtime/mcp_stack.py`, `runtime/mcp_server.py` | read-only por padrão |
+| API MCP interna | Implementado | `interface/api/app.py` | protegida por dispositivo confiável |
+| MCP simulado | Rejeitado | Constituição | envelope legado não conta como protocolo |

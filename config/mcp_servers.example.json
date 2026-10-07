@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "servers": {
+    "exemplo_local_http": {
+      "enabled": false,
+      "transport": "streamable-http",
+      "url": "http://127.0.0.1:8000/mcp",
+      "allowed_tools": [],
+      "allowed_resources": [],
+      "allowed_prompts": []
+    },
+    "exemplo_local_stdio": {
+      "enabled": false,
+      "transport": "stdio",
+      "command": "python",
+      "args": ["-m", "meu_servidor_mcp"],
+      "cwd": ".",
+      "env_allowlist": [],
+      "allowed_tools": [],
+      "allowed_resources": [],
+      "allowed_prompts": []
+    }
+  }
+}

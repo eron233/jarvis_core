@@ -407,6 +407,10 @@ class InternalAgentRuntime:
             from security.lightweight_sandbox_engine import UltraLightweightSandboxEngine
 
             self.inference_router = LocalInferenceRouter()
+
+            from runtime.mcp_stack import OfficialMCPClientManager
+            self.mcp_manager = OfficialMCPClientManager()
+
             self.corporate_hierarchy_engine = CorporateAgentHierarchyEngine(
                 inference_router=self.inference_router,
             )
