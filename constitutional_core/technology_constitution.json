@@ -58,15 +58,32 @@
       "capability": "structured_document_ingestion",
       "component": "Docling adapter + native parsers + persistent chunks",
       "state": "validated_optional_backend_provisioning_pending"
+    },
+    {
+      "capability": "web_search",
+      "component": "SearXNG JSON API adapter",
+      "state": "validated_optional_backend_provisioning_pending"
+    },
+    {
+      "capability": "web_crawling",
+      "component": "Crawl4AI 0.9.4 adapter",
+      "state": "validated_optional_backend_provisioning_pending"
+    },
+    {
+      "capability": "deterministic_browser",
+      "component": "Playwright adapter",
+      "state": "validated_optional_browser_provisioning_pending"
+    },
+    {
+      "capability": "lightweight_web_fetch",
+      "component": "stdlib HTTP extractor with SSRF gate",
+      "state": "validated"
     }
   ],
   "high_priority_experiments": [
     "official_mcp_python_sdk",
     "codebase-memory-mcp",
     "Graft_development_context",
-    "Playwright",
-    "SearXNG",
-    "Crawl4AI",
     "Hypothesis",
     "Schemathesis",
     "Ruff",
@@ -87,7 +104,8 @@
     "Grype",
     "AFL++",
     "Wasmtime",
-    "PaddleOCR-VL-1.6"
+    "PaddleOCR-VL-1.6",
+    "Stagehand"
   ],
   "future_model_benchmark": [
     "llama.cpp",
@@ -108,21 +126,6 @@
       "path": "security/vulnerability_hunter.py",
       "issue": "simulated findings can be presented as vulnerabilities/zero-days",
       "required_contract": "no finding without reproducible evidence"
-    },
-    {
-      "path": "learning/agent_reach_engine.py",
-      "issue": "simulated multi-source results/confidence",
-      "required_contract": "real backend or unavailable"
-    },
-    {
-      "path": "runtime/scrapling_mcp_engine.py",
-      "issue": "simulated extraction/anti-bot claims",
-      "required_contract": "real protocol/backend or unavailable"
-    },
-    {
-      "path": "learning/scrapegraph_engine.py",
-      "issue": "placeholder extracted values on some paths",
-      "required_contract": "real extraction or unavailable"
     },
     {
       "path": "runtime/quantum_tree_search_engine.py",
