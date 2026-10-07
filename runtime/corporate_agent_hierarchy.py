@@ -185,8 +185,9 @@ class CorporateAgentHierarchyEngine:
             "decisao_roteamento": routing_decision,
             "tarefa_executada": False,
             "motivo_nao_execucao": (
-                "Este módulo roteia departamento/tier/capacidade. A execução deve passar "
-                "pelo motor de inferência e pelo planner constitucional."
+                "Este módulo roteia departamento/tier/capacidade. O executor de inferencia "
+                "ainda nao esta ligado a esta etapa; a execução deve passar pelo motor de "
+                "inferência e pelo planner constitucional."
             ),
             "carga_recebida": {
                 "possui_conteudo": bool(payload),
