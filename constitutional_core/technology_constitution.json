@@ -200,7 +200,7 @@
       "coding": null,
       "reasoning": null
     },
-    "rule": "no model name is constitutional until benchmarked on target hardware"
+    "rule": "No base/general/coding/reasoning model is constitutional until benchmarked on target hardware. This rule does not remove or unset specialized memory models explicitly registered in specialized_model_policy."
   },
   "mcp_policy": {
     "sdk": "mcp>=2.2,<3",
@@ -257,6 +257,58 @@
     "embedding_model_selected": null,
     "owner_or_benchmark_must_select_embedding_model": true,
     "measured_hits_and_misses_only": true,
-    "unmeasured_token_savings_forbidden": true
+    "unmeasured_token_savings_forbidden": true,
+    "does_not_override_advanced_memory_specialized_models": true
+  },
+  "specialized_model_policy": {
+    "base_model_distinction": "Specialized memory models are not the JARVIS base model and are not governed by selected_base_model=null.",
+    "removal_default": "forbidden_without_replacement_benchmark_and_memory_regression_tests",
+    "components": [
+      {
+        "component": "Qwen/Qwen3-Embedding-0.6B",
+        "role": "semantic_embedding_for_memory",
+        "used_by": [
+          "memory_system/advanced_memory.py",
+          "QdrantSemanticIndex"
+        ],
+        "purpose": "Transform memory text into vectors so Qdrant can retrieve by semantic similarity.",
+        "may_remove": false,
+        "breakage_if_removed": [
+          "advanced semantic memory indexing",
+          "semantic vector retrieval through Qdrant"
+        ],
+        "replacement_allowed_when": "A benchmark on target hardware demonstrates an equal-or-better embedding model and advanced-memory regression tests pass."
+      },
+      {
+        "component": "Qwen/Qwen3-Reranker-0.6B",
+        "role": "semantic_memory_reranking",
+        "used_by": [
+          "memory_system/advanced_memory.py",
+          "AdvancedMemoryRetriever"
+        ],
+        "purpose": "Rerank Qdrant candidates so the most relevant memories are placed first.",
+        "may_remove": false,
+        "breakage_if_removed": [
+          "advanced semantic reranking quality",
+          "hybrid memory ranking contract"
+        ],
+        "replacement_allowed_when": "A benchmark demonstrates equal-or-better reranking quality and advanced-memory regression tests pass."
+      },
+      {
+        "component": "qwen3:4b",
+        "role": "optional_mem0_llm_backend",
+        "used_by": [
+          "memory_system/advanced_memory.py",
+          "Mem0Bridge"
+        ],
+        "purpose": "Local Ollama backend used by Mem0 for extraction/consolidation of conversational long-term memory.",
+        "may_remove": false,
+        "optional_runtime_component": true,
+        "breakage_if_removed": [
+          "Mem0 conversational memory extraction/consolidation when this backend is enabled"
+        ],
+        "replacement_allowed_when": "A compatible local Mem0 backend is validated and conversational-memory regression tests pass."
+      }
+    ]
   }
 }
