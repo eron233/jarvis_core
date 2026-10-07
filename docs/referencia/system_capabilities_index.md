@@ -20,8 +20,11 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Planejador executivo deterministico | Implementada | `executive_planner/planner.py`, `executive_planner/prioritizer.py`, `executive_planner/validator.py`, `executive_planner/audit.py` | Auditoria persistente configuravel + memoria | `tests/test_planner.py`, `tests/test_audit_persistence.py` |
 | Fila persistente de tarefas | Implementada | `executive_planner/queue.py` | JSON configuravel | `tests/test_task_queue_persistence.py` |
 | Camada de objetivos | Implementada | `intent_layer/goal_manager.py` | JSON configuravel | `tests/test_goal_manager.py` |
-| Memoria semantica persistente | Implementada | `memory_system/semantic_memory.py` | JSON configuravel | `tests/test_semantic_memory.py` |
+| Memoria semantica persistente | Implementada + camada avancada opcional | `memory_system/semantic_memory.py`, `memory_system/advanced_memory.py` | JSON + Qdrant opcional | `tests/test_semantic_memory.py`, `tests/test_advanced_memory.py` |
+| Memoria episodica persistente | Implementada | `memory_system/episodic_memory.py` | JSON atomico configuravel | `tests/test_advanced_memory.py`, `tests/test_runtime_bootstrap.py` |
 | Memoria procedural persistente | Implementada | `memory_system/procedural_memory.py` | JSON configuravel | `tests/test_procedural_memory.py` |
+| Recuperacao vetorial Qdrant + Qwen3 | Opcional, implementada | `memory_system/advanced_memory.py` | Qdrant local/remoto | `tests/test_advanced_memory.py` |
+| Memoria conversacional Mem0 OSS | Opcional, implementada | `memory_system/advanced_memory.py` | Mem0 + Qdrant + Ollama | `tests/test_advanced_memory.py` |
 | Mapa evolutivo cognitivo | Implementada | `runtime/cognitive_evolution.py`, `interface/brain_avatar/evolution_map.js`, `interface/dashboard/index.html` | `data/cognitive_evolution_history.json` | `tests/test_cognitive_evolution.py`, `tests/test_api.py`, `tests/test_dashboard.py` |
 | Loop continuo local | Implementada | `main.py`, `startup_bootstrap.py` | Persistencia final de fila e memoria | `tests/test_main_loop.py`, `tests/test_startup_portability.py` |
 | Runtime operacional | Implementada | `runtime/internal_agent_runtime.py`, `runtime/autonomy.py`, `runtime/runtime_identity.py`, `constitutional_core/policy.py` | Reaproveita fila, memoria, auditoria e objetivos | `tests/test_runtime_bootstrap.py`, `tests/test_constitutional_policy.py`, `tests/test_operational_reports.py` |
@@ -198,3 +201,55 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 - o relatorio consolidado de seguranca e a consolidacao por excecao ainda nao foram implementados
 - a geracao controlada de tarefas ainda nao foi implementada
 - o monitoramento externo de infraestrutura ainda nao foi adicionado
+
+
+## Voz local — Ponto 2
+
+| Capacidade | Estado | Implementacao | Observacao |
+|---|---|---|---|
+| STT local | Implementado opcional | `runtime/voice_stack.py` | faster-whisper + Silero VAD integrado |
+| TTS pt-BR leve | Implementado opcional | `runtime/voice_stack.py` | Kokoro ONNX; fallback nativo |
+| Wake word | Implementado opcional | `runtime/voice_stack.py` | openWakeWord com modelo local |
+| Enhancement | Implementado opcional | `runtime/voice_stack.py` | DeepFilterNet Python/CLI isolado |
+| Captura de microfone | Implementada opcional | `runtime/audio_processing_engine.py` | sounddevice; nao simula captura |
+| DSP fallback | Implementado | `runtime/audio_processing_engine.py` | noise gate mensuravel; nao inventa SNR |
+
+
+## Visão/OCR — Ponto 3
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| OCR real leve | Implementado opcional | `learning/vision_stack.py` | PP-OCRv6 small por padrão; tiny configurável |
+| Metadados de imagem | Implementado opcional | `learning/image_vision_engine.py` | Pillow; sem inferir dados ausentes |
+| Documento visual complexo | Implementado opcional | `learning/vision_stack.py` | PaddleOCR-VL, somente sob demanda |
+| Visão geral / VQA | Implementado opcional | `learning/vision_stack.py` | endpoint local Moondream |
+| Pré-contexto visual | Implementado | `learning/image_vision_engine.py` | inclui apenas percepções realmente produzidas |
+| Pseudo-OCR por bytes | Removido | `learning/image_vision_engine.py` | strings binárias nunca são tratadas como texto visto |
+
+
+## Documentos — Ponto 4
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Parsing estrutural | Adapter implementado opcional | `learning/document_stack.py` | Docling; backend real requer provisionamento |
+| TXT/JSON/CSV/código | Implementado | `learning/universal_file_extractor.py` | Parsers nativos leves e estritos |
+| PDF/Office/EPUB/etc. | Implementado opcional | `learning/document_stack.py` | Sem scraping de bytes |
+| Chunking integral | Implementado | `learning/document_stack.py` | Determinístico, configurável |
+| Persistência de chunks | Implementado | `learning/research_knowledge_engine.py` | tabela `document_chunks` |
+| Artefato Markdown + manifesto | Implementado | `learning/universal_file_extractor.py` | SHA-256 e metadados auditáveis |
+| Extração de strings binárias | Removido | `learning/universal_file_extractor.py` | formato sem parser retorna indisponível |
+
+
+## Web/Pesquisa/Navegação — Ponto 5
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Metabusca | Adapter implementado opcional | `runtime/web_stack.py` | SearXNG JSON API |
+| Crawling/Markdown | Adapter implementado opcional | `runtime/web_stack.py` | Crawl4AI 0.9.4 |
+| Browser JS determinístico | Adapter implementado opcional | `runtime/web_stack.py` | Playwright |
+| Fetch HTTP leve | Implementado | `runtime/web_stack.py` | fallback real sem browser |
+| Gate SSRF | Implementado | `runtime/web_stack.py` | bloqueia destinos locais/privados por padrão |
+| Pesquisa ativa | Implementado | `runtime/web_browser_engine.py` | zero fonte fictícia quando backend cai |
+| Extração estruturada | Implementado opcional | `learning/scrapegraph_engine.py` | JSON-CSS Crawl4AI; sem placeholders |
+| Envelope web legado | Corrigido | `runtime/scrapling_mcp_engine.py` | não afirma MCP/stealth/bypass |
+| Agregação multi-fonte | Corrigido | `learning/agent_reach_engine.py` | mede cobertura, não inventa confiança |

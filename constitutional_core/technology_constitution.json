@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0",
+  "constitution_version": "0.1.0-draft",
+  "status": "draft_dev",
+  "research_cutoff": "2026-10-07",
+  "model_selection": "deferred_until_local_hardware_benchmark",
+  "principles": [
+    "evidence_over_hype",
+    "never_fabricate_capability_or_success",
+    "modular_and_replaceable_components",
+    "local_first_open_source_preferred",
+    "hardware_aware_routing",
+    "baseline_vs_candidate",
+    "twin_first_experimentation",
+    "reproducible_evidence",
+    "least_privilege_experimental_code",
+    "pt_br_quality_is_a_first_class_metric"
+  ],
+  "classes": [
+    "core",
+    "on_demand",
+    "experimental",
+    "watchlist",
+    "reject_replace"
+  ],
+  "approved_existing": [
+    {
+      "capability": "vector_memory",
+      "component": "Qdrant",
+      "state": "validated_optional"
+    },
+    {
+      "capability": "semantic_embedding",
+      "component": "Qwen3-Embedding-0.6B",
+      "state": "validated_optional_pending_hardware_benchmark"
+    },
+    {
+      "capability": "semantic_reranking",
+      "component": "Qwen3-Reranker-0.6B",
+      "state": "validated_optional_pending_hardware_benchmark"
+    },
+    {
+      "capability": "conversational_memory",
+      "component": "Mem0 OSS",
+      "state": "validated_optional"
+    },
+    {
+      "capability": "ocr",
+      "component": "PP-OCRv6 small/tiny",
+      "state": "validated_optional_pending_local_model_provisioning"
+    },
+    {
+      "capability": "general_vision_interface",
+      "component": "Moondream local endpoint adapter",
+      "state": "validated_optional_backend_not_provisioned"
+    },
+    {
+      "capability": "structured_document_ingestion",
+      "component": "Docling adapter + native parsers + persistent chunks",
+      "state": "validated_optional_backend_provisioning_pending"
+    },
+    {
+      "capability": "web_search",
+      "component": "SearXNG JSON API adapter",
+      "state": "validated_optional_backend_provisioning_pending"
+    },
+    {
+      "capability": "web_crawling",
+      "component": "Crawl4AI 0.9.4 adapter",
+      "state": "validated_optional_backend_provisioning_pending"
+    },
+    {
+      "capability": "deterministic_browser",
+      "component": "Playwright adapter",
+      "state": "validated_optional_browser_provisioning_pending"
+    },
+    {
+      "capability": "lightweight_web_fetch",
+      "component": "stdlib HTTP extractor with SSRF gate",
+      "state": "validated"
+    }
+  ],
+  "high_priority_experiments": [
+    "official_mcp_python_sdk",
+    "codebase-memory-mcp",
+    "Graft_development_context",
+    "Hypothesis",
+    "Schemathesis",
+    "Ruff",
+    "Bandit",
+    "OSV-Scanner",
+    "py-spy",
+    "Optuna"
+  ],
+  "on_demand_candidates": [
+    "Joern",
+    "Marker",
+    "PaddleOCR-VL",
+    "Moondream",
+    "browser-use",
+    "ComfyUI",
+    "Scalene",
+    "Syft",
+    "Grype",
+    "AFL++",
+    "Wasmtime",
+    "PaddleOCR-VL-1.6",
+    "Stagehand"
+  ],
+  "future_model_benchmark": [
+    "llama.cpp",
+    "Ollama",
+    "PEFT",
+    "TRL",
+    "Unsloth",
+    "lm-evaluation-harness",
+    "Promptfoo"
+  ],
+  "watchlist": [
+    "OpenCut_headless_api_mcp",
+    "Parakeet_cpp_pt_br_quality",
+    "Langfuse_vs_Phoenix_local_resource_cost"
+  ],
+  "integrity_blockers": [
+    {
+      "path": "security/vulnerability_hunter.py",
+      "issue": "simulated findings can be presented as vulnerabilities/zero-days",
+      "required_contract": "no finding without reproducible evidence"
+    },
+    {
+      "path": "runtime/quantum_tree_search_engine.py",
+      "issue": "templated certainty and quality conclusions",
+      "required_contract": "measured evidence and uncertainty"
+    }
+  ],
+  "promotion_flow": [
+    "experimental_twin",
+    "dev",
+    "tests",
+    "validado",
+    "staging_when_authorized",
+    "master_when_authorized"
+  ]
+}

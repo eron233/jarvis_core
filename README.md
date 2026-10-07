@@ -9,7 +9,7 @@ Idioma padrao da camada visivel: `pt-BR`
 - `constitutional_core/`: identidade e principios do sistema
 - `executive_planner/`: fila, priorizacao, validacao, auditoria e ciclo do planner
 - `intent_layer/`: metas estrategicas e objetivos ativos
-- `memory_system/`: memoria episodica, semantica e procedural
+- `memory_system/`: memoria episodica, semantica e procedural, com camada avancada opcional Qdrant/Qwen3/Mem0
 - `workers/`: workers por dominio
 - `runtime/`: bootstrap do runtime, autonomia, configuracao e servidor
 - `security/`: politica de acesso, autodefesa e motores defensivos
@@ -40,7 +40,9 @@ Idioma padrao da camada visivel: `pt-BR`
 - bootstrap do runtime com planner acoplado
 - constitutional core carregado como politica viva de validator e runtime
 - fila persistente em JSON
-- memoria semantica persistente em JSON
+- memoria semantica persistente em JSON com busca hibrida opcional Qdrant + Qwen3 Embedding/Reranker
+- memoria episodica persistente entre reinicios
+- memoria conversacional opcional via Mem0 OSS + Ollama
 - memoria procedural persistente com heuristicas reutilizaveis
 - objetivos persistentes com progresso
 - loop continuo com encerramento gracioso
@@ -219,7 +221,13 @@ http://localhost:8000/painel
 - `JARVIS_LOG_LEVEL`
 - `JARVIS_ENABLE_RUNTIME_LOOP`
 - `JARVIS_ENABLE_DASHBOARD`
+- `JARVIS_EPISODIC_STORAGE_PATH`
 - `JARVIS_PROCEDURAL_STORAGE_PATH`
+- `JARVIS_ADVANCED_MEMORY_ENABLED`
+- `JARVIS_QDRANT_PATH`
+- `JARVIS_EMBEDDING_MODEL`
+- `JARVIS_RERANKER_MODEL`
+- `JARVIS_MEM0_ENABLED`
 - `JARVIS_DEVICE_REGISTRY_PATH`
 - `JARVIS_AUDIT_STORAGE_PATH`
 - `JARVIS_SELF_DEFENSE_REPORT_PATH`
@@ -241,7 +249,9 @@ Por padrao, o modo de servidor usa:
 
 - `data/task_queue_store.json`
 - `data/semantic_memory_store.json`
+- `data/episodic_memory_store.json`
 - `data/procedural_memory_store.json`
+- `data/qdrant/` quando a memoria vetorial local estiver habilitada
 - `data/goals.json`
 - `data/device_registry.json`
 - `data/runtime_audit_store.json`

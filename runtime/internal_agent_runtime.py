@@ -307,7 +307,10 @@ class InternalAgentRuntime:
             if not self.memory:
                 self.memory = {}
 
-            self.memory.setdefault("episodic", EpisodicMemory())
+            self.memory.setdefault(
+                "episodic",
+                EpisodicMemory(storage_path=deployment_config.episodic_storage_path),
+            )
             self.memory.setdefault(
                 "semantic",
                 SemanticMemory(storage_path=deployment_config.semantic_storage_path),
@@ -360,7 +363,7 @@ class InternalAgentRuntime:
 
             # Motor de Gravação de Áudio, Filtro de Ruído DSP e Decodificação de Sinais
             from runtime.audio_processing_engine import AudioProcessingEngine
-            self.audio_processing_engine = AudioProcessingEngine()
+            self.audio_processing_engine = AudioProcessingEngine(voice_engine=self.voice_engine)
 
             # Motor de Fracionamento de Carga Multi-Dispositivo
             from device.distributed_task_sharding_engine import DistributedTaskShardingEngine
@@ -386,9 +389,15 @@ class InternalAgentRuntime:
 
             self.subagent_tool_evolver = SubAgentToolEvolver()
             self.vulnerability_hunter = AgenticVulnerabilityHunter(tool_evolver=self.subagent_tool_evolver)
-            self.scrapegraph_engine = ScrapeGraphEngine()
-            self.scrapling_mcp_engine = ScraplingMCPEngine()
-            self.agent_reach_engine = AgentReachEngine()
+            self.scrapegraph_engine = ScrapeGraphEngine(
+                web_stack=self.web_browser_engine.web_stack,
+            )
+            self.scrapling_mcp_engine = ScraplingMCPEngine(
+                web_browser_engine=self.web_browser_engine,
+            )
+            self.agent_reach_engine = AgentReachEngine(
+                web_browser_engine=self.web_browser_engine,
+            )
 
             # Motores de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e Micro-Sandbox
             from runtime.corporate_agent_hierarchy import CorporateAgentHierarchyEngine
@@ -401,12 +410,18 @@ class InternalAgentRuntime:
             self.git_branch_patcher_engine = GitBranchPatcherEngine()
             self.lightweight_sandbox_engine = UltraLightweightSandboxEngine()
 
+            episodic_memory = self.memory["episodic"]
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]
+            if getattr(episodic_memory, "storage_path", None) is None:
+                episodic_memory.storage_path = deployment_config.episodic_storage_path
             if getattr(semantic_memory, "storage_path", None) is None:
                 semantic_memory.storage_path = deployment_config.semantic_storage_path
             if getattr(procedural_memory, "storage_path", None) is None:
                 procedural_memory.storage_path = deployment_config.procedural_storage_path
+            if not episodic_memory.episodes:
+                episodic_memory.load_snapshot()
+            episodic_memory.auto_persist = True
             if not semantic_memory.entries and not semantic_memory.facts:
                 semantic_memory.load_snapshot()
             semantic_memory.auto_persist = True

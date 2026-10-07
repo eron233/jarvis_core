@@ -1,0 +1,6 @@
+# Dependencias opcionais do ponto 5: Web/Pesquisa/Navegacao.
+# Crawl4AI 0.9.4 e uma release de seguranca (set/2026).
+crawl4ai==0.9.4
+
+# Backend deterministico de browser. Crawl4AI tambem o utiliza.
+playwright>=1.50,<2

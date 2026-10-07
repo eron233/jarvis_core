@@ -58,6 +58,33 @@ class ResearchKnowledgeEngine:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    chunk_id TEXT PRIMARY KEY,
+                    item_id TEXT NOT NULL,
+                    chunk_index INTEGER NOT NULL,
+                    conteudo TEXT NOT NULL,
+                    tamanho_chars INTEGER NOT NULL,
+                    source_path TEXT,
+                    source_sha256 TEXT,
+                    ingestao_em TEXT NOT NULL,
+                    FOREIGN KEY(item_id) REFERENCES knowledge_items(item_id)
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_document_chunks_item
+                ON document_chunks(item_id, chunk_index)
+                """
+            )
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_document_chunks_sha
+                ON document_chunks(source_sha256)
+                """
+            )
             conn.commit()
 
     def ingest_source(
@@ -112,6 +139,118 @@ class ResearchKnowledgeEngine:
             conn.commit()
 
         return knowledge_item
+
+
+    def ingest_document_chunks(
+        self,
+        item_id: str,
+        chunks: List[Dict[str, Any]],
+        source_path: Optional[str] = None,
+        source_sha256: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Persiste o conteúdo integral chunkado de um documento extraído."""
+
+        now = datetime.now(timezone.utc).isoformat()
+        normalized = []
+        for index, chunk in enumerate(chunks):
+            text = str(chunk.get("text", "")).strip()
+            if not text:
+                continue
+            chunk_index = int(chunk.get("index", index))
+            normalized.append(
+                (
+                    f"{item_id}:chunk:{chunk_index:06d}",
+                    item_id,
+                    chunk_index,
+                    text,
+                    len(text),
+                    source_path,
+                    source_sha256,
+                    now,
+                )
+            )
+
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM document_chunks WHERE item_id = ?", (item_id,))
+            if normalized:
+                conn.executemany(
+                    """
+                    INSERT INTO document_chunks (
+                        chunk_id, item_id, chunk_index, conteudo, tamanho_chars,
+                        source_path, source_sha256, ingestao_em
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    normalized,
+                )
+            conn.commit()
+
+        return {
+            "item_id": item_id,
+            "chunk_count": len(normalized),
+            "source_path": source_path,
+            "source_sha256": source_sha256,
+        }
+
+    def get_document_chunks(self, item_id: str) -> List[Dict[str, Any]]:
+        """Recupera todos os chunks de um documento na ordem original."""
+
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM document_chunks
+                WHERE item_id = ?
+                ORDER BY chunk_index ASC
+                """,
+                (item_id,),
+            ).fetchall()
+        return [
+            {
+                "chunk_id": row["chunk_id"],
+                "item_id": row["item_id"],
+                "chunk_index": row["chunk_index"],
+                "conteudo": row["conteudo"],
+                "tamanho_chars": row["tamanho_chars"],
+                "source_path": row["source_path"],
+                "source_sha256": row["source_sha256"],
+                "ingestao_em": row["ingestao_em"],
+            }
+            for row in rows
+        ]
+
+    def search_document_chunks(
+        self,
+        query: str,
+        limit: int = 20,
+    ) -> List[Dict[str, Any]]:
+        """Busca textual simples no conteúdo integral preservado dos documentos."""
+
+        clean = str(query).strip().lower()
+        if not clean:
+            return []
+        pattern = f"%{clean}%"
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM document_chunks
+                WHERE LOWER(conteudo) LIKE ?
+                ORDER BY item_id, chunk_index
+                LIMIT ?
+                """,
+                (pattern, max(1, int(limit))),
+            ).fetchall()
+        return [
+            {
+                "chunk_id": row["chunk_id"],
+                "item_id": row["item_id"],
+                "chunk_index": row["chunk_index"],
+                "conteudo": row["conteudo"],
+                "tamanho_chars": row["tamanho_chars"],
+                "source_path": row["source_path"],
+                "source_sha256": row["source_sha256"],
+                "ingestao_em": row["ingestao_em"],
+            }
+            for row in rows
+        ]
 
     def search_knowledge(self, query: str) -> List[Dict[str, Any]]:
         """Busca conteúdos e conceitos na base de conhecimento SQLite."""

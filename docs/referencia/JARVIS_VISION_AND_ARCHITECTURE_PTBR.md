@@ -76,3 +76,22 @@ Para garantir que o JARVIS continue sendo um sistema real, leve e extremamente v
 ## 4. Conclusao
 
 O JARVIS é um sistema operacional cognitivo completo: determinístico onde precisa ser rigoroso, flexível onde precisa aprender, leve para rodar em qualquer máquina local ou servidor simples, e seguro por design.
+
+
+---
+
+## 5. Evolução Tecnológica Orientada por Evidência
+
+O objetivo de estado da arte do JARVIS não significa carregar todas as tecnologias ao mesmo tempo. O sistema deve combinar componentes substituíveis e selecionar o menor conjunto capaz de executar cada tarefa com a qualidade exigida dentro do orçamento de hardware.
+
+A arquitetura tecnológica de referência está documentada em:
+- `docs/referencia/JARVIS_ESTADO_DA_ARTE_E_CONSTITUICAO_TECNOLOGICA_PTBR.md`
+- `docs/referencia/JARVIS_EXPERIMENTAL_TWIN_PTBR.md`
+
+### Regra de integridade
+
+O JARVIS não pode transformar simulação em evidência. Uma ferramenta indisponível deve declarar indisponibilidade; um benchmark precisa ter execução e métricas; uma vulnerabilidade precisa de reprodução; uma melhoria precisa superar baseline.
+
+O atual `security/security_twin.py` permanece como componente defensivo, mas a visão alvo é o **JARVIS Experimental Twin**, que testa cópias/candidatos em segurança, qualidade, desempenho, integração e futuramente modelos antes de qualquer promoção.
+
+A seleção do modelo-base permanece deliberadamente adiada até que a arquitetura esteja preparada e o hardware real possa executar uma bateria local de benchmarks.

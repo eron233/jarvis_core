@@ -1,0 +1,10 @@
+# Dependencias opcionais do ponto 3: visao/OCR.
+# O core do JARVIS continua inicializando sem este arquivo.
+#
+# OCR / document vision
+paddleocr>=3.7,<4
+paddlepaddle>=3.2,<4
+#
+# Metadados e cliente de visao geral
+Pillow>=10,<13
+moondream

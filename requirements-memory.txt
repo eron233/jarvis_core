@@ -1,0 +1,6 @@
+# Dependencias opcionais da memoria avancada do JARVIS.
+# O requirements.txt principal permanece leve; instale este arquivo apenas
+# quando Qdrant/Qwen/Mem0 forem habilitados.
+qdrant-client
+sentence-transformers
+mem0ai
