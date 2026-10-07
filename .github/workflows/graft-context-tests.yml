@@ -52,12 +52,23 @@ jobs:
             -o /tmp/flyingrobots-graft-0.14.0.tgz
           echo "0322579bb8e9d3e26840eabdeec2fcb7a3c795f1424c3514e49eacefcbb1ef02  /tmp/flyingrobots-graft-0.14.0.tgz" | sha256sum -c -
 
-      - name: Instalar Graft isoladamente
+      - name: Instalar Graft isoladamente com dependencias do lock da release
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/graft-install"
+          cat > "$RUNNER_TEMP/graft-install/package.json" <<'JSON'
+          {
+            "private": true,
+            "overrides": {
+              "@git-stunts/plumbing": "2.8.0",
+              "@git-stunts/git-warp": "16.0.0",
+              "@modelcontextprotocol/sdk": "1.29.0"
+            }
+          }
+          JSON
           npm install --prefix "$RUNNER_TEMP/graft-install" /tmp/flyingrobots-graft-0.14.0.tgz
+          npm ls --prefix "$RUNNER_TEMP/graft-install" @git-stunts/plumbing @git-stunts/git-warp @modelcontextprotocol/sdk
           GRAFT_BIN="$RUNNER_TEMP/graft-install/node_modules/.bin/graft"
           test -x "$GRAFT_BIN"
           echo "GRAFT_CONTEXT_BINARY=$GRAFT_BIN" >> "$GITHUB_ENV"
