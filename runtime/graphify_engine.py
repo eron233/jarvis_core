@@ -44,38 +44,21 @@ class GraphifyEngine:
             origem_dos_nos = "componentes_informados"
         else:
             components = self._extract_components(description)
-            origem_dos_nos = "extraidos_da_descricao" if components else "modelo_generico"
-            if not components:
-                # A versao anterior caia direto neste modelo para qualquer projeto
-                # e ignorava a descricao, devolvendo sempre os mesmos cinco nos.
-                components = ["Core Executivo", "Banco de Dados", "API Gateway", "Interface UI", "Módulo de Segurança"]
+            origem_dos_nos = "extraidos_da_descricao" if components else "indisponivel"
         for idx, comp in enumerate(components):
             nodes.append({
                 "id": f"node_{idx + 1}",
                 "label": comp,
                 "grupo": "infraestrutura" if "Banco" in comp or "API" in comp else "topologia_principal",
-                "importancia_score": 9.0 - (idx * 0.5),
+                "importancia_score": None,
             })
 
-        # 2. Construção de Arestas e Dependências
+        # 2. Arestas nao sao inferidas sem evidencia.
+        # A versao antiga criava uma cadeia e um ciclo arbitrarios entre componentes.
         edges = []
-        if len(nodes) > 1:
-            for i in range(len(nodes) - 1):
-                edges.append({
-                    "origem": nodes[i]["id"],
-                    "destino": nodes[i + 1]["id"],
-                    "relacao": "conecta_com",
-                    "peso": 1.0,
-                })
-            # Aresta de ciclo com o primeiro nó
-            edges.append({
-                "origem": nodes[-1]["id"],
-                "destino": nodes[0]["id"],
-                "relacao": "retroalimenta",
-                "peso": 0.8,
-            })
 
         graph_result = {
+            "status": "sucesso" if nodes else "indisponivel",
             "projeto": project_title,
             "analisado_em": now,
             "metodo": "Graphify_Topological_Structuring",
@@ -90,6 +73,7 @@ class GraphifyEngine:
                 "nos": nodes,
                 "arestas": edges,
             },
+            "arestas_inferidas_sem_evidencia": False,
             "resumo_topologico_ptbr": (
                 f"Análise Graphify de '{project_title}': {len(nodes)} nós e {len(edges)} arestas. "
                 + (
@@ -97,7 +81,7 @@ class GraphifyEngine:
                     if origem_dos_nos == "componentes_informados"
                     else "Nós extraídos da descrição."
                     if origem_dos_nos == "extraidos_da_descricao"
-                    else "A descrição não permitiu extrair componentes; foi usado um modelo genérico."
+                    else "A descrição não permitiu extrair componentes; nenhum grafo foi fabricado."
                 )
             ),
         }
