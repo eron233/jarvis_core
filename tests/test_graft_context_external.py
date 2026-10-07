@@ -81,7 +81,7 @@ class FlyingRobotsGraftIntegrationTests(unittest.TestCase):
             config=MCPStackConfig(
                 enabled=True,
                 registry_path=registry,
-                allowed_stdio_commands=(Path(GRAFT_BINARY).name,),
+                allowed_stdio_commands=(Path(GRAFT_BINARY).resolve().name,),
                 max_result_chars=500000,
             )
         )
