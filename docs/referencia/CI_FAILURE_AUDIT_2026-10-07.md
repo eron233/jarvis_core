@@ -133,10 +133,18 @@ Correção:
 Critério de fechamento:
 - suíte completa verde sem `StarletteDeprecationWarning`.
 
-## 6. Inconsistência separada: defaults antigos de modelo
+## 6. Distinção de modelos: base vs componentes especializados
 
-Estado: **ANOTADO / NÃO É FALHA DE CI DESTE LOTE**.
+Estado: **ESCLARECIDO / DOCUMENTAÇÃO CORRIGIDA**.
 
-Existe código antigo de memória avançada com nomes de Qwen3 como defaults.
-Isso conflita com a decisão atual de não selecionar modelo por padrão.
-Não foi corrigido neste lote para não misturar CI com política de modelos.
+A ocorrência de Qwen3 na memória avançada **não é** uma seleção acidental do
+modelo-base do JARVIS. São três componentes especializados do Ponto 1:
+
+- `Qwen3-Embedding-0.6B`: embeddings para Qdrant;
+- `Qwen3-Reranker-0.6B`: reranking dos candidatos;
+- `qwen3:4b` via Ollama: backend opcional do Mem0.
+
+A regra `selected_base_model = null` continua válida para inferência geral.
+Esses componentes especializados só podem ser substituídos após benchmark e
+regressão da memória. A Constituição agora registra isso de forma explícita e
+testável.
