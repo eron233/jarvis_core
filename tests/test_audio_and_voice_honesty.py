@@ -25,10 +25,20 @@ class AudioProcessingHonestyTests(unittest.TestCase):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def limpar(self) -> dict:
-        """Grava e limpa um audio de amostra."""
+        """Cria um WAV controlado e executa somente o processamento real."""
 
-        self.engine.start_intermittent_recording(context_title="aula_teste")
-        return self.engine.stop_and_clean_recording(noise_reduction_level=0.8)
+        import wave
+
+        path = self.tmp / "audio_teste.wav"
+        with wave.open(str(path), "wb") as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(16000)
+            wav_file.writeframes((b"\\x00\\x01") * 1600)
+        return self.engine.stop_and_clean_recording(
+            audio_file_path=path,
+            noise_reduction_level=0.8,
+        )
 
     def test_nao_devolve_transcricao_inventada(self) -> None:
         """
@@ -69,7 +79,9 @@ class AudioProcessingHonestyTests(unittest.TestCase):
 
         self.assertEqual(resultado["status"], "sucesso")
         self.assertTrue(Path(resultado["audio_limpo"]).exists())
-        self.assertIn("snr_melhoria_db", resultado["limpeza_ruido"])
+        self.assertIn("snr_improvement_db", resultado["limpeza_ruido"])
+        self.assertIsNone(resultado["limpeza_ruido"]["snr_improvement_db"])
+        self.assertFalse(resultado["limpeza_ruido"]["medicao_snr_disponivel"])
 
 
 class VoiceTranscriptionHonestyTests(unittest.TestCase):
