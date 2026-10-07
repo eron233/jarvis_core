@@ -456,6 +456,78 @@ class LocalInferenceRouter:
             },
         }
 
+    def benchmark_model(
+        self,
+        prompts: List[str],
+        *,
+        repetitions: int = 1,
+        tier: str = "general",
+        capability: Optional[str] = None,
+        explicit_model: Optional[str] = None,
+        provider: Optional[str] = None,
+        max_tokens: int = 128,
+        temperature: float = 0.0,
+    ) -> Dict[str, Any]:
+        """Executa benchmark operacional simples sem decidir qualidade por conta própria."""
+
+        clean_prompts = [str(prompt).strip() for prompt in prompts if str(prompt).strip()]
+        if not clean_prompts:
+            return {"status": "erro", "motivo": "Nenhum prompt de benchmark foi fornecido."}
+
+        repeat_count = max(1, min(5, int(repetitions)))
+        runs: List[Dict[str, Any]] = []
+
+        for prompt_index, prompt in enumerate(clean_prompts):
+            for repetition in range(repeat_count):
+                result = self.chat(
+                    [{"role": "user", "content": prompt}],
+                    tier=tier,
+                    capability=capability,
+                    explicit_model=explicit_model,
+                    provider=provider,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                )
+                runs.append(
+                    {
+                        "prompt_index": prompt_index,
+                        "repeticao": repetition,
+                        "status": result.get("status"),
+                        "provider": result.get("provider"),
+                        "modelo": result.get("modelo"),
+                        "latencia_ms": result.get("latencia_ms"),
+                        "tokens_por_segundo_estimado": result.get("tokens_por_segundo_estimado"),
+                        "usage": result.get("usage"),
+                        "motivo": result.get("motivo"),
+                    }
+                )
+
+        successes = [run for run in runs if run["status"] == "sucesso"]
+        latencies = [
+            float(run["latencia_ms"])
+            for run in successes
+            if isinstance(run.get("latencia_ms"), (int, float))
+        ]
+        throughput = [
+            float(run["tokens_por_segundo_estimado"])
+            for run in successes
+            if isinstance(run.get("tokens_por_segundo_estimado"), (int, float))
+        ]
+
+        return {
+            "status": "sucesso" if successes else "indisponivel",
+            "total_execucoes": len(runs),
+            "sucessos": len(successes),
+            "falhas": len(runs) - len(successes),
+            "latencia_media_ms": round(sum(latencies) / len(latencies), 3) if latencies else None,
+            "tokens_por_segundo_medio": round(sum(throughput) / len(throughput), 3) if throughput else None,
+            "runs": runs,
+            "observacao": (
+                "Este benchmark mede execução/latência/throughput. Qualidade, pt-BR, coding, "
+                "reasoning e aderência constitucional exigem datasets e assertions separados no Twin."
+            ),
+        }
+
     def status(self, probe: bool = False) -> Dict[str, Any]:
         providers: Dict[str, Any] = {}
         for name, backend in self.backends.items():
