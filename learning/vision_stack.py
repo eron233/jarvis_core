@@ -205,17 +205,20 @@ class PaddleOCRv6Backend:
             lines: List[Dict[str, Any]] = []
             for result in output:
                 payload = self._unwrap_result(result)
-                texts = list(payload.get("rec_texts") or [])
-                scores_raw = payload.get("rec_scores") or []
-                boxes_raw = payload.get("rec_boxes") or payload.get("rec_polys") or []
+                texts_raw = payload.get("rec_texts")
+                scores_raw = payload.get("rec_scores")
+                boxes_raw = payload.get("rec_boxes")
+                if boxes_raw is None:
+                    boxes_raw = payload.get("rec_polys")
 
+                texts = list(texts_raw) if texts_raw is not None else []
                 if hasattr(scores_raw, "tolist"):
                     scores_raw = scores_raw.tolist()
                 if hasattr(boxes_raw, "tolist"):
                     boxes_raw = boxes_raw.tolist()
 
-                scores = list(scores_raw)
-                boxes = list(boxes_raw)
+                scores = list(scores_raw) if scores_raw is not None else []
+                boxes = list(boxes_raw) if boxes_raw is not None else []
                 for index, text in enumerate(texts):
                     clean = str(text).strip()
                     score = float(scores[index]) if index < len(scores) else None
