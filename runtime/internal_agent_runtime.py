@@ -324,6 +324,7 @@ class InternalAgentRuntime:
             # Inicializa os 6 Módulos Especializados
             from security.auto_evolution_engine import AutoEvolutionEngine
             from runtime.tool_developer_engine import ToolDeveloperEngine
+            from runtime.capability_foundry import CapabilityFoundry
             from learning.research_knowledge_engine import ResearchKnowledgeEngine
             from workers.worker_market_analysis import MarketAnalysisWorker
             from workers.worker_creative_studio import CreativeStudioWorker
@@ -331,6 +332,7 @@ class InternalAgentRuntime:
 
             self.auto_evolution_engine = AutoEvolutionEngine()
             self.tool_developer_engine = ToolDeveloperEngine()
+            self.capability_foundry = CapabilityFoundry()
             self.research_knowledge_engine = ResearchKnowledgeEngine()
             self.market_analysis_worker = MarketAnalysisWorker()
             self.creative_studio_worker = CreativeStudioWorker()
