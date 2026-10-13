@@ -26,8 +26,12 @@ Fonte: https://github.com/morluto/rea • REA 6.4.0 (data de referência: 13-10-
   (PE-CLI) ou JavaScript/Electron e somente no diretório
   `data/rea_targets/`; recusa caminhos externos e alvo symlink.
 - API protegida: `POST /api/rea/inspecionar` com
-  `{"caminho":"app.dll","tipo":"managed"}` ou
-  `{"caminho":"app","tipo":"javascript"}`.
+  `{"caminho":"app.dll","tipo":"managed","aprovado":true}` ou
+  `{"caminho":"app","tipo":"javascript","aprovado":true}`.
+  Sem `aprovado=true`, o adaptador recusa antes de contatar o REA,
+  porque os motores externos não representam sandbox.
+- O adaptador exige aprovação explícita por operação, além do token e
+  dispositivo confiável do JARVIS.
 - O retorno é sempre tratado como **dados não confiáveis do programa-alvo**.
   Não transforma pseudocódigo em comandos nem registra descoberta validada
   automaticamente. Uma resposta MCP é evidência a analisar, não prova de
