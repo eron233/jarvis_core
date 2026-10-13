@@ -143,6 +143,23 @@ class FreeLLMAPIRouterTests(unittest.TestCase):
                 self.assertEqual(out["status"], "bloqueado")
                 self.assertEqual(r.backends["freellmapi"].calls, [])
 
+    def test_offline_overrides_explicit_legacy_remote_endpoint_permission(self):
+        r = self._router(
+            offline_mode=True,
+            allow_remote_endpoints=True,
+            provider_order=("llamacpp",),
+        )
+        backend = _FakeInference()
+        backend.base_url = "https://external.example.com/v1"
+        r.backends["llamacpp"] = backend
+        out = r.chat([{"role": "user", "content": "privado"}],
+                     provider="llamacpp")
+        self.assertEqual(out["status"], "bloqueado")
+        self.assertEqual(backend.calls, [])
+        # Probes tampouco podem furar o modo offline.
+        status = r.status(probe=True)
+        self.assertNotIn("probe", status["providers"]["llamacpp"])
+
     def test_offline_local_succeeds_without_cloud(self):
         r = self._router()
         r.backends["llamacpp"] = _FakeInference()
