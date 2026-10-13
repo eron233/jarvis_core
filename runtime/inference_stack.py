@@ -469,6 +469,13 @@ class LocalInferenceRouter:
                                  "motivo": "Provider desconhecido."})
                 only_blocked = False
                 continue
+            # A configuracao antiga podia liberar endpoints remotos. O modo
+            # offline agora tem prioridade mesmo sobre essa permissao legada.
+            if (name != "freellmapi" and self.config.offline_mode
+                and validate_inference_endpoint(backend.base_url, allow_remote=False) is not None):
+                attempts.append({"provider": name, "status": "bloqueado",
+                                 "motivo": "Modo offline nao permite endpoints remotos."})
+                continue
             last_model = model
             result = backend.chat(
                 model=model, messages=messages, max_tokens=max_tokens,
@@ -588,10 +595,11 @@ class LocalInferenceRouter:
             # Consultas ao gateway sao opt-in separado. /models pode ser
             # um catalogo local, mas pode acionar processos de rede no gateway.
             if probe and backend.configured and (
-                name != "freellmapi" or (
-                    self.config.freellmapi_enabled and not self.config.offline_mode
-                    and probe_external is True
-                )
+                (name != "freellmapi"
+                 and (not self.config.offline_mode
+                      or validate_inference_endpoint(backend.base_url, allow_remote=False) is None))
+                or (name == "freellmapi" and self.config.freellmapi_enabled
+                    and not self.config.offline_mode and probe_external is True)
             ):
                 item["probe"] = backend.list_models()
             providers[name] = item
