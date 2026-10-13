@@ -1128,8 +1128,10 @@ def create_app(
         capacidade: Optional[str] = Query(default=None),
         provider: Optional[str] = Query(default=None),
         modelo: Optional[str] = Query(default=None),
+        permitir_externo: bool = Query(default=False),
+        classificacao: str = Query(default="private", pattern="^(private|public)$"),
     ) -> Dict[str, Any]:
-        """Executa uma inferencia real em runtime local configurado."""
+        """Inferencia local; envio ao FreeLLMAPI exige opt-in + dados publicos."""
         runtime = _ensure_runtime_initialized(request)
         return runtime.inference_router.chat(
             messages=messages,
@@ -1137,6 +1139,8 @@ def create_app(
             capability=capacidade,
             provider=provider,
             explicit_model=modelo,
+            allow_external=permitir_externo,
+            data_classification=classificacao,
         )
 
     @app.post("/api/inferencia/benchmark", dependencies=[Depends(require_trusted_device)])
@@ -1148,8 +1152,10 @@ def create_app(
         capacidade: Optional[str] = Query(default=None),
         provider: Optional[str] = Query(default=None),
         modelo: Optional[str] = Query(default=None),
+        permitir_externo: bool = Query(default=False),
+        classificacao: str = Query(default="private", pattern="^(private|public)$"),
     ) -> Dict[str, Any]:
-        """Executa benchmark operacional local sem selecionar automaticamente um vencedor."""
+        """Benchmark sem egresso externo implicito nem execucao ficticia."""
         runtime = _ensure_runtime_initialized(request)
         return runtime.inference_router.benchmark_model(
             prompts=prompts,
@@ -1158,6 +1164,8 @@ def create_app(
             capability=capacidade,
             provider=provider,
             explicit_model=modelo,
+            allow_external=permitir_externo,
+            data_classification=classificacao,
         )
 
     # --- Endpoints MCP Oficial ---
