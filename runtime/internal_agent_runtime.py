@@ -407,11 +407,13 @@ class InternalAgentRuntime:
             # Inferencia local + Hierarquia Corporativa, Cache, Git Patcher e Micro-Sandbox
             from runtime.inference_stack import LocalInferenceRouter
             from runtime.corporate_agent_hierarchy import CorporateAgentHierarchyEngine
+            from runtime.agent_agency import AgentAgency
             from memory_system.semantic_cache_engine import SemanticCacheEngine
             from security.git_branch_patcher import GitBranchPatcherEngine
             from security.lightweight_sandbox_engine import UltraLightweightSandboxEngine
 
             self.inference_router = LocalInferenceRouter()
+            self.agent_agency = AgentAgency(inference_router=self.inference_router)
 
             from runtime.mcp_stack import OfficialMCPClientManager
             self.mcp_manager = OfficialMCPClientManager()
