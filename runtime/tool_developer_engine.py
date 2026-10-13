@@ -12,12 +12,9 @@ from __future__ import annotations
 
 import ast
 from datetime import datetime, timezone
-import importlib.util
 import json
-import os
 from pathlib import Path
-import subprocess
-import sys
+import re
 from typing import Any, Dict, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -43,46 +40,51 @@ class ToolDeveloperEngine:
         code_body: str,
         domain: str = "general",
     ) -> Dict[str, Any]:
-        """
-        Desenvolve, valida com AST e registra uma nova ferramenta/conector.
-        """
+        """Prepara ferramenta e verifica somente sintaxe, sem importar codigo gerado."""
         now = datetime.now(timezone.utc).isoformat()
-        file_name = f"{tool_name.lower().replace(' ', '_')}.py"
-        file_path = self.tools_dir / file_name
-
-        # Estrutura do módulo gerado
-        tool_code = f'"""\nFerramenta desenvolvida autonomamente pelo JARVIS.\nNome: {tool_name}\nPropósito: {purpose}\n"""\n\n'
-        tool_code += "import sys\nimport os\nimport json\nfrom typing import Any, Dict\n\n"
-        tool_code += f"def run_tool(params: Dict[str, Any]) -> Dict[str, Any]:\n"
-        tool_code += f"    '''Execução principal da ferramenta {tool_name}.'''\n"
+        if not isinstance(tool_name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,79}", tool_name):
+            return {
+                "tool_name": tool_name,
+                "status": "nome_invalido",
+                "validada": False,
+                "codigo_executado": False,
+                "erro_validacao": "Nome deve ter 1 a 80 caracteres ASCII: letras, numeros, espacos, _ ou -.",
+            }
+        file_path = self.tools_dir / f"{tool_name.lower().replace(' ', '_')}.py"
+        # repr protege contra quebra de docstring e injecao de codigo pelos metadados.
+        tool_code = f"TOOL_METADATA = {{'name': {tool_name!r}, 'purpose': {purpose!r}}}\n"
+        tool_code += "import sys\nimport json\nfrom typing import Any, Dict\n\n"
+        tool_code += "def run_tool(params: Dict[str, Any]) -> Dict[str, Any]:\n"
         for line in code_body.splitlines():
             tool_code += f"    {line}\n"
-        if "return " not in code_body:
-            tool_code += "\n    return {'status': 'sucesso', 'resultado': 'executado com exito'}\n"
-
+        # Nunca inventar sucesso quando o codigo da ferramenta nao retorna nada.
+        tool_code += (
+            "    return {'status': 'sem_resultado', "
+            "'motivo': 'A ferramenta terminou sem retorno explicito.'}\n"
+        )
         tool_code += "\nif __name__ == '__main__':\n"
         tool_code += "    input_data = json.loads(sys.stdin.read()) if not sys.stdin.isatty() else {}\n"
         tool_code += "    res = run_tool(input_data)\n"
         tool_code += "    print(json.dumps(res, ensure_ascii=False))\n"
 
-        file_path.write_text(tool_code, encoding="utf-8")
-
-        # Validação AST e compilação
         ast_result = self._validate_ast(tool_code)
-        compilation_result = self._validate_tool(file_path) if ast_result["valida"] else ast_result
-
-        tool_record = {
+        validation = self._validate_tool(tool_code, file_path) if ast_result["valida"] else ast_result
+        if validation["valida"]:
+            file_path.write_text(tool_code, encoding="utf-8")
+        record = {
             "tool_name": tool_name,
             "purpose": purpose,
             "domain": domain,
-            "file_path": str(file_path),
+            "file_path": str(file_path) if validation["valida"] else None,
             "created_at": now,
-            "validada": compilation_result["valida"],
-            "erro_validacao": compilation_result.get("erro"),
+            "validada": validation["valida"],  # compatibilidade: somente sintaxe
+            "sintaxe_valida": validation["valida"],
+            "codigo_executado": False,
+            "isolamento_validado": False,
+            "erro_validacao": validation.get("erro"),
         }
-
-        self._register_tool_metadata(tool_record)
-        return tool_record
+        self._register_tool_metadata(record)
+        return record
 
     def execute_tool_in_sandbox(
         self,
@@ -90,41 +92,21 @@ class ToolDeveloperEngine:
         params: Optional[Dict[str, Any]] = None,
         timeout_seconds: float = 5.0,
     ) -> Dict[str, Any]:
-        """
-        Executa uma ferramenta em sandbox isolado por subprocesso com limite de tempo e ambiente restrito.
-        """
+        """Falha fechada: subprocesso com timeout nao e um sandbox de seguranca."""
         tools = self.list_developed_tools()
-        target = next((t for t in tools if t["tool_name"].lower() == tool_name.lower()), None)
-        if not target:
-            return {"status": "erro", "motivo": f"Ferramenta {tool_name} não encontrada."}
-
-        file_path = Path(target["file_path"])
-        if not file_path.exists():
-            return {"status": "erro", "motivo": "Arquivo de código da ferramenta não existe."}
-
-        params_json = json.dumps(params or {}, ensure_ascii=False)
-
-        try:
-            # Subprocesso isolado com timeout estrito
-            proc = subprocess.run(
-                [sys.executable, str(file_path)],
-                input=params_json,
-                capture_output=True,
-                text=True,
-                timeout=timeout_seconds,
-                env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
-            )
-            if proc.returncode != 0:
-                return {
-                    "status": "erro",
-                    "motivo": "Falha na execução em sandbox.",
-                    "stderr": proc.stderr,
-                }
-            return json.loads(proc.stdout)
-        except subprocess.TimeoutExpired:
-            return {"status": "erro", "motivo": f"Timeout de execução ({timeout_seconds}s) excedido."}
-        except Exception as e:
-            return {"status": "erro", "motivo": str(e)}
+        found = any(t.get("tool_name", "").lower() == tool_name.lower() for t in tools)
+        if not found:
+            return {"status": "erro", "motivo": f"Ferramenta {tool_name} nao encontrada.", "executado": False}
+        return {
+            "status": "bloqueado_por_seguranca",
+            "motivo": (
+                "Execucao de ferramentas geradas desativada ate existir sandbox forte "
+                "com isolamento validado de filesystem, rede, credenciais e recursos."
+            ),
+            "tool_name": tool_name,
+            "executado": False,
+            "isolamento_validado": False,
+        }
 
     def list_developed_tools(self) -> List[Dict[str, Any]]:
         """Lista todas as ferramentas já desenvolvidas."""
@@ -150,19 +132,19 @@ class ToolDeveloperEngine:
         except SyntaxError as e:
             return {"valida": False, "erro": f"Erro de sintaxe Python: {str(e)}"}
 
-    def _validate_tool(self, file_path: Path) -> Dict[str, Any]:
-        """Valida a compilação e sintaxe do módulo gerado."""
+    def _validate_tool(self, code: str, file_path: Path) -> Dict[str, Any]:
+        """Compila o AST sem importar o modulo ou executar seus efeitos colaterais."""
         try:
-            spec = importlib.util.spec_from_file_location("dynamic_tool", str(file_path))
-            if spec is None or spec.loader is None:
-                return {"valida": False, "erro": "Spec de importação inválido"}
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            if not hasattr(module, "run_tool"):
-                return {"valida": False, "erro": "Função entrypoint 'run_tool' não encontrada"}
+            tree = ast.parse(code, filename=str(file_path))
+            if not any(
+                isinstance(node, ast.FunctionDef) and node.name == "run_tool"
+                for node in tree.body
+            ):
+                return {"valida": False, "erro": "Funcao run_tool nao encontrada."}
+            compile(tree, str(file_path), "exec")
             return {"valida": True}
-        except Exception as e:
-            return {"valida": False, "erro": str(e)}
+        except (SyntaxError, ValueError, TypeError) as erro:
+            return {"valida": False, "erro": str(erro)}
 
     def _register_tool_metadata(self, record: Dict[str, Any]) -> None:
         """Registra os metadados da ferramenta no arquivo centralizado."""
