@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 
 def capture_previews(output: Path) -> int:
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     os.environ["JARVIS_NATIVE_BRAIN_FORCE_FALLBACK"] = "1"
 
     from PySide6.QtWidgets import QApplication
@@ -26,6 +26,20 @@ def capture_previews(output: Path) -> int:
         pass
 
     app = QApplication.instance() or QApplication(["genesis-preview"])
+    # O QPA offscreen do CI pode nao descobrir as fontes do sistema.
+    # Carregar uma fonte nativa so para screenshot evita caracteres vazios
+    # sem distribuir nem embutir arquivos de fonte no aplicativo.
+    from PySide6.QtGui import QFont, QFontDatabase
+    if os.name == "nt":
+        fonts_dir = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts"
+        for font_name in ("segoeui.ttf", "arial.ttf", "tahoma.ttf"):
+            candidate = fonts_dir / font_name
+            if candidate.is_file():
+                loaded_id = QFontDatabase.addApplicationFont(str(candidate))
+                print("GENESIS_SYSTEM_FONT", candidate.name, loaded_id, flush=True)
+                if loaded_id >= 0:
+                    break
+    app.setFont(QFont("Segoe UI", 10))
     app.setApplicationName("Gênesis")
     config = NativeAppConfig(
         api_base_url="http://127.0.0.1:8000",
