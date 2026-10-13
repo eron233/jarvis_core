@@ -49,6 +49,13 @@ class InferenceStackConfig:
     ollama_api_key: Optional[str] = None
 
     allow_remote_endpoints: bool = False
+    # FreeLLMAPI e um gateway local que pode encaminhar prompts para a nuvem.
+    # Sua permissao e INDEPENDENTE da permissao de endpoint remoto.
+    freellmapi_enabled: bool = False
+    freellmapi_base_url: str = "http://127.0.0.1:3001/v1"
+    freellmapi_api_key: Optional[str] = None
+    freellmapi_model: Optional[str] = None
+    offline_mode: bool = True
     timeout_seconds: float = 120.0
     max_tokens_default: int = 1024
     temperature_default: float = 0.2
@@ -74,6 +81,11 @@ class InferenceStackConfig:
             ollama_base_url=(env.get("JARVIS_OLLAMA_BASE_URL") or "http://127.0.0.1:11434/v1").rstrip("/"),
             ollama_api_key=(env.get("JARVIS_OLLAMA_API_KEY") or "").strip() or None,
             allow_remote_endpoints=_env_bool(env.get("JARVIS_INFERENCE_ALLOW_REMOTE_ENDPOINTS"), False),
+            freellmapi_enabled=_env_bool(env.get("JARVIS_FREELLMAPI_ENABLED"), False),
+            freellmapi_base_url=(env.get("JARVIS_FREELLMAPI_BASE_URL") or "http://127.0.0.1:3001/v1").rstrip("/"),
+            freellmapi_api_key=(env.get("JARVIS_FREELLMAPI_API_KEY") or "").strip() or None,
+            freellmapi_model=(env.get("JARVIS_FREELLMAPI_MODEL") or "").strip() or None,
+            offline_mode=_env_bool(env.get("JARVIS_INFERENCE_OFFLINE_MODE"), True),
             timeout_seconds=max(1.0, float(env.get("JARVIS_INFERENCE_TIMEOUT_SECONDS", "120"))),
             max_tokens_default=max(1, int(env.get("JARVIS_INFERENCE_MAX_TOKENS", "1024"))),
             temperature_default=max(0.0, min(2.0, float(env.get("JARVIS_INFERENCE_TEMPERATURE", "0.2")))),
@@ -305,8 +317,10 @@ class LocalInferenceRouter:
     """Roteia requisicoes para runtimes locais sem escolher o modelo por conta propria."""
 
     def __init__(self, config: Optional[InferenceStackConfig] = None) -> None:
+        from runtime.freellmapi_backend import FreeLLMAPIBackend
+
         self.config = config or InferenceStackConfig.from_env()
-        self.backends: Dict[str, OpenAICompatibleLocalBackend] = {
+        self.backends: Dict[str, Any] = {
             "llamacpp": OpenAICompatibleLocalBackend(
                 name="llamacpp",
                 base_url=self.config.llamacpp_base_url,
@@ -318,6 +332,11 @@ class LocalInferenceRouter:
                 base_url=self.config.ollama_base_url,
                 api_key=self.config.ollama_api_key,
                 config=self.config,
+            ),
+            "freellmapi": FreeLLMAPIBackend(
+                base_url=self.config.freellmapi_base_url,
+                api_key=self.config.freellmapi_api_key,
+                timeout_seconds=self.config.timeout_seconds,
             ),
         }
 
@@ -386,6 +405,8 @@ class LocalInferenceRouter:
         tool_choice: Optional[Any] = None,
         response_format: Optional[Dict[str, Any]] = None,
         extra_body: Optional[Dict[str, Any]] = None,
+        allow_external: bool = False,
+        data_classification: str = "private",
     ) -> Dict[str, Any]:
         if not self.config.enabled:
             return {
@@ -400,59 +421,78 @@ class LocalInferenceRouter:
                 "modelo": None,
             }
 
-        resolved = self.resolve_model(
+        local_resolved = self.resolve_model(
             tier=tier,
             capability=capability,
             explicit_model=explicit_model,
         )
-        if resolved["status"] != "sucesso":
-            return resolved
-        model = str(resolved["modelo"])
-
         providers = [provider] if provider else list(self.config.provider_order)
-        attempts = []
+        attempts: List[Dict[str, Any]] = []
+        last_model: Optional[str] = None
+        only_blocked = True
+
         for name in providers:
-            backend = self.backends.get(str(name))
+            name = str(name)
+            if name == "freellmapi":
+                # localhost e apenas o PROXY. A inferencia real pode acontecer
+                # fora da maquina, inclusive em provedores com custos.
+                if not self.config.freellmapi_enabled:
+                    attempts.append({"provider": name, "status": "bloqueado",
+                                     "motivo": "FreeLLMAPI desabilitado por configuracao."})
+                    continue
+                if self.config.offline_mode:
+                    attempts.append({"provider": name, "status": "bloqueado",
+                                     "motivo": "Modo offline ativo; nenhum prompt sai do PC."})
+                    continue
+                if allow_external is not True or data_classification != "public":
+                    attempts.append({"provider": name, "status": "bloqueado",
+                                     "motivo": "Envio externo exige autorizacao explicita e classificacao public."})
+                    continue
+                model = (explicit_model or self.config.freellmapi_model or "").strip()
+                if not model:
+                    attempts.append({"provider": name, "status": "indisponivel",
+                                     "motivo": "Modelo FreeLLMAPI nao configurado."})
+                    only_blocked = False
+                    continue
+                resolved = {"status": "sucesso", "modelo": model, "origem": "freellmapi"}
+            else:
+                if local_resolved["status"] != "sucesso":
+                    attempts.append({"provider": name, "status": "indisponivel",
+                                     "motivo": local_resolved.get("motivo")})
+                    only_blocked = False
+                    continue
+                model = str(local_resolved["modelo"])
+                resolved = local_resolved
+            backend = self.backends.get(name)
             if backend is None:
-                attempts.append({
-                    "provider": name,
-                    "status": "indisponivel",
-                    "motivo": "Provider desconhecido.",
-                })
+                attempts.append({"provider": name, "status": "indisponivel",
+                                 "motivo": "Provider desconhecido."})
+                only_blocked = False
                 continue
+            last_model = model
             result = backend.chat(
-                model=model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                tools=tools,
-                tool_choice=tool_choice,
-                response_format=response_format,
-                extra_body=extra_body,
+                model=model, messages=messages, max_tokens=max_tokens,
+                temperature=temperature, tools=tools, tool_choice=tool_choice,
+                response_format=response_format, extra_body=extra_body,
             )
-            attempts.append({
-                "provider": name,
-                "status": result.get("status"),
-                "motivo": result.get("motivo"),
-            })
+            attempts.append({"provider": name, "status": result.get("status"),
+                             "motivo": result.get("motivo")})
+            if result.get("status") != "bloqueado":
+                only_blocked = False
             if result.get("status") == "sucesso":
                 result["roteamento"] = {
-                    "tier": tier,
-                    "capability": capability,
-                    "model_resolution": resolved,
-                    "attempts": attempts,
+                    "tier": tier, "capability": capability,
+                    "model_resolution": resolved, "attempts": attempts,
                 }
                 return result
 
         return {
-            "status": "indisponivel",
-            "modelo": model,
-            "motivo": "Nenhum runtime local concluiu a inferencia.",
+            "status": "bloqueado" if only_blocked and attempts else "indisponivel",
+            "modelo": last_model,
+            "motivo": "Nenhum provedor autorizado e disponivel concluiu a inferencia.",
             "roteamento": {
-                "tier": tier,
-                "capability": capability,
-                "model_resolution": resolved,
-                "attempts": attempts,
+                "tier": tier, "capability": capability,
+                "model_resolution": local_resolved, "attempts": attempts,
             },
         }
 
@@ -467,6 +507,8 @@ class LocalInferenceRouter:
         provider: Optional[str] = None,
         max_tokens: int = 128,
         temperature: float = 0.0,
+        allow_external: bool = False,
+        data_classification: str = "private",
     ) -> Dict[str, Any]:
         """Executa benchmark operacional simples sem decidir qualidade por conta própria."""
 
@@ -487,6 +529,8 @@ class LocalInferenceRouter:
                     provider=provider,
                     max_tokens=max_tokens,
                     temperature=temperature,
+                    allow_external=allow_external,
+                    data_classification=data_classification,
                 )
                 runs.append(
                     {
@@ -535,7 +579,19 @@ class LocalInferenceRouter:
                 "base_url": backend.base_url,
                 "endpoint_permitido": backend.configured,
             }
-            if probe and backend.configured:
+            if name == "freellmapi":
+                item["tipo"] = "gateway_com_egresso_possivel"
+                item["habilitado"] = self.config.freellmapi_enabled
+                item["chave_configurada"] = bool(self.config.freellmapi_api_key)
+            else:
+                item["tipo"] = "inferencia_local"
+            # Consultas ao gateway sao opt-in separado. /models pode ser
+            # um catalogo local, mas pode acionar processos de rede no gateway.
+            if probe and backend.configured and (
+                name != "freellmapi" or (
+                    self.config.freellmapi_enabled and not self.config.offline_mode
+                )
+            ):
                 item["probe"] = backend.list_models()
             providers[name] = item
 
@@ -553,5 +609,9 @@ class LocalInferenceRouter:
             "model_aliases": aliases,
             "modelo_base_escolhido": any(bool(value) for value in aliases.values()),
             "allow_remote_endpoints": self.config.allow_remote_endpoints,
+            "offline_mode": self.config.offline_mode,
+            "freellmapi_enabled": self.config.freellmapi_enabled,
+            "freellmapi_model_configured": bool(self.config.freellmapi_model),
+            "external_requires_per_request_consent": True,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
