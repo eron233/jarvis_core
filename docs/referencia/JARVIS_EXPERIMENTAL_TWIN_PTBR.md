@@ -199,7 +199,7 @@ A recomendação pode estar errada; os artefatos precisam permitir que um humano
 
 ## 6. Isolamento por risco
 
-O `runtime/tool_developer_engine.py` atual usa subprocesso e timeout, porém isso **não é sandbox forte**: ele herda grande parte do ambiente do processo e não constitui fronteira suficiente para código não confiável.
+**Estado de segurança após a correção P0:** o `runtime/tool_developer_engine.py` não executa mais código ao validar ferramentas geradas. A API legada `execute_tool_in_sandbox` agora retorna `bloqueado_por_seguranca` sem iniciar processo. Isso é uma contenção temporária e significa que **execução de ferramentas geradas está indisponível**, não que um novo sandbox seguro foi implementado. O executor futuro precisa de isolamento real de filesystem, rede, credenciais e recursos, além de teste no host alvo. O motor de micro-sandbox existente, baseado em AST + limites de processo, também não deve ser considerado uma fronteira de segurança forte.
 
 Arquitetura alvo:
 
