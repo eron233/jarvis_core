@@ -1,4 +1,42 @@
-# Sistema Cognitivo JARVIS
+# Gênesis / Zero
+
+**Gênesis** é o aplicativo e sistema cognitivo; **Zero** é o assistente.
+`JARVIS` permanece apenas como identificador interno legado em imports,
+configurações e variáveis de ambiente para não quebrar compatibilidade.
+
+## Aplicativo Windows para avaliação visual
+
+A branch `dev` compila o **Genesis.exe** portátil no workflow
+[Genesis Windows portable and UI review](.github/workflows/genesis-windows-build.yml).
+O pacote de distribuição é uma pasta `Genesis/` comprimida em artefato ZIP
+na execução do GitHub Actions. É necessário **extrair tudo** antes de abrir
+`Genesis.exe`; não mover o EXE para fora da pasta. Python não precisa estar
+instalado nesse modo portátil.
+
+O build contém o ícone e identidade Gênesis/Zero e gera capturas da classe real
+de interface desktop (`01_inicio.png`, `02_tarefas.png`,
+`03_memoria.png`, `04_seguranca.png`) SEM rede e SEM conteúdo fictício.
+
+**Importante:** capturas de interface não comprovam a IA funcionando.
+O primeiro lançamento operacional inicia o runtime local e cria credenciais
+iniciais na pasta `data/`. Para modelos offline, é necessário provisionar
+modelos e backends locais separadamente.
+
+O release leve não inclui QtWebEngine/Chromium. O visual cognitivo utiliza
+renderer Qt de baixo custo; a cena 3D web fica disponível somente na execução
+de desenvolvimento após instalar dependências extras e optar por ativá-la.
+
+Desenvolvimento sem ZIP:
+
+```powershell
+.\INICIAR_GENESIS.cmd
+# ou
+python genesis_launcher.py
+```
+
+---
+
+## Histórico técnico: Sistema Cognitivo JARVIS (nome interno legado)
 
 O JARVIS e um sistema cognitivo modular em construcao, orientado por planejamento deterministico, memoria persistente, objetivos, API de controle, painel mobile-first, auditoria, operacao supervisionada, autodefesa interna e um cerebro cognitivo evolutivo para introspeccao historica. Nesta etapa, o projeto ja consegue subir como servico HTTP, manter fila e memoria entre reinicios, proteger acesso por token + dispositivo confiavel, ser preparado para deploy em VPS simples com Docker e manter um nucleo defensivo de conhecimento para diagnostico de risco do proprio sistema.
 
