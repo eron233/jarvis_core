@@ -1115,10 +1115,16 @@ def create_app(
     # --- Endpoints de Inferencia Local ---
 
     @app.get("/api/inferencia/status", dependencies=[Depends(require_trusted_device)])
-    def inference_status(request: Request, probe: bool = Query(default=False)) -> Dict[str, Any]:
-        """Mostra runtimes/aliases locais configurados; probe consulta /v1/models."""
+    def inference_status(
+        request: Request,
+        probe: bool = Query(default=False),
+        consultar_externo: bool = Query(default=False),
+    ) -> Dict[str, Any]:
+        """Probe de FreeLLMAPI exige opt-in distinto do probe local."""
         runtime = _ensure_runtime_initialized(request)
-        return runtime.inference_router.status(probe=probe)
+        return runtime.inference_router.status(
+            probe=probe, probe_external=consultar_externo
+        )
 
     @app.post("/api/inferencia/chat", dependencies=[Depends(require_trusted_device)])
     def inference_chat(
