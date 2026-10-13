@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Acesso restrito ao JARVIS</title>
+  <title>Acesso ao Gênesis</title>
   <style>
     :root {
       --bg: #f3ede0;
@@ -97,10 +97,10 @@
 <body>
   <main class="gate">
     <h1 id="gateTitle">Acesso restrito por dispositivo confiavel</h1>
-    <p id="gateDescription">Informe o token secreto e o identificador do dispositivo principal autorizado para liberar o painel do JARVIS neste aparelho.</p>
+    <p id="gateDescription">Informe o token secreto e o identificador do dispositivo principal autorizado para liberar o painel do Gênesis neste aparelho.</p>
 
     <div id="trustedDeviceFields">
-      <label for="tokenInput">Token do JARVIS</label>
+      <label for="tokenInput">Token de acesso ao Gênesis</label>
       <input id="tokenInput" type="password" placeholder="Token secreto" />
 
       <label for="deviceInput">Identificador do dispositivo</label>
@@ -140,7 +140,7 @@
         return;
       }
 
-      document.getElementById("gateTitle").textContent = "Recuperacao de acesso ao JARVIS";
+      document.getElementById("gateTitle").textContent = "Recuperação de acesso ao Gênesis";
       document.getElementById("gateDescription").textContent =
         "Informe apenas a senha administrativa configurada no deploy para liberar o painel temporariamente.";
       document.getElementById("trustedDeviceFields").hidden = true;
