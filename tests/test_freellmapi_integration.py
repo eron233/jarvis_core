@@ -58,6 +58,7 @@ class StubFreeLLMAPI(BaseHTTPRequestHandler):
 class _FakeInference:
     def __init__(self, status="sucesso"):
         self.status = status
+        self.base_url = "http://127.0.0.1:1/v1"
         self.calls = []
 
     @property
