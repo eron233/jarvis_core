@@ -4,7 +4,7 @@ JARVIS - Módulo 2: Desenvolvimento de Ferramentas e Conectores
 Responsável por:
 - identificar necessidades de integração com sistemas, APIs, arquivos e dispositivos
 - gerar dinamicamente código Python para novos conectores e ferramentas operacionais
-- validar ferramentas via AST e executá-las em ambiente isolado (sandbox por subprocesso estrito)
+- validar ferramentas via AST e executar somente em container Docker explicitamente habilitado
 - registrar ferramentas aprovadas no repositório de ferramentas e na memória procedural
 """
 
@@ -13,9 +13,12 @@ from __future__ import annotations
 import ast
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional
+
+from security.container_executor import ContainerExecutor
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TOOLS_DIR = PROJECT_ROOT / "data" / "developed_tools"
@@ -92,21 +95,43 @@ class ToolDeveloperEngine:
         params: Optional[Dict[str, Any]] = None,
         timeout_seconds: float = 5.0,
     ) -> Dict[str, Any]:
-        """Falha fechada: subprocesso com timeout nao e um sandbox de seguranca."""
+        """Executa somente com consentimento explicito e container confinado.
+
+        O nome legado permanece para compatibilidade, mas jamais usa subprocesso
+        direto como fallback. Sem Docker local, imagem pinada e opt-in: bloqueia.
+        """
+        if not isinstance(tool_name, str) or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9 _-]{0,79}", tool_name
+        ):
+            return {"status": "nome_invalido", "executado": False}
         tools = self.list_developed_tools()
-        found = any(t.get("tool_name", "").lower() == tool_name.lower() for t in tools)
-        if not found:
+        target = next(
+            (t for t in tools if t.get("tool_name", "").lower() == tool_name.lower()),
+            None,
+        )
+        if target is None:
             return {"status": "erro", "motivo": f"Ferramenta {tool_name} nao encontrada.", "executado": False}
-        return {
-            "status": "bloqueado_por_seguranca",
-            "motivo": (
-                "Execucao de ferramentas geradas desativada ate existir sandbox forte "
-                "com isolamento validado de filesystem, rede, credenciais e recursos."
-            ),
-            "tool_name": tool_name,
-            "executado": False,
-            "isolamento_validado": False,
-        }
+        if not target.get("sintaxe_valida", target.get("validada", False)):
+            return {"status": "bloqueado_por_seguranca", "executado": False,
+                    "motivo": "Ferramenta sem validacao sintatica."}
+
+        filename = f"{tool_name.lower().replace(' ', '_')}.py"
+        try:
+            root = self.tools_dir.resolve(strict=True)
+            script = (root / filename).resolve(strict=True)
+            if script.parent != root or not script.is_file():
+                raise ValueError("Arquivo nao confiavel")
+            source = script.read_text(encoding="utf-8")
+        except (OSError, ValueError, UnicodeError):
+            return {"status": "bloqueado_por_seguranca", "executado": False,
+                    "motivo": "Codigo de ferramenta ausente ou fora do diretorio permitido."}
+
+        executor = ContainerExecutor(
+            enabled=os.environ.get("JARVIS_TWIN_DOCKER_ENABLED", "").lower() == "true",
+            image=os.environ.get("JARVIS_TWIN_DOCKER_IMAGE", ""),
+        )
+        report = executor.execute(source, params=params, timeout_seconds=timeout_seconds)
+        return {"tool_name": tool_name, **report}
 
     def list_developed_tools(self) -> List[Dict[str, Any]]:
         """Lista todas as ferramentas já desenvolvidas."""
