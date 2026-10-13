@@ -102,7 +102,7 @@ class AgentAgency:
              criteria: Optional[list[str]] = None) -> Dict[str, Any]:
         if not isinstance(goal, str) or not goal.strip() or len(goal) > _MAX_GOAL:
             return {"status": "entrada_invalida", "motivo": "Objetivo deve ter entre 1 e 1800 caracteres."}
-        if discipline not in SPECIALISTS or discipline == "qualidade":
+        if not isinstance(discipline, str) or discipline not in SPECIALISTS or discipline == "qualidade":
             return {"status": "entrada_invalida", "motivo": "Especialidade principal desconhecida."}
         if criteria is None:
             criteria = []
@@ -169,20 +169,29 @@ class AgentAgency:
             return {"status": "indisponivel", "motivo": "Erro de inferencia local."}
         if result.get("status") != "sucesso":
             return {"status": result.get("status", "indisponivel"),
-                    "motivo": str(result.get("motivo") or "Inferencia nao concluida.")[:200]}
+                    "motivo": "Backend local nao concluiu a inferencia."}
         text = result.get("conteudo")
         if (not isinstance(text, str) or not text.strip() or len(text) > _MAX_OUTPUT
             or result.get("tool_calls") or result.get("finish_reason") == "length"):
             return {"status": "resposta_invalida", "motivo": (
                 "Saida vazia, truncada, longa ou com chamadas de ferramentas nao autorizadas."
             )}
-        usage = result.get("usage")
+        raw_usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
+        # Dados retornados pelo provedor nao sao confiaveis: persiste apenas
+        # contadores numericos, jamais tokens, prompts ou campos arbitrarios.
+        usage = {
+            key: raw_usage[key]
+            for key in ("prompt_tokens", "completion_tokens", "total_tokens")
+            if isinstance(raw_usage.get(key), int)
+            and not isinstance(raw_usage[key], bool)
+            and 0 <= raw_usage[key] <= 100000000
+        }
         return {
             "status": "sucesso",
             "conteudo": text,
             "modelo": str(result.get("modelo") or "nao_informado")[:120],
             "provider": str(result.get("provider") or provider)[:50],
-            "uso": usage if isinstance(usage, dict) else {},
+            "uso": usage,
             "latencia_ms": result.get("latencia_ms"),
             "sha256_saida": _digest(text),
         }
