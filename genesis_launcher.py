@@ -33,6 +33,13 @@ def _prepare_portable_environment() -> None:
 
 def main() -> int:
     _prepare_portable_environment()
+    if getattr(sys, "frozen", False):
+        # PyInstaller --windowed no Windows substitui stdout/stderr por None.
+        # Runtime e checagem nao podem cair ao imprimir relatórios.
+        if sys.stdout is None:
+            sys.stdout = open(os.devnull, "w", encoding="utf-8")
+        if sys.stderr is None:
+            sys.stderr = open(os.devnull, "w", encoding="utf-8")
     args = sys.argv[1:]
     if args and args[0] == "--server":
         from runtime.server import main as server_main
