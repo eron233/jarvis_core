@@ -72,11 +72,13 @@ jobs:
           $ErrorActionPreference = "Stop"
           $exe = Join-Path (Get-Location) "dist/Genesis/Genesis.exe"
           if (-not (Test-Path $exe)) { throw "Genesis.exe missing" }
-          & $exe --server --check-config
-          if ($LASTEXITCODE -ne 0) { throw "EXE configuration check failed: $LASTEXITCODE" }
+          # Windows GUI subsystem nao define LASTEXITCODE com o operador &.
+          # Start-Process -Wait retorna o codigo real, sem corrida de processos.
+          $check = Start-Process -FilePath $exe -ArgumentList @("--server", "--check-config") -Wait -PassThru
+          if ($check.ExitCode -ne 0) { throw "EXE configuration check failed: $($check.ExitCode)" }
           $env:QT_QPA_PLATFORM = "offscreen"
-          & $exe --capture-ui "build/ui-previews"
-          if ($LASTEXITCODE -ne 0) { throw "EXE screenshot failed: $LASTEXITCODE" }
+          $preview = Start-Process -FilePath $exe -ArgumentList @("--capture-ui", "build/ui-previews") -Wait -PassThru
+          if ($preview.ExitCode -ne 0) { throw "EXE screenshot failed: $($preview.ExitCode)" }
           $screens = Get-ChildItem "build/ui-previews/*.png"
           if ($screens.Count -ne 4) { throw "Expected 4 real UI screens, found $($screens.Count)" }
           $screens | ForEach-Object { Write-Output ("Screenshot: {0}, bytes={1}" -f $_.Name, $_.Length) }
