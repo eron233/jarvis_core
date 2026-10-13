@@ -572,7 +572,7 @@ class LocalInferenceRouter:
             ),
         }
 
-    def status(self, probe: bool = False) -> Dict[str, Any]:
+    def status(self, probe: bool = False, probe_external: bool = False) -> Dict[str, Any]:
         providers: Dict[str, Any] = {}
         for name, backend in self.backends.items():
             item: Dict[str, Any] = {
@@ -590,6 +590,7 @@ class LocalInferenceRouter:
             if probe and backend.configured and (
                 name != "freellmapi" or (
                     self.config.freellmapi_enabled and not self.config.offline_mode
+                    and probe_external is True
                 )
             ):
                 item["probe"] = backend.list_models()
