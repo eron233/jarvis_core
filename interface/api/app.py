@@ -1167,10 +1167,11 @@ def create_app(
         request: Request,
         caminho: str = Body(...),
         tipo: str = Body(...),
+        aprovado: bool = Body(default=False),
     ) -> Dict[str, Any]:
-        """Somente inspecao estatica de alvo autorizado, quando REA habilitado."""
+        """Analise estatica opcional; exige aprovacao pois o REA nao e sandbox."""
         runtime = _ensure_runtime_initialized(request)
-        return runtime.rea_investigator.inspect_static(caminho, tipo)
+        return runtime.rea_investigator.inspect_static(caminho, tipo, approved=aprovado)
 
     @app.get("/api/mcp/status", dependencies=[Depends(require_trusted_device)])
     def mcp_status(request: Request) -> Dict[str, Any]:
