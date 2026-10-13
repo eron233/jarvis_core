@@ -18,7 +18,8 @@ image.fill(Qt.transparent)
 painter = QPainter(image)
 renderer.render(painter)
 painter.end()
-out = root / "build" / "genesis"
+# PyInstaller --clean removes build/, so icon must live OUTSIDE that directory.
+out = root / ".build-assets"
 out.mkdir(parents=True, exist_ok=True)
 png = out / "genesis_logo.png"
 ico = out / "genesis.ico"
