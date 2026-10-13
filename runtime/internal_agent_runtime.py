@@ -75,6 +75,7 @@ class InternalAgentRuntime:
         self.device_registry: Any = None
         self.access_control: Any = None
         self.self_defense_monitor: Any = None
+        self.guardian: Any = None
         self.learning_advisor: Any = None
         self.last_self_defense_report: Dict[str, Any] | None = None
         self.cognitive_evolution_tracker: Any = None
@@ -383,12 +384,14 @@ class InternalAgentRuntime:
             # Motores de Caça a Vulnerabilidades por Sub-Agentes, ScrapeGraph, Scrapling MCP e Agent Reach
             from security.subagent_tool_evolver import SubAgentToolEvolver
             from security.vulnerability_hunter import AgenticVulnerabilityHunter
+            from security.guardian import Guardian
             from learning.scrapegraph_engine import ScrapeGraphEngine
             from runtime.scrapling_mcp_engine import ScraplingMCPEngine
             from learning.agent_reach_engine import AgentReachEngine
 
             self.subagent_tool_evolver = SubAgentToolEvolver()
             self.vulnerability_hunter = AgenticVulnerabilityHunter(tool_evolver=self.subagent_tool_evolver)
+            self.guardian = self.guardian if self.guardian is not None else Guardian()
             self.scrapegraph_engine = ScrapeGraphEngine(
                 web_stack=self.web_browser_engine.web_stack,
             )
