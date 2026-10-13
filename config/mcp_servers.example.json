@@ -70,6 +70,26 @@
       ],
       "allowed_resources": [],
       "allowed_prompts": []
+    },
+    "rea-investigation": {
+      "enabled": false,
+      "transport": "stdio",
+      "command": "node",
+      "args": [
+        "/ABSOLUTE/LOCAL/REA_INSTALL/scripts/rea.mjs",
+        "mcp"
+      ],
+      "cwd": ".",
+      "env_allowlist": [],
+      "allowed_tools": [
+        "inspect_managed_artifact",
+        "inspect_managed_members",
+        "analyze_javascript_application",
+        "inspect_analysis_view",
+        "get_evidence_bundle"
+      ],
+      "allowed_resources": [],
+      "allowed_prompts": []
     }
   }
 }
