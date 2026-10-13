@@ -1,0 +1,44 @@
+name: Genesis native Windows typography check
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "interface/native_app/preview.py"
+      - ".github/workflows/genesis-native-ui.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot-native-windows:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    env:
+      QT_QPA_PLATFORM: windows
+      JARVIS_NATIVE_BRAIN_FORCE_FALLBACK: "1"
+      JARVIS_INFERENCE_OFFLINE_MODE: "true"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install Qt and API dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Render real PySide6 widgets with native Windows font engine
+        shell: pwsh
+        run: |
+          python -m interface.native_app.preview "build/ui-windows-native"
+          if ($LASTEXITCODE -ne 0) { throw "Qt Windows font/screenshot test failed" }
+          if ((Get-ChildItem "build/ui-windows-native/*.png").Count -ne 4) {
+            throw "UI capture incomplete"
+          }
+      - name: Publish native-Windows screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Genesis-Zero-telas-windows-fonte-nativa
+          path: build/ui-windows-native/*.png
+          if-no-files-found: warn
+          retention-days: 30
