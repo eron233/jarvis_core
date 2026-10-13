@@ -37,7 +37,7 @@ from interface.native_app.runtime_bootstrap import JarvisRuntimeBootstrapper, Ru
 def build_arg_parser() -> argparse.ArgumentParser:
     """Monta os argumentos do app nativo."""
 
-    parser = argparse.ArgumentParser(description="Aplicativo nativo leve do JARVIS.")
+    parser = argparse.ArgumentParser(description="Gênesis, interface nativa do assistente Zero.")
     parser.add_argument("--offscreen", action="store_true", help="Usa backend Qt offscreen para smoke tests.")
     parser.add_argument(
         "--auto-close-ms",
@@ -83,7 +83,7 @@ class StartupDialog(QDialog):
 
     def _build_ui(self) -> None:
         """Monta ui para o fluxo atual."""
-        self.setWindowTitle("JARVIS")
+        self.setWindowTitle("Gênesis | Zero")
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         self.setModal(True)
         self.resize(520, 300)
@@ -92,7 +92,7 @@ class StartupDialog(QDialog):
         layout.setContentsMargins(24, 22, 24, 22)
         layout.setSpacing(14)
 
-        title = QLabel("Abrindo o JARVIS")
+        title = QLabel("Iniciando Gênesis")
         title.setStyleSheet("font-size: 22px; font-weight: 700; color: #f5f7fa;")
         subtitle = QLabel(
             "O app nativo verifica o runtime local, sobe o servidor se necessario e so libera a janela principal depois do healthcheck positivo."
@@ -189,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
     app = QApplication([sys.argv[0], *(argv or [])])
-    app.setApplicationName("Jarvis")
+    app.setApplicationName("Gênesis")
     app.setQuitOnLastWindowClosed(True)
     apply_dark_palette(app)
 
