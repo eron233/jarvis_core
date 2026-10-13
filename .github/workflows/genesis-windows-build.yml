@@ -1,0 +1,105 @@
+name: Genesis Windows portable and UI review
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "genesis_launcher.py"
+      - "INICIAR_GENESIS.cmd"
+      - "interface/native_app/**"
+      - "tools/build_genesis_icon.py"
+      - ".github/workflows/genesis-windows-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-app:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      JARVIS_INFERENCE_OFFLINE_MODE: "true"
+      JARVIS_NATIVE_BRAIN_FORCE_FALLBACK: "1"
+      JARVIS_FREELLMAPI_ENABLED: "false"
+      JARVIS_AGENCY_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Dependencies (build runner only)
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install "pyinstaller>=6.13,<7" "pillow>=11,<13" pytest
+
+      - name: Check native UI unit tests
+        run: |
+          $env:QT_QPA_PLATFORM="offscreen"
+          python -m pytest -q tests/test_native_app.py tests/test_startup_launchers.py
+
+      - name: Generate Genesis icon from reviewed SVG
+        run: python tools/build_genesis_icon.py
+
+      - name: Package lightweight Windows onedir executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $options = @(
+            "--noconfirm", "--clean", "--windowed", "--noupx",
+            "--name", "Genesis", "--paths", ".",
+            "--icon", "build/genesis/genesis.ico",
+            "--add-data", "interface/native_app/assets;interface/native_app/assets",
+            "--add-data", "interface/dashboard;interface/dashboard",
+            "--add-data", "constitutional_core;constitutional_core",
+            "--exclude-module", "PySide6.QtWebEngineWidgets",
+            "--exclude-module", "PySide6.QtWebEngineCore",
+            "--exclude-module", "PySide6.QtWebEngineQuick",
+            "--exclude-module", "PySide6.QtQml",
+            "--exclude-module", "PySide6.QtQuick",
+            "--exclude-module", "PySide6.QtQuickWidgets",
+            "--collect-submodules", "uvicorn",
+            "genesis_launcher.py"
+          )
+          python -m PyInstaller @options
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
+
+      - name: Verify actual EXE startup and create screenshots without data
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $exe = Join-Path (Get-Location) "dist/Genesis/Genesis.exe"
+          if (-not (Test-Path $exe)) { throw "Genesis.exe missing" }
+          & $exe --server --check-config
+          if ($LASTEXITCODE -ne 0) { throw "EXE configuration check failed: $LASTEXITCODE" }
+          $env:QT_QPA_PLATFORM = "offscreen"
+          & $exe --capture-ui "build/ui-previews"
+          if ($LASTEXITCODE -ne 0) { throw "EXE screenshot failed: $LASTEXITCODE" }
+          $screens = Get-ChildItem "build/ui-previews/*.png"
+          if ($screens.Count -ne 4) { throw "Expected 4 real UI screens, found $($screens.Count)" }
+          $screens | ForEach-Object { Write-Output ("Screenshot: {0}, bytes={1}" -f $_.Name, $_.Length) }
+          $files = Get-ChildItem "dist/Genesis" -Recurse -File
+          $total = ($files | Measure-Object Length -Sum).Sum
+          $exeSize = (Get-Item $exe).Length
+          Write-Output ("RELEASE_PAYLOAD_MB={0:N2}" -f ($total / 1MB))
+          Write-Output ("EXE_SIZE_MB={0:N2}" -f ($exeSize / 1MB))
+          if ($total -gt 1500MB) { throw "Build larger than 1.5 GB safety budget" }
+
+      - name: Publish review screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: Genesis-Zero-telas-reais
+          path: build/ui-previews/*.png
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish Windows portable application
+        uses: actions/upload-artifact@v4
+        with:
+          name: Genesis-Zero-Windows-portatil
+          path: dist/Genesis/
+          retention-days: 30
+          compression-level: 6
+          if-no-files-found: error
