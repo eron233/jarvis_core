@@ -1,0 +1,44 @@
+name: Agencia e inferencia - Windows smoke
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "runtime/agent_agency.py"
+      - "runtime/inference_stack.py"
+      - "runtime/freellmapi_backend.py"
+      - "runtime/rea_integration.py"
+      - "runtime/capability_foundry.py"
+      - "security/guardian.py"
+      - "tests/test_agent_agency.py"
+      - "tests/test_freellmapi_integration.py"
+      - "tests/test_rea_integration.py"
+      - "tests/test_capability_foundry.py"
+      - "tests/test_guardian.py"
+      - ".github/workflows/agency-windows-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-integration:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      QT_QPA_PLATFORM: offscreen
+      JARVIS_INFERENCE_OFFLINE_MODE: "true"
+      JARVIS_FREELLMAPI_ENABLED: "false"
+      JARVIS_AGENCY_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Preparar dependencias e runner de testes
+        run: |
+          python -m pip install -r requirements.txt pytest
+      - name: Exercitar API, agencia, inferencia offline, REA, video e Guardian
+        run: |
+          python -m pytest -q tests/test_agent_agency.py tests/test_freellmapi_integration.py tests/test_inference_stack.py tests/test_rea_integration.py tests/test_capability_foundry.py tests/test_guardian.py
