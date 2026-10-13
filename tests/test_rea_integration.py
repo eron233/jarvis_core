@@ -34,7 +34,7 @@ class REAAdapterTests(unittest.TestCase):
     def test_managed_chama_apenas_ferramenta_estatica(self):
         test_file = self.root / "untrusted.dll"
         test_file.write_bytes(b"fake")
-        result = self.adapter.inspect_static("untrusted.dll", "managed")
+        result = self.adapter.inspect_static("untrusted.dll", "managed", approved=True)
         self.assertEqual(result["status"], "resultado_recebido")
         self.assertFalse(result["execucao_do_alvo"])
         self.assertFalse(result["evidencia_validada"])
@@ -46,7 +46,7 @@ class REAAdapterTests(unittest.TestCase):
 
     def test_javascript_diretorio_e_asar(self):
         (self.root / "app").mkdir()
-        result = self.adapter.inspect_static("app", "javascript")
+        result = self.adapter.inspect_static("app", "javascript", approved=True)
         self.assertEqual(result["status"], "resultado_recebido")
         self.assertEqual(self.mcp.call_tool.call_args.args[1], "analyze_javascript_application")
         self.assertEqual(self.mcp.call_tool.call_args.args[2]["input_path"], str(self.root / "app"))
@@ -63,14 +63,14 @@ class REAAdapterTests(unittest.TestCase):
             ("", "managed"),
         ]:
             with self.subTest(name=name, typ=typ):
-                r = self.adapter.inspect_static(name, typ)
+                r = self.adapter.inspect_static(name, typ, approved=True)
                 self.assertNotEqual(r["status"], "resultado_recebido")
         self.mcp.call_tool.assert_not_called()
 
     def test_servidor_nao_habilitado_nao_inventa_evidencia(self):
         (self.root / "file.dll").write_bytes(b"binary")
         self.mcp.call_tool.return_value = {"status": "bloqueado", "motivo": "Servidor desabilitado"}
-        r = self.adapter.inspect_static("file.dll", "managed")
+        r = self.adapter.inspect_static("file.dll", "managed", approved=True)
         self.assertEqual(r["status"], "bloqueado")
         self.assertFalse(r["evidencia_validada"])
         self.assertNotIn("resultado_mcp", r)
@@ -89,6 +89,13 @@ class REAAdapterTests(unittest.TestCase):
         self.assertNotIn("start_frida_session", reg["allowed_tools"])
         self.assertNotIn("open_binary", reg["allowed_tools"])
         self.assertIn("inspect_managed_artifact", reg["allowed_tools"])
+
+    def test_rea_exige_aprovacao_antes_de_invocar_mcp(self):
+        (self.root / "safe.dll").write_bytes(b"fake")
+        res = self.adapter.inspect_static("safe.dll", "managed")
+        self.assertEqual(res["status"], "aguardando_aprovacao")
+        self.assertFalse(res["executado"])
+        self.mcp.call_tool.assert_not_called()
 
     def test_node_nao_e_permitido_no_default(self):
         config = MCPStackConfig.from_env({})
@@ -119,7 +126,7 @@ class REAAPITests(unittest.TestCase):
 
     def test_rea_no_pc_sem_instalacao_nao_alega_resultado(self):
         r = self.client.post("/api/rea/inspecionar", json={
-            "caminho": "inexistente.dll", "tipo": "managed"
+            "caminho": "inexistente.dll", "tipo": "managed", "aprovado": True
         }, headers=self._headers())
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["status"], "bloqueado")
