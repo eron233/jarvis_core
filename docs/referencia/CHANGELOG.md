@@ -6,6 +6,7 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 - Segurança P0: `ToolDeveloperEngine.develop_tool` valida código gerado apenas com AST/compilação, nunca importando-o ou executando efeitos de inicialização; nomes são limitados a um identificador de arquivo seguro, metadados são inseridos como literais escapados e nenhum sucesso é fabricado quando não há retorno.
 - Segurança P0: `execute_tool_in_sandbox` agora falha fechado com `bloqueado_por_seguranca`, `executado=false` e `isolamento_validado=false`. O subprocesso anterior herdava o ambiente e não fornecia isolamento forte. A execução de ferramentas geradas permanecerá indisponível até um executor isolado ser implementado, auditado e testado em host compatível. Testes de regressão: `tests/test_tool_developer_safety.py`.
+- Segurança P0: `UltraLightweightSandboxEngine` recusa `tool_name` que faria path traversal, inicia o Python com `-I` e ambiente explicitamente restrito, não inventa `sucesso` diante de stdout malformado e exige comprovação da aplicação de `RLIMIT_CPU` e `RLIMIT_AS` para relatar execução bem-sucedida. Isso NÃO transforma AST/subprocesso em sandbox de segurança forte. Testes de regressão: `tests/test_micro_sandbox_fail_closed.py`.
 
 - Removido de vez o modo legado `api-direct` de `jarvis.cmd`; o launcher agora rejeita esse caminho em vez de mantê-lo como sombra operacional.
 - Aposentado `jarvis_native.vbs`; `jarvis_native.pyw` passou a ser o único wrapper técnico remanescente do app nativo.
