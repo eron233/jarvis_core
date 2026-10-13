@@ -12,7 +12,7 @@ on:
 jobs:
   defender-read-only:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     permissions:
       contents: read
     steps:
@@ -23,4 +23,4 @@ jobs:
       - name: Consultar Defender sem alterar configuracoes nem fazer scans
         shell: pwsh
         run: |
-          python -c "from security.guardian import Guardian; r=Guardian().observe(); print('Guardian status:', r['status']); print('Estado:', r['consultas']['estado']['status']); print('Historico:', r['consultas']['historico']['status']); assert r['leitura_apenas'] and not r['verificacao_antivirus_iniciada'] and r['ameacas_ativas_confirmadas'] is None and not r['maquina_livre_de_malware_confirmada']; assert r['status'] in ('consultado','parcial','indisponivel')"
+          python -c "from security.guardian import Guardian; r=Guardian(timeout_seconds=25).observe(); print('Guardian status:', r['status']); print('Estado:', r['consultas']['estado']['status']); print('Historico:', r['consultas']['historico']['status']); assert r['leitura_apenas'] and not r['verificacao_antivirus_iniciada'] and r['ameacas_ativas_confirmadas'] is None and not r['maquina_livre_de_malware_confirmada']; assert r['status'] in ('consultado','parcial','indisponivel')"
