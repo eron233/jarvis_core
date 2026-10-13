@@ -57,7 +57,7 @@ def format_brain_analysis(payload: dict[str, Any]) -> str:
             f"Menor atividade: {low_regions or 'nenhuma'}",
             f"Trilhas dominantes: {strong_trails or 'nenhuma'}",
             "Rede integrada: memoria, planejamento, execucao, seguranca e evolucao.",
-            "Interacao: clique no cerebro para expandir e navegar em 3D.",
+            "Modo leve: mapa cognitivo vetorial sem navegador integrado.",
         ]
     )
 
@@ -415,7 +415,7 @@ class _FallbackBrainWidget(QWidget):
         """Desenha overlay text neste widget."""
         summary = self._evolution_payload.get("resumo", {})
         caption = (
-            f"Cerebro 3D em fallback  |  eventos {summary.get('total_eventos', 0)}"
+            f"Mapa cognitivo leve  |  eventos {summary.get('total_eventos', 0)}"
             f"  |  neuronios {VISIBLE_NEURON_COUNT}"
         )
         painter.save()
