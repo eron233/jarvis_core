@@ -415,6 +415,8 @@ class InternalAgentRuntime:
 
             from runtime.mcp_stack import OfficialMCPClientManager
             self.mcp_manager = OfficialMCPClientManager()
+            from runtime.rea_integration import REAInvestigator
+            self.rea_investigator = REAInvestigator(mcp_manager=self.mcp_manager)
 
             from learning.codebase_intelligence_engine import CodebaseIntelligenceEngine
             from learning.development_context_engine import DevelopmentContextEngine
