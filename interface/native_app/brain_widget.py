@@ -401,7 +401,7 @@ class _FallbackBrainWidget(QWidget):
         painter.restore()
 
         painter.save()
-        painter.setFont(QFont("Bahnschrift", 8))
+        painter.setFont(QFont("Segoe UI", 8))
         for index, point in enumerate(base_points):
             label = labels[index % len(labels)]
             target = QPointF(point.x() + 44, point.y() + 16)
