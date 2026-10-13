@@ -40,6 +40,15 @@ jobs:
           $env:QT_QPA_PLATFORM="offscreen"
           python -m pytest -q tests/test_native_app.py tests/test_startup_launchers.py
 
+      - name: Capture the actual Python/Qt interface before packaging
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+          python -m interface.native_app.preview "build/ui-previews"
+          if ($LASTEXITCODE -ne 0) { throw "Source Qt capture failed: $LASTEXITCODE" }
+          $screens = Get-ChildItem "build/ui-previews/*.png"
+          if ($screens.Count -ne 4) { throw "Expected four source UI screenshots" }
+
       - name: Generate Genesis icon from reviewed SVG
         run: python tools/build_genesis_icon.py
 
@@ -78,7 +87,12 @@ jobs:
           if ($check.ExitCode -ne 0) { throw "EXE configuration check failed: $($check.ExitCode)" }
           $env:QT_QPA_PLATFORM = "offscreen"
           $preview = Start-Process -FilePath $exe -ArgumentList @("--capture-ui", "build/ui-previews") -Wait -PassThru
-          if ($preview.ExitCode -ne 0) { throw "EXE screenshot failed: $($preview.ExitCode)" }
+          if ($preview.ExitCode -ne 0) {
+            Write-Output "EXE preview failed with exit code $($preview.ExitCode)"
+            Get-ChildItem "build/ui-previews/" -ErrorAction SilentlyContinue | Select-Object Name,Length
+            Get-Content "dist/Genesis/logs/genesis_preview_errors.log" -ErrorAction SilentlyContinue
+            throw "EXE screenshot failed: $($preview.ExitCode)"
+          }
           $screens = Get-ChildItem "build/ui-previews/*.png"
           if ($screens.Count -ne 4) { throw "Expected 4 real UI screens, found $($screens.Count)" }
           $screens | ForEach-Object { Write-Output ("Screenshot: {0}, bytes={1}" -f $_.Name, $_.Length) }
@@ -90,6 +104,7 @@ jobs:
           if ($total -gt 1500MB) { throw "Build larger than 1.5 GB safety budget" }
 
       - name: Publish review screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Genesis-Zero-telas-reais
