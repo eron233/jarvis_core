@@ -49,7 +49,12 @@ class REAAdapterTests(unittest.TestCase):
         result = self.adapter.inspect_static("app", "javascript", approved=True)
         self.assertEqual(result["status"], "resultado_recebido")
         self.assertEqual(self.mcp.call_tool.call_args.args[1], "analyze_javascript_application")
-        self.assertEqual(self.mcp.call_tool.call_args.args[2]["input_path"], str(self.root / "app"))
+        # Windows pode representar o temporario com nome 8.3 (RUNNER~1).
+        # Compare caminhos canonicos, nao a grafia original do workspace.
+        self.assertEqual(
+            Path(self.mcp.call_tool.call_args.args[2]["input_path"]).resolve(),
+            (self.root / "app").resolve(),
+        )
 
     def test_rejeita_paths_externos_links_e_modos_de_execucao(self):
         (self.root / "file.dll").write_bytes(b"binary")
