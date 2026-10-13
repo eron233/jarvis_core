@@ -16,6 +16,7 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 class _FakeBackend:
     def __init__(self, name: str, status: str = "sucesso") -> None:
         self.name = name
+        self.base_url = "http://127.0.0.1:8080/v1"
         self.status = status
         self.calls = []
 
