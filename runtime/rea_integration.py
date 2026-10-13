@@ -21,12 +21,16 @@ class REAInvestigator:
             Path(__file__).resolve().parents[1] / "data" / "rea_targets"
         )
 
-    def inspect_static(self, path: str, kind: str) -> Dict[str, Any]:
+    def inspect_static(self, path: str, kind: str,
+                       *, approved: bool = False) -> Dict[str, Any]:
         """Nao abre o arquivo no Python nem executa bytes do alvo.
 
         `managed` => metadata de PE/.NET, `javascript` => diretorio ou ASAR.
         Operacoes de processo, depuracao ou mutacao sao propositalmente ausentes.
         """
+        if approved is not True:
+            return {"status": "aguardando_aprovacao", "executado": False,
+                    "motivo": "Investigacao REA exige aprovacao explicita."}
         if kind not in {"managed", "javascript"} or not isinstance(path, str) or not path.strip():
             return {"status": "entrada_invalida", "executado": False}
         root = self.allowed_root.resolve()
