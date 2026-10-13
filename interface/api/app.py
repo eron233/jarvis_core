@@ -1022,13 +1022,23 @@ def create_app(
 
     @app.post("/api/seguranca/caca-vulnerabilidades/campanha", dependencies=[Depends(require_trusted_device)])
     def execute_vulnerability_hunting_campaign(request: Request, nome_alvo: str = Query(min_length=1), caminho_alvo: str = Query(default="src")) -> Dict[str, Any]:
-        """Executa campanha de caça a vulnerabilidades (Zero-Days) com sub-agentes e auto-evolução de ferramentas."""
+        """Registra proposta, sem afirmar scanner/fuzzer ou achados nao executados."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.vulnerability_hunter.execute_hunting_campaign(
             target_name=nome_alvo,
             target_codebase_path=caminho_alvo,
         )
-        return {"mensagem": "Campanha de caça a vulnerabilidades concluída com sucesso.", "relatorio_campanha": res}
+        return {"mensagem": "Consulte status do relatorio; sem scanner real, a campanha nao e executada.", "relatorio_campanha": res}
+
+    @app.get("/api/seguranca/guardian/estado", dependencies=[Depends(require_trusted_device)])
+    def get_guardian_defender_state(request: Request) -> Dict[str, Any]:
+        """Consulta pontual, somente leitura, do estado e historico do Defender."""
+        runtime = _ensure_runtime_initialized(request)
+        report = runtime.guardian.observe()
+        return {
+            "mensagem": "Consulta defensiva somente leitura; nenhum malware foi escaneado pelo JARVIS.",
+            "guardian": report,
+        }
 
     @app.post("/api/web/scrapegraph/extrair", dependencies=[Depends(require_trusted_device)])
     def extract_structured_scrapegraph(request: Request, url: str = Query(min_length=1), html: str = Body(...), extraction_schema: Dict[str, Any] = Body(..., alias="schema")) -> Dict[str, Any]:
