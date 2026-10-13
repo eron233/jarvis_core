@@ -202,6 +202,86 @@ class AgencyTests(unittest.TestCase):
             self.assertIsNone(self.agency._read_review(bad))
 
 
+class AgencyLocalHTTPTests(unittest.TestCase):
+    """Ate o fio HTTP local, nao so mock do roteador."""
+
+    def test_full_pipeline_over_openai_compatible_local_http(self):
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        import threading
+        from runtime.inference_stack import InferenceStackConfig, LocalInferenceRouter
+
+        class Endpoint(BaseHTTPRequestHandler):
+            answers = [
+                "Projeto tecnico com requisitos e limites, sem alegar execucao.",
+                GOOD,
+                GOOD,
+            ]
+            calls = []
+
+            def log_message(self, *args):
+                pass
+
+            def do_POST(self):
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length))
+                Endpoint.calls.append((self.path, payload))
+                body = json.dumps({
+                    "model": "modelo-local-teste",
+                    "choices": [{
+                        "message": {
+                            "role": "assistant",
+                            "content": Endpoint.answers.pop(0),
+                        },
+                        "finish_reason": "stop",
+                    }],
+                    "usage": {
+                        "prompt_tokens": 15, "completion_tokens": 8,
+                        "total_tokens": 23,
+                    },
+                }).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            server = ThreadingHTTPServer(("127.0.0.1", 0), Endpoint)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                config = InferenceStackConfig(
+                    enabled=True, provider_order=("llamacpp",),
+                    llamacpp_base_url=f"http://127.0.0.1:{server.server_port}/v1",
+                    model_general="modelo-local-teste",
+                    model_coding="modelo-local-teste",
+                    model_reasoning="modelo-local-teste",
+                    offline_mode=True,
+                )
+                agency = AgentAgency(inference_router=LocalInferenceRouter(config),
+                                     record_dir=Path(tmp), enabled=True)
+                result = agency.execute(
+                    goal="Desenhar arquitetura de editor de audio",
+                    discipline="engenharia", criteria=["Exportar WAV"],
+                    approved=True,
+                )
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=2)
+
+        self.assertEqual(result["status"], "rascunho_revisado_nao_homologado")
+        self.assertEqual(len(Endpoint.calls), 3)
+        self.assertEqual(len(Endpoint.answers), 0)
+        for path, payload in Endpoint.calls:
+            self.assertEqual(path, "/v1/chat/completions")
+            self.assertEqual(payload["model"], "modelo-local-teste")
+            self.assertFalse(payload["stream"])
+            self.assertNotIn("tools", payload)
+        self.assertTrue(result["auditoria_persistida"])
+        self.assertFalse(result["software_homologado"])
+
+
 class AgencyAPITests(unittest.TestCase):
     def setUp(self):
         self.runtime = InternalAgentRuntime()
