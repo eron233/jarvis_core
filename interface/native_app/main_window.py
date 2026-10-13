@@ -5,11 +5,13 @@ from __future__ import annotations
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime
 import json
+from pathlib import Path
 import traceback
 from typing import Any, Callable
 
 from PySide6.QtCore import Qt, QThreadPool, QTimer
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QPainter, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -39,7 +41,7 @@ from interface.native_app.runtime_bootstrap import RuntimeBootstrapResult
 
 
 SECTION_ORDER = [
-    ("chat", "Chat"),
+    ("chat", "Conversa"),
     ("status", "Status"),
     ("objetivos", "Objetivos"),
     ("tarefas", "Tarefas"),
@@ -202,7 +204,7 @@ class JarvisMainWindow(QMainWindow):
         self.auto_close_ms = auto_close_ms
         self.initial_command = initial_command
         self.thread_pool = QThreadPool.globalInstance()
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.executor = ThreadPoolExecutor(max_workers=2)
         self._active_jobs: set[str] = set()
         self._running_tasks: dict[str, BackgroundTask] = {}
         self._running_futures: dict[str, Future[Any]] = {}
@@ -212,9 +214,9 @@ class JarvisMainWindow(QMainWindow):
         self._current_section = "chat"
         self._authenticated_local_session = False
 
-        self.setWindowTitle("JARVIS")
-        self.resize(1540, 940)
-        self.setMinimumSize(1280, 760)
+        self.setWindowTitle("Gênesis | Zero")
+        self.resize(1440, 860)
+        self.setMinimumSize(1080, 690)
         self._build_ui()
         self._apply_styles()
         self._connect_signals()
@@ -266,13 +268,31 @@ class JarvisMainWindow(QMainWindow):
         layout.setContentsMargins(18, 20, 18, 18)
         layout.setSpacing(14)
 
-        brand = QLabel("JARVIS")
+        branding = QHBoxLayout()
+        branding.setSpacing(10)
+        logo = QLabel()
+        svg_path = Path(__file__).resolve().parent / "assets" / "genesis_zero.svg"
+        if svg_path.is_file():
+            renderer = QSvgRenderer(str(svg_path))
+            if renderer.isValid():
+                pixmap = QPixmap(44, 44)
+                pixmap.fill(Qt.transparent)
+                painter = QPainter(pixmap)
+                renderer.render(painter)
+                painter.end()
+                logo.setPixmap(pixmap)
+        logo.setFixedSize(44, 44)
+        brand_stack = QVBoxLayout()
+        brand_stack.setSpacing(0)
+        brand = QLabel("GÊNESIS")
         brand.setObjectName("BrandTitle")
-        subtitle = QLabel("")
+        subtitle = QLabel("Z E R O")
         subtitle.setObjectName("BrandSubtitle")
-        subtitle.setWordWrap(True)
-        layout.addWidget(brand)
-        subtitle.hide()
+        brand_stack.addWidget(brand)
+        brand_stack.addWidget(subtitle)
+        branding.addWidget(logo)
+        branding.addLayout(brand_stack, 1)
+        layout.addLayout(branding)
 
         self.runtime_chip = QLabel("Runtime")
         self.health_chip = QLabel("Saude")
@@ -314,15 +334,16 @@ class JarvisMainWindow(QMainWindow):
         hero_layout = QVBoxLayout(hero)
         hero_layout.setContentsMargins(18, 16, 18, 16)
         hero_layout.setSpacing(8)
-        hero_title = QLabel("Conversa central")
+        hero_title = QLabel("ZERO  /  ESPAÇO DE TRABALHO")
         hero_title.setObjectName("SectionTitle")
         hero_text = QLabel(
-            "Converse com o Jarvis por aqui."
+            "Converse, organize ideias e execute tarefas supervisionadas."
         )
         hero_text.setWordWrap(True)
         hero_text.setObjectName("SectionBody")
         hero_layout.addWidget(hero_title)
         hero_layout.addWidget(hero_text)
+        self.hero_card = hero
         layout.addWidget(hero)
 
         self.chat_timeline = ChatTimeline()
@@ -337,7 +358,7 @@ class JarvisMainWindow(QMainWindow):
         command_row = QHBoxLayout()
         command_row.setSpacing(10)
         self.command_input = QLineEdit()
-        self.command_input.setPlaceholderText("Digite um comando para o Jarvis")
+        self.command_input.setPlaceholderText("O que vamos construir hoje?")
         self.send_button = QPushButton("Enviar")
         self.send_button.setObjectName("PrimaryButton")
         command_row.addWidget(self.command_input, 1)
@@ -365,7 +386,7 @@ class JarvisMainWindow(QMainWindow):
             ("Objetivos", "mostrar objetivos"),
             ("Tarefas", "mostrar fila"),
             ("Memoria", "mostrar memoria"),
-            ("Jarvis ta ai", "Jarvis ta ai"),
+            ("Zero, está aí?", "Jarvis ta ai"),
         ):
             button = QPushButton(label)
             button.setObjectName("GhostButton")
@@ -375,6 +396,7 @@ class JarvisMainWindow(QMainWindow):
         command_layout.addLayout(command_row)
         command_layout.addLayout(advanced_row)
         command_layout.addLayout(quick_row)
+        self.composer_frame = command_frame
         layout.addWidget(command_frame)
 
         self.detail_pages: dict[str, DetailPage] = {}
@@ -472,7 +494,7 @@ class JarvisMainWindow(QMainWindow):
             #HeroCard, #ComposerFrame, #DetailContainer {
                 background: #07090c; border: 1px solid #11171c; border-radius: 18px;
             }
-            #BrandTitle { font-size: 28px; font-weight: 700; letter-spacing: 2px; }
+            #BrandTitle { font-size: 20px; font-weight: 700; letter-spacing: 2px; }
             #BrandSubtitle { color: #9ca8b5; font-size: 12px; line-height: 1.35; }
             #SidebarChip {
                 background: #070d12; border: 1px solid #16222b; border-radius: 12px;
@@ -513,8 +535,8 @@ class JarvisMainWindow(QMainWindow):
         """Aplica bootstrap state ao estado atual."""
         self.chat_timeline.add_message(
             "assistant",
-            "JARVIS pronto para conversar.",
-            "Jarvis",
+            "Olá. Sou Zero, seu assistente no Gênesis. Aguardando seu comando.",
+            "ZERO",
         )
         self.footer_runtime.setText(f"Conectado em {self.bootstrap_result.startup_duration_seconds:.1f}s")
         self.footer_command.setText("Pronto.")
@@ -560,6 +582,11 @@ class JarvisMainWindow(QMainWindow):
     def _set_section(self, section: str) -> None:
         """Atualiza section no estado atual."""
         self._current_section = section
+        is_chat = section == "chat"
+        self.hero_card.setVisible(is_chat)
+        self.chat_timeline.setVisible(is_chat)
+        self.composer_frame.setVisible(is_chat)
+        self.detail_stack.setVisible(not is_chat)
         for section_key, page in self.detail_pages.items():
             page.setVisible(section_key == section)
         self._render_current_section()
@@ -636,7 +663,7 @@ class JarvisMainWindow(QMainWindow):
         self.chat_timeline.add_message(
             "assistant",
             self._format_command_response(payload),
-            "Jarvis",
+            "ZERO",
         )
         self.footer_command.setText("Resposta recebida.")
         self._render_current_section()
@@ -680,7 +707,7 @@ class JarvisMainWindow(QMainWindow):
 
         if job_name == "send_command":
             friendly_message = self._friendly_command_error(message)
-            self.chat_timeline.add_message("assistant", friendly_message, "Jarvis")
+            self.chat_timeline.add_message("assistant", friendly_message, "ZERO")
             self.footer_command.setText(friendly_message)
             return
 
@@ -734,7 +761,7 @@ class JarvisMainWindow(QMainWindow):
 
         if section == "chat":
             payload = self._last_command_payload or {
-                "mensagem": "Use o chat central para falar com o runtime real do Jarvis.",
+                "mensagem": "Use a conversa com Zero para interagir com o Gênesis.",
                 "sugestoes": [
                     "status do sistema",
                     "mostrar objetivos",
