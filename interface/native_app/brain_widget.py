@@ -67,6 +67,9 @@ def _should_use_web_brain() -> bool:
     platform = str(os.environ.get("QT_QPA_PLATFORM", "")).lower()
     if platform == "offscreen":
         return False
+    # Renderizador Qt leve por padrao; WebEngine e apenas recurso opt-in.
+    if os.environ.get("JARVIS_NATIVE_BRAIN_WEB") != "1":
+        return False
     if os.environ.get("JARVIS_NATIVE_BRAIN_FORCE_FALLBACK") == "1":
         return False
     return WEB_ENGINE_AVAILABLE and SCENE_HTML_PATH.exists()
@@ -175,7 +178,7 @@ class _ExpandedBrainDialog(QDialog):
         """Inicializa a instancia e prepara o estado interno do componente."""
         super().__init__(parent.window())
         self.setModal(True)
-        self.setWindowTitle("JARVIS Brain")
+        self.setWindowTitle("Gênesis | Zero")
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self.setStyleSheet(
@@ -214,7 +217,7 @@ class _ExpandedBrainDialog(QDialog):
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(12)
 
-        title = QLabel("Cerebro do Jarvis")
+        title = QLabel("Consciência | Zero")
         title.setObjectName("BrainOverlayTitle")
         hint = QLabel("A visualizacao ampliada reutiliza a mesma biblioteca oficial do painel web.")
         hint.setObjectName("BrainOverlayHint")
@@ -264,7 +267,7 @@ class _FallbackBrainWidget(QWidget):
         self.setMinimumSize(320, 360)
         self._animation_timer = QTimer(self)
         self._animation_timer.timeout.connect(self._advance_animation)
-        self._animation_timer.start(45)
+        self._animation_timer.start(160)
 
     def set_payload(self, evolution_payload: dict[str, Any], analysis_payload: dict[str, Any]) -> None:
         """Atualiza a carga de dados exibida por este componente."""
@@ -279,7 +282,9 @@ class _FallbackBrainWidget(QWidget):
 
     def _advance_animation(self) -> None:
         """Executa a rotina interna de advance animation."""
-        self._pulse_phase = (self._pulse_phase + 0.016) % 1.0
+        if not self.isVisible():
+            return
+        self._pulse_phase = (self._pulse_phase + 0.05) % 1.0
         self.update()
 
     def paintEvent(self, _event) -> None:
