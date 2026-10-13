@@ -808,6 +808,41 @@ def create_app(
         tools = runtime.tool_developer_engine.list_developed_tools()
         return {"mensagem": "Ferramentas recuperadas com sucesso.", "ferramentas": tools}
 
+    # --- Capability Foundry (planejamento seguro e editor FFmpeg restrito) ---
+
+    @app.get("/api/foundry/capacidades", dependencies=[Depends(require_trusted_device)])
+    def foundry_list_capabilities(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return {"capacidades": runtime.capability_foundry.list_capabilities()}
+
+    @app.post("/api/foundry/planejar", dependencies=[Depends(require_trusted_device)])
+    def foundry_plan_capability(
+        request: Request,
+        pedido: str = Body(..., embed=True),
+        capacidade: str | None = Body(default=None, embed=True),
+    ) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.capability_foundry.plan(pedido, capacidade)
+
+    @app.post("/api/foundry/video/cortar", dependencies=[Depends(require_trusted_device)])
+    def foundry_trim_video(
+        request: Request,
+        arquivo_origem: str = Body(...),
+        arquivo_saida: str = Body(...),
+        inicio_segundos: float = Body(...),
+        duracao_segundos: float = Body(...),
+        aprovado: bool = Body(default=False),
+    ) -> Dict[str, Any]:
+        """Acao explicitamente autorizada, dentro do workspace, sem overwrite."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.capability_foundry.trim_video(
+            arquivo_origem,
+            arquivo_saida,
+            inicio_segundos,
+            duracao_segundos,
+            approved=aprovado,
+        )
+
     @app.get("/api/modulos/conhecimento", dependencies=[Depends(require_trusted_device)])
     def search_knowledge_base(request: Request, q: str = Query(default="")) -> Dict[str, Any]:
         """Módulo 3: Consulta base de conhecimento comprimida."""
