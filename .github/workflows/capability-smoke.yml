@@ -1,0 +1,85 @@
+name: Capability Foundry + REA smoke
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "runtime/capability_foundry.py"
+      - "runtime/rea_integration.py"
+      - "tests/test_capability_foundry.py"
+      - ".github/workflows/capability-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  ffmpeg-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Instalar FFmpeg apenas no runner efemero
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -n 1
+      - name: Testar corte e leitura real do resultado
+        run: python -m unittest tests.test_capability_foundry.FoundryTests.test_video_real_com_ffmpeg -v
+
+  rea-mcp-live-discovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Instalar SDK MCP e REA somente no runner de teste
+        run: |
+          python -m pip install 'mcp>=2.2,<3'
+          mkdir -p "$RUNNER_TEMP/rea-mcp"
+          npm install --prefix "$RUNNER_TEMP/rea-mcp" --no-audit --no-fund --ignore-scripts rea-agents@6.4.0
+      - name: Descobrir ferramentas via MCP oficial, sem executar artefatos
+        shell: bash
+        run: |
+          timeout 180s python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from runtime.mcp_stack import MCPStackConfig, OfficialMCPClientManager
+
+          installed = Path(os.environ["RUNNER_TEMP"]) / "rea-mcp/node_modules/rea-agents/scripts/rea.mjs"
+          if not installed.is_file():
+              raise SystemExit("REA package entrypoint not installed")
+          with TemporaryDirectory() as root:
+              path = Path(root) / "registry.json"
+              path.write_text(json.dumps({"schema_version": "1.0", "servers": {
+                  "rea-investigation": {
+                      "enabled": True, "transport": "stdio", "command": "node",
+                      "args": [str(installed), "mcp"], "cwd": ".",
+                      "env_allowlist": ["PATH", "HOME"],
+                      "allowed_tools": ["inspect_managed_artifact"],
+                      "allowed_resources": [], "allowed_prompts": []
+                  }
+              }}), encoding="utf-8")
+              manager = OfficialMCPClientManager(config=MCPStackConfig(
+                  enabled=True, registry_path=path, allowed_stdio_commands=("node",),
+              ))
+              result = manager.discover("rea-investigation")
+              print("status", result.get("status"))
+              tools = result.get("tools") or []
+              print("ferramentas_descobertas", len(tools))
+              assert result["status"] == "sucesso", result
+              assert any(t.get("name") == "inspect_managed_artifact" for t in tools)
+              blocked = manager.call_tool("rea-investigation", "capture_process_scenario", {})
+              assert blocked["status"] == "bloqueado"
+          PY
