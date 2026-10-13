@@ -1407,6 +1407,42 @@ def create_app(
         )
         return {"mensagem": "Tarefa corporativa roteada. A execucao ainda nao foi realizada.", "relatorio_dispatch": res}
 
+    # --- Agencia de especialistas, somente inferencia textual local ---
+
+    @app.get("/api/agencia/especialistas", dependencies=[Depends(require_trusted_device)])
+    def agency_specialists(request: Request) -> Dict[str, Any]:
+        """Perfis originais e limites operacionais da agencia."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.agent_agency.specialists()
+
+    @app.post("/api/agencia/planejar", dependencies=[Depends(require_trusted_device)])
+    def agency_plan(
+        request: Request,
+        objetivo: str = Body(...),
+        especialidade: str = Body(default="engenharia"),
+        criterios: Optional[list[str]] = Body(default=None),
+    ) -> Dict[str, Any]:
+        """Previsualiza delegacao sem chamar modelos e sem executar ferramentas."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.agent_agency.plan(
+            goal=objetivo, discipline=especialidade, criteria=criterios,
+        )
+
+    @app.post("/api/agencia/executar", dependencies=[Depends(require_trusted_device)])
+    def agency_execute(
+        request: Request,
+        objetivo: str = Body(...),
+        especialidade: str = Body(default="engenharia"),
+        criterios: Optional[list[str]] = Body(default=None),
+        aprovado: bool = Body(default=False),
+    ) -> Dict[str, Any]:
+        """Opt-in de execucao de ate tres chamadas locais, sem tool calls."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.agent_agency.execute(
+            goal=objetivo, discipline=especialidade, criteria=criterios,
+            approved=aprovado,
+        )
+
     @app.get("/api/corporativo/status", dependencies=[Depends(require_trusted_device)])
     def get_corporate_hierarchy_status(request: Request) -> Dict[str, Any]:
         """Retorna o status dos departamentos e sub-agentes corporativos (ativos vs hibernados)."""
