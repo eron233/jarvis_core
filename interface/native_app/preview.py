@@ -30,7 +30,7 @@ def capture_previews(output: Path) -> int:
     # Carregar uma fonte nativa so para screenshot evita caracteres vazios
     # sem distribuir nem embutir arquivos de fonte no aplicativo.
     from PySide6.QtGui import QFont, QFontDatabase
-    if os.name == "nt":
+    if os.name == "nt" and not getattr(sys, "frozen", False):
         fonts_dir = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "Fonts"
         for font_name in ("segoeui.ttf", "arial.ttf", "tahoma.ttf"):
             candidate = fonts_dir / font_name
