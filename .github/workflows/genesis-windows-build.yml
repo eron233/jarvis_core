@@ -50,7 +50,7 @@ jobs:
           $options = @(
             "--noconfirm", "--clean", "--windowed", "--noupx",
             "--name", "Genesis", "--paths", ".",
-            "--icon", "build/genesis/genesis.ico",
+            "--icon", ".build-assets/genesis.ico",
             "--add-data", "interface/native_app/assets;interface/native_app/assets",
             "--add-data", "interface/dashboard;interface/dashboard",
             "--add-data", "constitutional_core;constitutional_core",
