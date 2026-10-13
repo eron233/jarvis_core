@@ -313,3 +313,86 @@ A suíte automatizada valida:
 - hierarquia corporativa sem modelos fictícios.
 
 A inferência com um modelo real depende do provisionamento no hardware alvo.
+
+
+## 16. FreeLLMAPI como gateway **opt-in** (13/10/2026)
+
+**Fonte:** https://github.com/tashfeenahmed/freellmapi
+**Backend:** `runtime/freellmapi_backend.py`.
+**Contrato:** endpoint OpenAI-compatible `/v1/chat/completions` e `/v1/models`, conforme FreeLLMAPI v0.13.x.
+
+FreeLLMAPI e um roteador que roda localmente, mas **pode enviar prompts,
+chaves e contexto a provedores externos**. Nao transforma servicos de nuvem
+em inferencia offline. Tiers gratuitos sao volateis; `auto:cheap` nao
+garante que nenhuma chave paga/customizada seja usada pelo gateway.
+
+A integracao NUNCA instala FreeLLMAPI, cria contas, obtem chaves, altera
+seu catalogo ou envia prompts na inicializacao do JARVIS.
+
+### Configuracao consciente
+
+```env
+# Ative inferencia somente depois de instalar um modelo local.
+JARVIS_INFERENCE_ENABLED=true
+JARVIS_INFERENCE_PROVIDER_ORDER=llamacpp,ollama,freellmapi
+
+# Modos diferentes: offline domina todas as outras permissoes.
+JARVIS_INFERENCE_OFFLINE_MODE=false
+JARVIS_FREELLMAPI_ENABLED=true
+JARVIS_FREELLMAPI_BASE_URL=http://127.0.0.1:3001/v1
+JARVIS_FREELLMAPI_API_KEY=chave-unificada-real-criada-no-roteador
+JARVIS_FREELLMAPI_MODEL=auto:cheap
+```
+
+As configuracoes acima sao **exemplo de opt-in**, nao valores padrao.
+Nao grave chaves reais no repositorio.
+
+O modelo local ainda precisa ser escolhido no hardware alvo por
+`JARVIS_MODEL_GENERAL` e/ou aliases light/heavy/coding/reasoning.
+Sem modelo local, o JARVIS nao se torna offline so por adicionar FreeLLMAPI.
+
+### Restricoes obrigatorias por requisicao
+
+Mesmo com todas as variaveis configuradas, chamadas externas exigem
+`allow_external=True` e `data_classification="public"`; na API:
+
+```text
+POST /api/inferencia/chat?provider=freellmapi&permitir_externo=true&classificacao=public&modelo=auto:cheap
+```
+
+O corpo continua sendo a lista JSON de mensagens original.
+O endpoint `/api/inferencia/benchmark` aplica as mesmas restricoes.
+
+**A classificacao public e afirmacao explicita do operador** e nao e
+comprovada por um scanner de segredos; nao a utilize para anexar memoria
+privada, credenciais, codigo proprietario, arquivos pessoais ou output
+de ferramentas internas. Chamadas sem permissao, offline ou sem chave
+retornam `bloqueado`/`indisponivel`, nunca sucesso inventado.
+O servidor deve permanecer em loopback e com token de acesso.
+
+`GET /api/inferencia/status?probe=true` so consulta modelos locais.
+Consultar o catalogo do FreeLLMAPI exige o opt-in adicional
+`consultar_externo=true`, alem de `JARVIS_FREELLMAPI_ENABLED=true` e
+`JARVIS_INFERENCE_OFFLINE_MODE=false`.
+
+O client FreeLLMAPI nao herda proxies do ambiente, recusa redirects,
+endpoints nao-loopback, URLs com credenciais ou parametros, respostas
+acima de 2 MiB e prompts HTTP acima de 512 KiB. Nao expõe chaves em
+relatorios de status. Fallback automatico so envolve FreeLLMAPI se
+explicitamente incluido em `JARVIS_INFERENCE_PROVIDER_ORDER`, e mesmo
+assim depende da autorizacao por requisicao.
+
+**Limite operacional:** o modo offline do JARVIS barra rotas remotas
+reconhecidas e o FreeLLMAPI, mas nao consegue provar se algum daemon
+local (por exemplo, Ollama com modelos cloud habilitados) encaminha
+dados por conta propria. Offline verificavel requer modelos estritamente
+locais e um teste de rede em ambiente real.
+
+### Validacao
+
+`tests/test_freellmapi_integration.py` cobre opt-in, status,
+modo offline, fallback, autenticacao de dispositivo, respostas
+incompatíveis, nao-redirect e protocolo HTTP real com **servidor de teste
+local**, usando chave falsa. O teste nao valida cota real, disponibilidade
+da nuvem, contrato de privacidade dos fornecedores, ausencia de cobranca
+nem capacidade dos modelos comerciais.
