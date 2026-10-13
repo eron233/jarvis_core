@@ -1162,6 +1162,16 @@ def create_app(
 
     # --- Endpoints MCP Oficial ---
 
+    @app.post("/api/rea/inspecionar", dependencies=[Depends(require_trusted_device)])
+    def rea_inspect_static(
+        request: Request,
+        caminho: str = Body(...),
+        tipo: str = Body(...),
+    ) -> Dict[str, Any]:
+        """Somente inspecao estatica de alvo autorizado, quando REA habilitado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.rea_investigator.inspect_static(caminho, tipo)
+
     @app.get("/api/mcp/status", dependencies=[Depends(require_trusted_device)])
     def mcp_status(request: Request) -> Dict[str, Any]:
         """Mostra servidores MCP cadastrados e o estado do SDK oficial."""
