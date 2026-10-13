@@ -58,16 +58,18 @@ class NativeAppConfig:
             "JARVIS_NATIVE_API_BASE_URL",
             f"http://127.0.0.1:{api_port}",
         ).rstrip("/")
+        frozen = bool(getattr(sys, "frozen", False))
+        portable_root = Path(sys.executable).resolve().parent if frozen else PROJECT_ROOT
         return cls(
             api_base_url=api_base_url,
             api_token=runtime_config.token,
             device_id=runtime_config.trusted_device_id,
             python_executable=resolve_runtime_python_executable(),
-            project_root=PROJECT_ROOT,
-            runtime_entrypoint=PROJECT_ROOT / "runtime" / "server.py",
+            project_root=portable_root,
+            runtime_entrypoint=Path("--server") if frozen else PROJECT_ROOT / "runtime" / "server.py",
             startup_timeout_seconds=float(os.environ.get("JARVIS_NATIVE_STARTUP_TIMEOUT", "35")),
             startup_poll_interval_seconds=float(os.environ.get("JARVIS_NATIVE_STARTUP_POLL", "0.75")),
             request_timeout_seconds=float(os.environ.get("JARVIS_NATIVE_REQUEST_TIMEOUT", "10")),
-            status_refresh_interval_ms=int(os.environ.get("JARVIS_NATIVE_STATUS_REFRESH_MS", "15000")),
-            brain_refresh_interval_ms=int(os.environ.get("JARVIS_NATIVE_BRAIN_REFRESH_MS", "20000")),
+            status_refresh_interval_ms=int(os.environ.get("JARVIS_NATIVE_STATUS_REFRESH_MS", "30000")),
+            brain_refresh_interval_ms=int(os.environ.get("JARVIS_NATIVE_BRAIN_REFRESH_MS", "90000")),
         )
