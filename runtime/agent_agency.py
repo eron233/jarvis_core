@@ -54,7 +54,8 @@ SPECIALISTS: Dict[str, Specialist] = {
 _MAX_GOAL = 1800
 _MAX_CRITERION = 300
 _MAX_CRITERIA = 6
-_MAX_OUTPUT = 14000
+# O auditor deve ver a entrega inteira; nao aprovar apenas um recorte.
+_MAX_OUTPUT = 8000
 
 
 def _utc_now() -> str:
