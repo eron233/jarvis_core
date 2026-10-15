@@ -224,6 +224,26 @@ class IrisDeviceMesh:
                 raise PermissionError("No desconhecido, revogado ou expirado.")
             device.last_seen_at = self.clock()
 
+    def authorize_node(
+        self, node_id: str, node_token: str,
+        *, required_surface: str,
+    ) -> str:
+        """Aceita trabalho apenas de agentes nativos integrados e pareados.
+
+        Dispositivos em modo visita ou gateways de IoT nunca recebem
+        processamento distribuido. Identidade retornada e a da Iris logica.
+        """
+        with self._lock:
+            self.heartbeat(node_id, node_token)
+            device = self._devices.get(node_id)
+            if (device is None or device.mode != "integrated"
+                or device.execution_kind != "native_agent"
+                or required_surface not in device.surfaces
+                or not self._is_alive(device)
+                or not self._eligible_compute(device, required_surface)):
+                raise PermissionError("No nao autorizado para esta superficie.")
+            return device.instance_id
+
     def report_health(
         self, node_id: str, node_token: str, *,
         cpu_percent: float, memory_available_mb: int,
