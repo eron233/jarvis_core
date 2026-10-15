@@ -515,7 +515,9 @@ class JarvisMainWindow(QMainWindow):
         """Aplica styles ao estado atual."""
         self.setStyleSheet(
             """
-            QMainWindow, QWidget { background: #000000; color: #f5f7fa; font-family: "Segoe UI"; }
+            QMainWindow { background: #060c12; color: #f5f7fa; }
+            QWidget { color: #f5f7fa; font-family: "Segoe UI"; }
+            QLabel { background: transparent; border: none; }
             QStatusBar { background: #050505; border-top: 1px solid #11171c; }
             #Sidebar { background: #030303; border-right: 1px solid #11171c; }
             #CenterPanel { background: #010101; }
