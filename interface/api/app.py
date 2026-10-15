@@ -101,6 +101,13 @@ class IrisFeedbackSignalRequest(BaseModel):
     code: str = Field(min_length=3, max_length=64)
 
 
+class IrisNodeHealthRequest(BaseModel):
+    cpu_percent: float = Field(ge=0, le=100, allow_inf_nan=False)
+    memory_available_mb: int = Field(ge=0, le=1000000)
+    battery_percent: Optional[float] = Field(default=None, ge=0, le=100, allow_inf_nan=False)
+    latency_ms: float = Field(ge=0, le=60000, allow_inf_nan=False)
+
+
 def create_app(
     runtime: InternalAgentRuntime | None = None,
     api_token: str | None = None,
@@ -360,6 +367,41 @@ def create_app(
             raise HTTPException(status_code=422, detail="Recurso nao reconhecido.") from None
         except PermissionError:
             raise HTTPException(status_code=403, detail="Roteamento nao autorizado.") from None
+
+    @app.get("/api/iris/perfis-tecnicos")
+    def iris_device_profiles(
+        context: tuple[IrisDeviceMesh, str, str] = Depends(require_iris_mesh),
+    ) -> Dict[str, Any]:
+        mesh, instance_id, token = context
+        try:
+            return {"profiles": mesh.resource_profiles(instance_id, token)}
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Perfis nao autorizados.") from None
+
+    @app.post("/api/iris/dispositivo/estado")
+    def iris_device_resource_report(
+        payload: IrisNodeHealthRequest,
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        mesh = request.app.state.iris_device_mesh
+        if mesh is None:
+            raise HTTPException(status_code=503, detail="Malha Iris nao configurada.")
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            return mesh.report_health(
+                node_id, node_token,
+                cpu_percent=payload.cpu_percent,
+                memory_available_mb=payload.memory_available_mb,
+                battery_percent=payload.battery_percent,
+                latency_ms=payload.latency_ms,
+            )
+        except PermissionError:
+            raise HTTPException(status_code=401, detail="Credencial de no invalida.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Amostra de dispositivo invalida.") from None
 
     @app.post("/api/iris/dispositivo/heartbeat")
     def iris_device_heartbeat(
