@@ -25,6 +25,7 @@ from runtime.internal_agent_runtime import InternalAgentRuntime
 from runtime.system_config import JarvisEnvironmentConfig
 from security.access_control import AccessControl
 from security.iris_instance_policy import IrisInstanceAuthority
+from device.iris_mesh import IrisDeviceMesh
 
 
 def make_api_artifact_path(name: str, suffix: str) -> Path:
@@ -190,6 +191,95 @@ class JarvisApiTests(unittest.TestCase):
         self.assertTrue(recorded.json()["registrado"])
         client.post("/api/iris/preferencias", headers=headers, json={"feedback_opt_in": False})
         self.assertEqual(authority.feedback_summary(secret), {})
+
+    def test_iris_mesh_rotas_exigem_malha_injetada(self) -> None:
+        client, _ = self.build_client("iris_mesh_unconfigured")
+        secret = "segredo-seguro-para-mesh-" + "a" * 32
+        authority = IrisInstanceAuthority(secret)
+        client.app.state.iris_instance_authority = authority
+        owner_headers = {
+            "X-Iris-Instance-Id": IrisInstanceAuthority.OWNER_ID,
+            "X-Iris-Instance-Token": secret,
+        }
+        self.assertEqual(
+            client.get("/api/iris/dispositivos", headers=owner_headers).status_code,
+            503,
+        )
+        self.assertEqual(
+            client.post("/api/iris/dispositivo/heartbeat").status_code,
+            503,
+        )
+
+    def test_iris_mesh_api_multidispositivo_e_escopo_por_cliente(self) -> None:
+        client, _ = self.build_client("iris_mesh_multi")
+        secret = "segredo-seguro-para-mesh-" + "a" * 32
+        authority = IrisInstanceAuthority(secret)
+        mesh = IrisDeviceMesh(authority)
+        client.app.state.iris_instance_authority = authority
+        client.app.state.iris_device_mesh = mesh
+        alice = authority.create_resident(
+            secret, tenant_id="tenant-alice", display_name="Iris Alice",
+            user_consented=True,
+        )
+        bob = authority.create_resident(
+            secret, tenant_id="tenant-bob", display_name="Iris Bob",
+            user_consented=True,
+        )
+        offer = mesh.offer_device(
+            device_name="PC da Alice", device_type="windows",
+            surfaces={"presence.display", "compute.light"},
+            locally_approved=True,
+        )
+        device = mesh.approve_offer(
+            alice["instance_id"], alice["token"],
+            offer_id=offer["offer_id"], verification_code=offer["verification_code"],
+        )
+        alice_headers = {
+            "X-Iris-Instance-Id": alice["instance_id"],
+            "X-Iris-Instance-Token": alice["token"],
+        }
+        bob_headers = {
+            "X-Iris-Instance-Id": bob["instance_id"],
+            "X-Iris-Instance-Token": bob["token"],
+        }
+        self.assertEqual(
+            len(client.get("/api/iris/dispositivos", headers=alice_headers).json()["devices"]),
+            1,
+        )
+        self.assertEqual(
+            client.get("/api/iris/dispositivos", headers=bob_headers).json()["devices"],
+            [],
+        )
+        self.assertEqual(
+            client.get("/api/iris/continuidade", headers=alice_headers).json()["active_nodes"],
+            1,
+        )
+        routed = client.get(
+            "/api/iris/roteamento", params={"recurso": "presence.display"},
+            headers=alice_headers,
+        )
+        self.assertEqual(routed.status_code, 200)
+        self.assertEqual(routed.json()["node_id"], device["node_id"])
+        self.assertFalse(routed.json()["executed"])
+        self.assertEqual(
+            client.get("/api/iris/roteamento", params={"recurso": "system.hack"},
+                       headers=alice_headers).status_code,
+            422,
+        )
+        self.assertEqual(
+            client.post("/api/iris/dispositivo/heartbeat", headers={
+                "X-Iris-Node-Id": device["node_id"],
+                "X-Iris-Node-Token": device["node_token"],
+            }).status_code,
+            200,
+        )
+        self.assertEqual(
+            client.post("/api/iris/dispositivo/heartbeat", headers={
+                "X-Iris-Node-Id": device["node_id"],
+                "X-Iris-Node-Token": bob["token"],
+            }).status_code,
+            401,
+        )
 
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
         """Confirma que o healthcheck simples responde com a API ativa."""
