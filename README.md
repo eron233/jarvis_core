@@ -50,6 +50,19 @@ Cada componente precisa de **segredos aleatórios próprios de 32 bytes** vindos
 
 Os testes exercitam um reinício completo dos três stores em processo de teste, com reautenticação de aparelho e continuidade da memória da mesma Íris. Isso **não equivale** a failover transparente entre computadores: os dispositivos ainda não trocam dados diretamente por rede, o servidor da API não configura os componentes por padrão e modelos locais não são migrados. Os arquivos cifrados possibilitam recuperação no mesmo volume ou por backup transportado de forma segura, não disponibilidade garantida independente de servidor.
 
+## Trabalho distribuído entre PCs autorizados (protocolo funcional restrito)
+
+Além do inventário de aparelhos, há um **broker de tarefas** para que dois computadores pareados executem trabalho simultaneamente para a mesma Íris:
+
+- `device/iris_task_broker.py`: fila por instância, lease temporária de 45 segundos, rejeição de acesso entre residentes, reentrega após lease perdida, limites de tamanho e número de jobs. Nenhum comando arbitrário é aceito.
+- `device/iris_node_worker.py`: cliente de processamento iniciado voluntariamente pelo proprietário, que faz `POST /api/iris/no/tarefa/claim` e `POST /api/iris/no/tarefa/complete` e só sabe executar `text.word_count`, `math.sum` e `hash.sha256`. Não acessa SO, arquivos, Bluetooth, jogos nem instala programas. Requer HTTPS fora do localhost e bloqueia redirects para não encaminhar tokens.
+- `device/iris_task_persistence.py`: broker opcional com snapshots AES-256-GCM, para recuperar filas e reexecutar leases abandonadas após reinício de um coordenador. **Sem exatamente uma execução (at-least-once)**: qualquer tarefa futura com efeitos externos exigirá idempotência e tratamento específico. Continua single-process.
+- Rotas opcionais `/api/iris/tarefas`, `/api/iris/tarefas/{job_id}`, `/api/iris/no/tarefa/claim` e `/api/iris/no/tarefa/complete`; somente o dono da instância envia/consulta seus trabalhos, somente o nó nativo pareado integrado recolhe/conclui. Os retornos dos nós são **não verificados**, não prova de que um modelo real tenha executado.
+
+O processo da Íris deve receber explicitamente objetos `IrisInstanceAuthority`, `IrisDeviceMesh`, `IrisTaskBroker` e os stores opcionais em `create_app()`. A inicialização padrão do Jarvis permanece sem essas rotas ativas: **não** habilitar o serviço para clientes comerciais ou pela internet antes de onboarding, TLS real, identidade das instalações, isolamento por tenant e auditoria de segurança. Credenciais nunca devem ir para Git, logs ou linhas de comando compartilhadas.
+
+Isso já valida **computação repartida de tarefas fechadas**, inclusive pelo contrato HTTP no TestClient, mas **não** significa que os modelos cognitivos, memórias de sessão ou decisões da Íris sejam migrados entre computadores. Não há execução de comandos genéricos, failover offline P2P ou operação de aparelhos IoT neste protocolo.
+
 ## Íris no Windows
 
 A branch dev gera o executável portátil no
