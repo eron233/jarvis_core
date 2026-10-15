@@ -63,6 +63,17 @@ O processo da Íris deve receber explicitamente objetos `IrisInstanceAuthority`,
 
 Isso já valida **computação repartida de tarefas fechadas**, inclusive pelo contrato HTTP no TestClient, mas **não** significa que os modelos cognitivos, memórias de sessão ou decisões da Íris sejam migrados entre computadores. Não há execução de comandos genéricos, failover offline P2P ou operação de aparelhos IoT neste protocolo.
 
+## Replicação de estado e continuidade entre nós (experimental)
+
+O módulo `device/iris_state_replication.py` implementa um protocolo **pull de replicação automática opt-in**. Um computador pareado com a superfície `memory.sync` (permitida somente a agentes nativos integrados) consulta um manifesto e recebe envelopes AES-256-GCM autenticados pelo token exclusivo do nó. O receptor grava os documentos em seu próprio banco SQLite cifrado, com chaves diferentes do computador de origem. O polling recupera falhas transitórias de rede por backoff e encerra diante de alterações suspeitas, revogação ou conflitos de versão. Na API, `GET /api/iris/replication/manifest` e `GET /api/iris/replication/documents/{document_id}` permanecem **desligados por padrão** e exigem injeção de `IrisReplicaSource` mais malha/estado da mesma autoridade.
+
+- A réplica é **somente leitura em relação a um escritor principal**. O checkpoint HMAC detecta se um registro foi editado localmente, impedindo sobrescrita silenciosa. O cliente nunca replica dados de outra instância e jamais usa o corredor administrativo como fonte de memória privada.
+- Testes exercitam envio criptografado, diferenças de versão, recuperação após reiniciar SQLite, dados adulterados, revogação, divergência de histórico e transporte HTTP por **dois processos separados no loopback**. Loopback não equivale a homologação com dois PCs físicos.
+- `runtime/iris_cognitive_checkpoint.py` integra snapshots pequenos das memórias reais semântica, procedural, episódica e do histórico evolutivo ao banco cifrado por instância. Um documento `cognitive.checkpoint` (até 64 KiB) pode ser replicado e restaurado. É obrigatório criar os componentes de memória **por cliente**; não utilizar os stores globais do JARVIS. Pesos de LLM, cache de contexto interno, ações em andamento e processos não são migrados.
+- `device/iris_local_failover.py` oferece um **protótipo de troca de escritor entre processos no mesmo host e banco SQLite**. O holder recebe lease com época monotônica; após expiração, outro nó nativo pareado pode adquirir a liderança. Uma escrita de estado protegida deve enviar `fence_node_id` e `fence_epoch`; o banco valida a lease na mesma transação. Um token de época vencido não pode escrever mesmo após mudança de processo. O `IrisReplicaSink` se recusa a escrever diretamente sobre banco com lease de escritor, evitando contornar o fencing.
+
+**Limites incontornáveis nesta etapa:** não há consenso/quorum entre máquinas físicas, acesso confiável a SQLite por rede, eleição automática distribuída do núcleo de IA, sincronização offline multi-escritor, migração de inferência LLM nem pareamento real validado pela interface/SO do proprietário. Não usar SQLite compartilhado em NFS/SMB como protocolo de consenso. A continuidade demonstrada é de **dados e processos locais autorizados**, e não uma garantia de que a Íris continue raciocinando após desligar qualquer servidor. Um operador precisa configurar as chaves, a origem confiável, os clientes e o polling; nada disso é ativado automaticamente para usuários.
+
 ## Íris no Windows
 
 A branch dev gera o executável portátil no

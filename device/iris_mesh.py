@@ -29,7 +29,7 @@ MAX_DEVICES_PER_INSTANCE = 32
 _SURFACES = frozenset({
     "presence.display", "audio.input", "audio.output",
     "diagnostics.read", "compute.infer", "compute.light",
-    "media.read", "sensor.read", "automation.authorized",
+    "media.read", "sensor.read", "automation.authorized", "memory.sync",
 })
 _DEVICE_TYPES = frozenset({
     "windows", "linux", "macos", "android", "ios", "smart_tv",
