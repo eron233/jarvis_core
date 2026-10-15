@@ -38,6 +38,7 @@ from runtime.system_config import (
 from security.access_control import AccessControl
 from security.iris_instance_policy import IrisInstanceAuthority
 from device.iris_mesh import IrisDeviceMesh
+from memory_system.iris_state_store import IrisEncryptedStateStore, StateConflictError, StateCorruptionError
 
 #
 # JARVIS_API_LAYER
@@ -108,6 +109,11 @@ class IrisNodeHealthRequest(BaseModel):
     latency_ms: float = Field(ge=0, le=60000, allow_inf_nan=False)
 
 
+class IrisStateWriteRequest(BaseModel):
+    expected_revision: int = Field(ge=0)
+    value: Any
+
+
 def create_app(
     runtime: InternalAgentRuntime | None = None,
     api_token: str | None = None,
@@ -116,6 +122,7 @@ def create_app(
     deployment_config: JarvisEnvironmentConfig | None = None,
     iris_instance_authority: IrisInstanceAuthority | None = None,
     iris_device_mesh: IrisDeviceMesh | None = None,
+    iris_state_store: IrisEncryptedStateStore | None = None,
 ) -> FastAPI:
     """Cria uma aplicacao FastAPI ligada ao runtime atual."""
 
@@ -149,8 +156,13 @@ def create_app(
         iris_instance_authority is None or iris_device_mesh.authority is not iris_instance_authority
     ):
         raise ValueError("A malha Iris deve usar exatamente a mesma autoridade de instancias.")
+    if iris_state_store is not None and (
+        iris_instance_authority is None or iris_state_store.authority is not iris_instance_authority
+    ):
+        raise ValueError("O estado Iris deve usar exatamente a mesma autoridade de instancias.")
     app.state.iris_instance_authority = iris_instance_authority
     app.state.iris_device_mesh = iris_device_mesh
+    app.state.iris_state_store = iris_state_store
     app.state.system_config = config or SystemLoopConfig()
     app.state.deployment_config = effective_deployment_config
     app.state.bootstrap_state = (
@@ -419,6 +431,62 @@ def create_app(
         except PermissionError:
             raise HTTPException(status_code=401, detail="Credencial de no invalida.") from None
         return {"lease_renewed": True}
+
+    # Armazenamento cifrado de documentos por instancia. Nenhuma rota compartilha
+    # memoria entre usuarios, nem com o corredor da Original.
+    def require_iris_state(
+        request: Request,
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> tuple[IrisEncryptedStateStore, str, str]:
+        store = request.app.state.iris_state_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Estado persistente Iris nao configurado.")
+        _, instance_id, token = identity
+        return store, instance_id, token
+
+    @app.get("/api/iris/memoria/documentos")
+    def iris_state_document_list(
+        ctx: tuple[IrisEncryptedStateStore, str, str] = Depends(require_iris_state),
+    ) -> Dict[str, Any]:
+        store, instance_id, token = ctx
+        try:
+            return {"documents": store.document_revisions(instance_id, token)}
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Memoria indisponivel.") from None
+
+    @app.get("/api/iris/memoria/{document_id}")
+    def iris_state_read(
+        document_id: str,
+        ctx: tuple[IrisEncryptedStateStore, str, str] = Depends(require_iris_state),
+    ) -> Dict[str, Any]:
+        store, instance_id, token = ctx
+        try:
+            return store.get(instance_id, token, document_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="ID invalido.") from None
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Memoria indisponivel.") from None
+        except StateCorruptionError:
+            raise HTTPException(status_code=503, detail="Estado cifrado com falha de integridade.") from None
+
+    @app.put("/api/iris/memoria/{document_id}")
+    def iris_state_write(
+        document_id: str,
+        payload: IrisStateWriteRequest,
+        ctx: tuple[IrisEncryptedStateStore, str, str] = Depends(require_iris_state),
+    ) -> Dict[str, Any]:
+        store, instance_id, token = ctx
+        try:
+            return store.put(
+                instance_id, token, document_id, payload.value,
+                expected_revision=payload.expected_revision,
+            )
+        except StateConflictError:
+            raise HTTPException(status_code=409, detail="Versao de documento desatualizada.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Documento invalido ou excede limite.") from None
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Gravacao nao autorizada.") from None
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
