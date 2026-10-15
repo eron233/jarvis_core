@@ -41,6 +41,7 @@ from device.iris_mesh import IrisDeviceMesh
 from memory_system.iris_state_store import IrisEncryptedStateStore, StateConflictError, StateCorruptionError
 from device.iris_task_broker import IrisTaskBroker
 from device.iris_state_replication import IrisReplicaSource
+from runtime.iris_dialogue_service import IrisDialogueService
 
 #
 # JARVIS_API_LAYER
@@ -127,6 +128,11 @@ class IrisJobCompletionRequest(BaseModel):
     result: Any
 
 
+class IrisDialogueStartRequest(BaseModel):
+    conversation_id: str = Field(min_length=3, max_length=40)
+    text: str = Field(min_length=1, max_length=800)
+
+
 def create_app(
     runtime: InternalAgentRuntime | None = None,
     api_token: str | None = None,
@@ -138,6 +144,7 @@ def create_app(
     iris_state_store: IrisEncryptedStateStore | None = None,
     iris_task_broker: IrisTaskBroker | None = None,
     iris_replica_source: IrisReplicaSource | None = None,
+    iris_dialogue_service: IrisDialogueService | None = None,
 ) -> FastAPI:
     """Cria uma aplicacao FastAPI ligada ao runtime atual."""
 
@@ -188,8 +195,15 @@ def create_app(
         or iris_replica_source.store is not iris_state_store
     ):
         raise ValueError("Replica Iris precisa da mesma malha e estado cifrado.")
+    if iris_dialogue_service is not None and (
+        iris_task_broker is None or iris_state_store is None
+        or iris_dialogue_service.broker is not iris_task_broker
+        or iris_dialogue_service.state is not iris_state_store
+    ):
+        raise ValueError("Dialogo Iris exige broker e memoria da mesma instancia.")
     app.state.iris_task_broker = iris_task_broker
     app.state.iris_replica_source = iris_replica_source
+    app.state.iris_dialogue_service = iris_dialogue_service
     app.state.system_config = config or SystemLoopConfig()
     app.state.deployment_config = effective_deployment_config
     app.state.bootstrap_state = (
@@ -627,6 +641,60 @@ def create_app(
             raise HTTPException(status_code=404, detail="Documento inexistente.") from None
         except StateCorruptionError:
             raise HTTPException(status_code=503, detail="Origem com estado cifrado invalido.") from None
+
+    # Dialogos cognitivos: historico isolado por instancia e salvo cifrado.
+    # Nao redirecionar conversas automaticamente a provedores externos.
+    def require_iris_dialogue(request: Request) -> IrisDialogueService:
+        service = request.app.state.iris_dialogue_service
+        if service is None:
+            raise HTTPException(status_code=503, detail="Dialogo distribuido Iris nao habilitado.")
+        return service
+
+    @app.post("/api/iris/dialogue/turn")
+    def iris_dialogue_start(
+        payload: IrisDialogueStartRequest,
+        dialogue: IrisDialogueService = Depends(require_iris_dialogue),
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        _, instance_id, token = identity
+        try:
+            return dialogue.start(instance_id, token,
+                                  conversation_id=payload.conversation_id,
+                                  text=payload.text)
+        except StateConflictError:
+            raise HTTPException(status_code=409, detail="Conversa tem turno pendente.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Turno invalido.") from None
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Conversa nao autorizada.") from None
+
+    @app.get("/api/iris/dialogue/{conversation_id}/finish")
+    def iris_dialogue_finish(
+        conversation_id: str,
+        dialogue: IrisDialogueService = Depends(require_iris_dialogue),
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        _, instance_id, token = identity
+        try:
+            return dialogue.finish(instance_id, token, conversation_id=conversation_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Conversa invalida.") from None
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Conversa nao autorizada.") from None
+
+    @app.get("/api/iris/dialogue/{conversation_id}/history")
+    def iris_dialogue_history(
+        conversation_id: str,
+        dialogue: IrisDialogueService = Depends(require_iris_dialogue),
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        _, instance_id, token = identity
+        try:
+            return dialogue.history(instance_id, token, conversation_id=conversation_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Conversa invalida.") from None
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Conversa nao autorizada.") from None
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
