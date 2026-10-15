@@ -22,7 +22,7 @@ from cryptography.hazmat.primitives import hashes
 
 from device.iris_mesh import (
     IrisDeviceMesh, MeshDevice, _DEVICE_ID_RE, _DEVICE_TYPES, _SURFACES, _BRIDGE,
-    _UI_ONLY, _NATIVE,
+    _UI_ONLY, _NATIVE, HEARTBEAT_TTL_SECONDS,
 )
 from security.iris_instance_policy import IrisInstanceAuthority
 
@@ -117,7 +117,7 @@ class PersistentIrisDeviceMesh(IrisDeviceMesh):
                     or not isinstance(node.display_name, str)):
                     raise ValueError("Registro de no invalido.")
                 # Reinicio nao significa que o dispositivo segue conectado.
-                node.last_seen_at = float("-inf")
+                node.last_seen_at = self.clock() - HEARTBEAT_TTL_SECONDS - 1
                 restored[node.node_id] = node
             with self._lock:
                 self._devices = restored
