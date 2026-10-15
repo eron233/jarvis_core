@@ -105,7 +105,12 @@ class IrisTaskBroker:
         self.mesh.authority.require(instance_id, instance_token, "device.local")
         safe = validate_operation(operation, payload)
         route = self.mesh.route(instance_id, instance_token, surface="compute.light")
-        if route["status"] != "routed":
+        if route["status"] != "routed" or route.get("execution_kind") != "native_agent":
+            return {"status": "unavailable", "submitted": False}
+        if not any(
+            device["node_id"] == route.get("node_id") and device["mode"] == "integrated"
+            for device in self.mesh.devices(instance_id, instance_token)
+        ):
             return {"status": "unavailable", "submitted": False}
         with self._lock:
             self._purge()
