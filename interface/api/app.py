@@ -40,6 +40,7 @@ from security.iris_instance_policy import IrisInstanceAuthority
 from device.iris_mesh import IrisDeviceMesh
 from memory_system.iris_state_store import IrisEncryptedStateStore, StateConflictError, StateCorruptionError
 from device.iris_task_broker import IrisTaskBroker
+from device.iris_state_replication import IrisReplicaSource
 
 #
 # JARVIS_API_LAYER
@@ -136,6 +137,7 @@ def create_app(
     iris_device_mesh: IrisDeviceMesh | None = None,
     iris_state_store: IrisEncryptedStateStore | None = None,
     iris_task_broker: IrisTaskBroker | None = None,
+    iris_replica_source: IrisReplicaSource | None = None,
 ) -> FastAPI:
     """Cria uma aplicacao FastAPI ligada ao runtime atual."""
 
@@ -180,7 +182,14 @@ def create_app(
     app.state.iris_instance_authority = iris_instance_authority
     app.state.iris_device_mesh = iris_device_mesh
     app.state.iris_state_store = iris_state_store
+    if iris_replica_source is not None and (
+        iris_device_mesh is None or iris_state_store is None
+        or iris_replica_source.mesh is not iris_device_mesh
+        or iris_replica_source.store is not iris_state_store
+    ):
+        raise ValueError("Replica Iris precisa da mesma malha e estado cifrado.")
     app.state.iris_task_broker = iris_task_broker
+    app.state.iris_replica_source = iris_replica_source
     app.state.system_config = config or SystemLoopConfig()
     app.state.deployment_config = effective_deployment_config
     app.state.bootstrap_state = (
@@ -577,6 +586,47 @@ def create_app(
             raise HTTPException(status_code=403, detail="Entrega nao autorizada.") from None
         except ValueError:
             raise HTTPException(status_code=422, detail="Resultado invalido.") from None
+
+    # API de leitura da replica: somente agentes nativos integrados com
+    # "memory.sync". O dado e selado novamente para o token daquele aparelho.
+    @app.get("/api/iris/replication/manifest")
+    def iris_replica_manifest(
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        source = request.app.state.iris_replica_source
+        if source is None:
+            raise HTTPException(status_code=503, detail="Replica nao habilitada.")
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            return source.manifest(node_id, node_token)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="No sem acesso a replicacao.") from None
+
+    @app.get("/api/iris/replication/documents/{document_id}")
+    def iris_replica_document(
+        document_id: str,
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        source = request.app.state.iris_replica_source
+        if source is None:
+            raise HTTPException(status_code=503, detail="Replica nao habilitada.")
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            return source.document(node_id, node_token, document_id)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="No sem acesso a replicacao.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="ID de documento invalido.") from None
+        except LookupError:
+            raise HTTPException(status_code=404, detail="Documento inexistente.") from None
+        except StateCorruptionError:
+            raise HTTPException(status_code=503, detail="Origem com estado cifrado invalido.") from None
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
