@@ -206,6 +206,9 @@ class IrisInstanceAuthority:
                 corridor_visible=item.corridor_visible if corridor_visible is None else corridor_visible,
                 feedback_opt_in=item.feedback_opt_in if feedback_opt_in is None else feedback_opt_in,
             )
+            if feedback_opt_in is False:
+                for contributors in self._feedback_sources.values():
+                    contributors.discard(instance_id)
 
     def corridor(self, owner_token: str) -> list[dict[str, str]]:
         """Apenas metadados autorizados. NUNCA retorna conversas ou arquivos."""
@@ -228,6 +231,8 @@ class IrisInstanceAuthority:
             if actor.role != "original" and target.parent_id != actor.instance_id:
                 raise PermissionError("Revogacao nao autorizada.")
             self._revoked.add(target_instance_id)
+            for contributors in self._feedback_sources.values():
+                contributors.discard(target_instance_id)
 
     def report_feedback(self, instance_id: str, token: str, *, code: str) -> bool:
         """Conta somente codigo predefinido, sem gravar prompt ou conversa."""
