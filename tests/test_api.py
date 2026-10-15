@@ -24,6 +24,7 @@ from runtime.cognitive_evolution import CognitiveEvolutionTracker
 from runtime.internal_agent_runtime import InternalAgentRuntime
 from runtime.system_config import JarvisEnvironmentConfig
 from security.access_control import AccessControl
+from security.iris_instance_policy import IrisInstanceAuthority
 
 
 def make_api_artifact_path(name: str, suffix: str) -> Path:
@@ -121,6 +122,74 @@ class JarvisApiTests(unittest.TestCase):
         runtime.access_control = AccessControl.from_plaintext("senha-admin-segura-2026")
         app = create_app(runtime=runtime, deployment_config=config)
         return TestClient(app)
+
+    def test_iris_indisponivel_antes_do_bootstrap_explicito(self) -> None:
+        client, _ = self.build_client("iris_disabled")
+        resp = client.get("/api/iris/instancia", headers={
+            "X-Iris-Instance-Id": "iris-original",
+            "X-Iris-Instance-Token": "token-qualquer",
+        })
+        self.assertEqual(resp.status_code, 503)
+
+    def test_iris_residente_nao_tem_acesso_ao_corredor_nem_trade(self) -> None:
+        client, _ = self.build_client("iris_isolation")
+        authority = IrisInstanceAuthority("owner-secret-seguro-para-teste-" + "x" * 30)
+        client.app.state.iris_instance_authority = authority
+        alice = authority.create_resident(
+            "owner-secret-seguro-para-teste-" + "x" * 30,
+            tenant_id="cliente-alice", display_name="Iris Alice", user_consented=True,
+        )
+        bob = authority.create_resident(
+            "owner-secret-seguro-para-teste-" + "x" * 30,
+            tenant_id="cliente-bob", display_name="Iris Bob", user_consented=True,
+        )
+        alice_headers = {
+            "X-Iris-Instance-Id": alice["instance_id"],
+            "X-Iris-Instance-Token": alice["token"],
+        }
+        owner_headers = {
+            "X-Iris-Instance-Id": IrisInstanceAuthority.OWNER_ID,
+            "X-Iris-Instance-Token": "owner-secret-seguro-para-teste-" + "x" * 30,
+        }
+        me = client.get("/api/iris/instancia", headers=alice_headers)
+        self.assertEqual(me.status_code, 200)
+        self.assertNotIn("trade.use", me.json()["capabilities"])
+        self.assertEqual(client.get("/api/iris/quarto", headers=alice_headers).status_code, 200)
+        self.assertEqual(client.get("/api/iris/corredor", headers=alice_headers).status_code, 403)
+        self.assertEqual(client.get("/api/iris/feedback/resumo", headers=alice_headers).status_code, 403)
+        other_token = dict(alice_headers, **{"X-Iris-Instance-Token": bob["token"]})
+        self.assertEqual(client.get("/api/iris/quarto", headers=other_token).status_code, 401)
+        authority.set_resident_preferences(
+            alice["instance_id"], alice["token"], corridor_visible=True,
+        )
+        corridor = client.get("/api/iris/corredor", headers=owner_headers)
+        self.assertEqual(corridor.status_code, 200)
+        self.assertEqual(corridor.json()["quartos"][0]["instance_id"], alice["instance_id"])
+        self.assertNotIn("token", corridor.json()["quartos"][0])
+
+    def test_iris_feedback_exige_opt_in_e_codigos_fechados(self) -> None:
+        client, _ = self.build_client("iris_feedback")
+        secret = "owner-secret-seguro-para-teste-" + "x" * 30
+        authority = IrisInstanceAuthority(secret)
+        client.app.state.iris_instance_authority = authority
+        resident = authority.create_resident(
+            secret, tenant_id="cliente-avisos", display_name="Iris", user_consented=True,
+        )
+        headers = {
+            "X-Iris-Instance-Id": resident["instance_id"],
+            "X-Iris-Instance-Token": resident["token"],
+        }
+        denied = client.post("/api/iris/feedback/sinal", headers=headers, json={"code": "slow_response"})
+        self.assertEqual(denied.status_code, 200)
+        self.assertFalse(denied.json()["registrado"])
+        malformed = client.post("/api/iris/feedback/sinal", headers=headers, json={"code": "fala pessoal do cliente"})
+        self.assertEqual(malformed.status_code, 422)
+        allowed = client.post("/api/iris/preferencias", headers=headers, json={"feedback_opt_in": True})
+        self.assertEqual(allowed.status_code, 200)
+        recorded = client.post("/api/iris/feedback/sinal", headers=headers, json={"code": "slow_response"})
+        self.assertTrue(recorded.json()["registrado"])
+        client.post("/api/iris/preferencias", headers=headers, json={"feedback_opt_in": False})
+        self.assertEqual(authority.feedback_summary(secret), {})
 
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
         """Confirma que o healthcheck simples responde com a API ativa."""
