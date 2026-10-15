@@ -30,6 +30,8 @@ from device.iris_state_replication import IrisReplicaSource, IrisReplicaSink, Ir
 from memory_system.iris_state_store import IrisEncryptedStateStore
 from device.iris_task_broker import IrisTaskBroker
 from device.iris_node_worker import IrisNodeWorker
+from runtime.iris_dialogue_service import IrisDialogueService
+from device.iris_inference_tasks import IrisLocalInferenceExecutor
 
 
 def make_api_artifact_path(name: str, suffix: str) -> Path:
@@ -127,6 +129,116 @@ class JarvisApiTests(unittest.TestCase):
         runtime.access_control = AccessControl.from_plaintext("senha-admin-segura-2026")
         app = create_app(runtime=runtime, deployment_config=config)
         return TestClient(app)
+
+    def test_dialogo_iris_por_api_separa_clientes_e_retem_contexto(self) -> None:
+        import secrets
+        import tempfile
+        from types import SimpleNamespace
+
+        class FakeModel:
+            config = SimpleNamespace(enabled=True, offline_mode=True,
+                                     allow_remote_endpoints=False)
+            def chat(self, **kwargs):
+                self.assert_private(kwargs)
+                return {"status": "sucesso", "conteudo": "Olá de volta!",
+                        "modelo": "llm-local-teste"}
+            @staticmethod
+            def assert_private(kwargs):
+                assert kwargs["allow_external"] is False
+                assert kwargs["data_classification"] == "private"
+
+        client, _ = self.build_client("iris_dialogue_api")
+        secret = secrets.token_urlsafe(32)
+        authority = IrisInstanceAuthority(secret)
+        mesh = IrisDeviceMesh(authority)
+        broker = IrisTaskBroker(mesh)
+        alice = authority.create_resident(
+            secret, tenant_id="cliente-alice", display_name="Iris Alice",
+            user_consented=True,
+        )
+        bob = authority.create_resident(
+            secret, tenant_id="cliente-bob", display_name="Iris Bob",
+            user_consented=True,
+        )
+        offer = mesh.offer_device(
+            device_name="Máquina autorizada", device_type="windows",
+            surfaces={"compute.infer"}, locally_approved=True,
+        )
+        node = mesh.approve_offer(
+            alice["instance_id"], alice["token"], offer_id=offer["offer_id"],
+            verification_code=offer["verification_code"],
+        )
+        def headers(item):
+            return {"X-Iris-Instance-Id": item["instance_id"],
+                    "X-Iris-Instance-Token": item["token"]}
+        node_headers = {
+            "X-Iris-Node-Id": node["node_id"],
+            "X-Iris-Node-Token": node["node_token"],
+        }
+        self.assertEqual(
+            client.post("/api/iris/dialogue/turn", headers=headers(alice),
+                        json={"conversation_id": "my-session", "text": "Olá"}).status_code,
+            503,
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            store = IrisEncryptedStateStore(
+                Path(folder) / "state.sqlite3", authority,
+                root_key=secrets.token_bytes(32),
+            )
+            try:
+                client.app.state.iris_instance_authority = authority
+                client.app.state.iris_device_mesh = mesh
+                client.app.state.iris_task_broker = broker
+                client.app.state.iris_state_store = store
+                client.app.state.iris_dialogue_service = IrisDialogueService(broker, store)
+                started = client.post(
+                    "/api/iris/dialogue/turn", headers=headers(alice),
+                    json={"conversation_id": "my-session", "text": "Olá, Íris"},
+                )
+                self.assertEqual(started.status_code, 200)
+                self.assertEqual(started.json()["status"], "queued")
+                self.assertEqual(client.post(
+                    "/api/iris/dialogue/turn", headers=headers(alice),
+                    json={"conversation_id": "my-session", "text": "Outro turno"},
+                ).status_code, 409)
+                claimed = client.post("/api/iris/no/tarefa/claim",
+                                      headers=node_headers)
+                self.assertEqual(claimed.status_code, 200)
+                ticket = claimed.json()
+                self.assertEqual(ticket["operation"], "inference.chat")
+                answer = IrisLocalInferenceExecutor(FakeModel()).execute(ticket["payload"])
+                accepted = client.post(
+                    "/api/iris/no/tarefa/complete",
+                    headers=node_headers,
+                    json={"job_id": ticket["job_id"],
+                          "lease_token": ticket["lease_token"],
+                          "result": answer},
+                )
+                self.assertEqual(accepted.status_code, 200)
+                finalized = client.get(
+                    "/api/iris/dialogue/my-session/finish",
+                    headers=headers(alice),
+                )
+                self.assertEqual(finalized.status_code, 200)
+                self.assertEqual(finalized.json()["content"], "Olá de volta!")
+                own = client.get(
+                    "/api/iris/dialogue/my-session/history",
+                    headers=headers(alice),
+                )
+                self.assertEqual(len(own.json()["turns"]), 2)
+                other = client.get(
+                    "/api/iris/dialogue/my-session/history",
+                    headers=headers(bob),
+                )
+                self.assertEqual(other.json()["turns"], [])
+                forged = dict(headers(alice), **{
+                    "X-Iris-Instance-Token": bob["token"],
+                })
+                self.assertEqual(client.get(
+                    "/api/iris/dialogue/my-session/history", headers=forged,
+                ).status_code, 401)
+            finally:
+                store.close()
 
     def test_iris_indisponivel_antes_do_bootstrap_explicito(self) -> None:
         client, _ = self.build_client("iris_disabled")
