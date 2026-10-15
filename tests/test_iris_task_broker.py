@@ -144,7 +144,7 @@ class IrisTaskBrokerTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.broker.claim(pc["node_id"], pc["node_token"])
         with self.assertRaises(PermissionError):
-            self.broker.inspect(self.a["instance_id"], self.a["token"], job["job_id"])
+            self.broker.inspect(self.a["instance_id"], self.a["token"], job_id=job["job_id"])
 
     def test_negacao_de_payload_arbitrario_e_valores_invalidos(self):
         pc = self.attach(self.a)
