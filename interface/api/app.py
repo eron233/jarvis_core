@@ -39,6 +39,7 @@ from security.access_control import AccessControl
 from security.iris_instance_policy import IrisInstanceAuthority
 from device.iris_mesh import IrisDeviceMesh
 from memory_system.iris_state_store import IrisEncryptedStateStore, StateConflictError, StateCorruptionError
+from device.iris_task_broker import IrisTaskBroker
 
 #
 # JARVIS_API_LAYER
@@ -114,6 +115,17 @@ class IrisStateWriteRequest(BaseModel):
     value: Any
 
 
+class IrisJobSubmissionRequest(BaseModel):
+    operation: str = Field(min_length=3, max_length=64)
+    payload: Dict[str, Any]
+
+
+class IrisJobCompletionRequest(BaseModel):
+    job_id: str = Field(min_length=10, max_length=100)
+    lease_token: str = Field(min_length=20, max_length=100)
+    result: Any
+
+
 def create_app(
     runtime: InternalAgentRuntime | None = None,
     api_token: str | None = None,
@@ -123,6 +135,7 @@ def create_app(
     iris_instance_authority: IrisInstanceAuthority | None = None,
     iris_device_mesh: IrisDeviceMesh | None = None,
     iris_state_store: IrisEncryptedStateStore | None = None,
+    iris_task_broker: IrisTaskBroker | None = None,
 ) -> FastAPI:
     """Cria uma aplicacao FastAPI ligada ao runtime atual."""
 
@@ -160,9 +173,14 @@ def create_app(
         iris_instance_authority is None or iris_state_store.authority is not iris_instance_authority
     ):
         raise ValueError("O estado Iris deve usar exatamente a mesma autoridade de instancias.")
+    if iris_task_broker is not None and (
+        iris_device_mesh is None or iris_task_broker.mesh is not iris_device_mesh
+    ):
+        raise ValueError("O broker Iris deve usar a mesma malha e autoridade.")
     app.state.iris_instance_authority = iris_instance_authority
     app.state.iris_device_mesh = iris_device_mesh
     app.state.iris_state_store = iris_state_store
+    app.state.iris_task_broker = iris_task_broker
     app.state.system_config = config or SystemLoopConfig()
     app.state.deployment_config = effective_deployment_config
     app.state.bootstrap_state = (
@@ -487,6 +505,78 @@ def create_app(
             raise HTTPException(status_code=422, detail="Documento invalido ou excede limite.") from None
         except PermissionError:
             raise HTTPException(status_code=403, detail="Gravacao nao autorizada.") from None
+
+    # Fila de tarefas fechada: sem shell, comandos do SO ou scripts arbitrarios.
+    def require_iris_broker(
+        request: Request,
+    ) -> IrisTaskBroker:
+        broker = request.app.state.iris_task_broker
+        if broker is None:
+            raise HTTPException(status_code=503, detail="Broker de tarefas Iris nao habilitado.")
+        return broker
+
+    @app.post("/api/iris/tarefas")
+    def iris_submit_job(
+        payload: IrisJobSubmissionRequest,
+        broker: IrisTaskBroker = Depends(require_iris_broker),
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        _, instance_id, token = identity
+        try:
+            return broker.submit(
+                instance_id, token, operation=payload.operation, payload=payload.payload,
+            )
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Tarefa nao autorizada.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Operacao ou payload invalido.") from None
+
+    @app.get("/api/iris/tarefas/{job_id}")
+    def iris_inspect_job(
+        job_id: str,
+        broker: IrisTaskBroker = Depends(require_iris_broker),
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        _, instance_id, token = identity
+        try:
+            return broker.inspect(instance_id, token, job_id=job_id)
+        except PermissionError:
+            raise HTTPException(status_code=404, detail="Tarefa inexistente.") from None
+
+    @app.post("/api/iris/no/tarefa/claim")
+    def iris_claim_job(
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        broker = require_iris_broker(request)
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            return broker.claim(node_id, node_token)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="No sem permissao de computacao.") from None
+
+    @app.post("/api/iris/no/tarefa/complete")
+    def iris_complete_job(
+        payload: IrisJobCompletionRequest,
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        broker = require_iris_broker(request)
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            return broker.complete(
+                node_id, node_token,
+                job_id=payload.job_id, lease_token=payload.lease_token,
+                result=payload.result,
+            )
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Entrega nao autorizada.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Resultado invalido.") from None
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
