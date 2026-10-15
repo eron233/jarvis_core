@@ -171,3 +171,10 @@ Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato ve
 - Agora: reconstrução vetorial do escritório doméstico visível atrás da Íris (luz âmbar, quadro urbano, prateleiras, planta, monitores de código, cadeira preta), cartões reordenáveis, botão de reorganização e ajuste de luz local.
 - Arquivos: interface/native_app/assets/iris_studio_room.svg, iris_lab.py, tests/test_iris_desktop.py, docs/guias/IRIS_INTERFACE_PTBR.md.
 - Limite: fotografia não permite réplica arquitetônica exata. Voz preservada para última fase. Validação física pendente.
+
+## 2026-10-14: Íris articulada e interação real com bordas (dev)
+- Problema: mascote era apenas fotografia em moldura; não possuía juntas, dedos ou integração com janelas reais.
+- Solução: corpo 2D desenhado no Qt (braços, punhos, joelhos, cabeça com identidade da foto e cinco dedos articulados, gesto aberto/fechado animado, andar/sentar/alcançar/agarrar/puxar/portal), janela sem fundo visível, menu contextual sem botões permanentes, laboratório mantido.
+- Windows: seleção explícita de bordas de janelas externas normais pelo usuário, mover somente durante arrasto manual e somente quando o SO permite; exclusão de janelas do próprio processo, sem injeção de mouse/teclado nem privilégio elevado. Em outros sistemas, apenas animação segura.
+- Dentro do laboratório, três abas do próprio Gênesis movíveis. Abas de outros aplicativos não são manipuladas (limite técnico de integração).
+- Validação: testes/test_iris_interactions.py, screenshot Qt/Windows e pacote Windows; benchmarks e movimentação física com escala de DPI ainda precisam ser avaliados. Voz não alterada.

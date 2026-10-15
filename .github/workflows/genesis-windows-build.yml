@@ -38,7 +38,7 @@ jobs:
       - name: Check native UI unit tests
         run: |
           $env:QT_QPA_PLATFORM="offscreen"
-          python -m pytest -q tests/test_native_app.py tests/test_iris_presence.py tests/test_iris_desktop.py tests/test_startup_launchers.py
+          python -m pytest -q tests/test_native_app.py tests/test_iris_presence.py tests/test_iris_desktop.py tests/test_iris_interactions.py tests/test_startup_launchers.py
 
       - name: Capture the actual Python/Qt interface before packaging
         shell: pwsh

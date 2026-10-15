@@ -39,3 +39,11 @@ O arquivo editável está em \`interface/native_app/assets/iris_studio_room.svg\
 O laboratório agora usa a recriação como cenário; cartões são arrastáveis e podem ser reorganizados e reposicionados; as luzes digitais alternam entre quente/noturna. Os controles afetam **somente o ambiente desenhado**.
 
 A voz continua reservada para a etapa final.
+
+## Íris articulada (incremento 2)
+O mascote anterior com moldura foi substituído por uma personagem 2D de corpo inteiro, desenhada em Qt, preservando a referência facial da androide. Pernas, braços, joelhos, punhos e cinco dedos têm segmentos próprios e os dedos fecham progressivamente em 500 ms. Estados incluem andar, sentar, alcançar, agarrar, puxar e portal. O menu agora é aberto pelo clique direito sobre a personagem, sem controles permanentes.
+
+### Puxar janelas de verdade (Windows)
+Posicione a mão da Íris perto da borda superior de uma janela comum, clique com o botão direito e escolha **Agarrar borda de janela próxima**. Os dedos fecham visualmente. Segure e arraste a Íris com o botão esquerdo para deslocar a janela, se o Windows permitir. Solte o botão para abrir a mão. A ação não tenta mover aplicativos elevados, janelas do sistema nem janelas do Gênesis, e não simula um sucesso quando o SO nega o movimento. **Sentar em janela próxima** posiciona a Íris na borda e muda as pernas de postura.
+
+No laboratório da Íris, as abas são movíveis por arraste. Abas de terceiros requerem integração específica, não são manipuladas universalmente. O código não lê telas, não grava áudio, não injeta cliques nem eleva privilégios. Voz continua por último.

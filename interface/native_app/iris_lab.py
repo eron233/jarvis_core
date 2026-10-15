@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt, Property, QPropertyAnimation, QEasingCurve, Signa
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QDialog, QFrame, QGraphicsItem, QGraphicsScene, QGraphicsView, QLabel,
-    QPushButton, QVBoxLayout, QHBoxLayout, QWidget,
+    QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget,
 )
 
 
@@ -130,6 +130,27 @@ class IrisLabWindow(QDialog):
         )
         subtitle.setWordWrap(True)
         main.addWidget(subtitle)
+
+        # Abas internas do Gênesis, arrastáveis pelo usuário.
+        # Não manipula abas de navegadores ou aplicativos externos.
+        self.lab_tabs = QTabWidget()
+        self.lab_tabs.setObjectName("IrisLabTabs")
+        self.lab_tabs.tabBar().setMovable(True)
+        self.lab_tabs.tabBar().setExpanding(False)
+        self.lab_tabs.tabBar().setCursor(Qt.OpenHandCursor)
+        self.lab_tabs.setStyleSheet("""
+            QTabWidget::pane { border: 0; }
+            QTabBar::tab {
+                background: #302a32; color: #c6d9dd; border: 1px solid #725b51;
+                padding: 8px 19px; margin-right: 6px; border-radius: 7px;
+            }
+            QTabBar::tab:selected { color: #ffffff; background: #286075;
+                                      border-color: #8ed7e7; }
+        """)
+        for name in ("Bancada", "Experimentos", "Observação"):
+            self.lab_tabs.addTab(QWidget(), name)
+        self.lab_tabs.setFixedHeight(43)
+        main.addWidget(self.lab_tabs)
 
         self.scene = QGraphicsScene(self)
         self.scene.setSceneRect(0, 0, 1200, 650)
