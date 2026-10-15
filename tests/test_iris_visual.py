@@ -9,17 +9,24 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from interface.native_app.iris_startup import StartupError, startup_command, startup_supported
-from interface.native_app.iris_puppet import SIZE_PRESETS, STYLES, valid_scale
+def load_styles(case):
+    try:
+        from interface.native_app.iris_puppet import SIZE_PRESETS, STYLES, valid_scale
+        return SIZE_PRESETS, STYLES, valid_scale
+    except (ImportError, OSError) as error:
+        case.skipTest("Qt não disponível nesta máquina: " + str(error))
 
 
 class IrisConfigurationTests(unittest.TestCase):
     def test_all_styles_defined(self):
+        SIZE_PRESETS, STYLES, _ = load_styles(self)
         self.assertEqual(set(STYLES), {"nova", "padrao", "madura"})
         self.assertEqual(set(SIZE_PRESETS), {"mini", "normal", "grande"})
         self.assertLess(SIZE_PRESETS["mini"], SIZE_PRESETS["normal"])
         self.assertLess(SIZE_PRESETS["normal"], SIZE_PRESETS["grande"])
 
     def test_user_scale_is_bounded(self):
+        _, _, valid_scale = load_styles(self)
         self.assertEqual(valid_scale(.1), .40)
         self.assertEqual(valid_scale(5), 2.15)
         with self.assertRaises(ValueError):
@@ -51,10 +58,10 @@ class IrisConfigurationTests(unittest.TestCase):
 
 try:
     from PySide6.QtWidgets import QApplication
-    from interface.native_app.iris_puppet import IrisPuppet
+    from interface.native_app.iris_puppet import IrisPuppet, SIZE_PRESETS, STYLES
     from interface.native_app.iris_mascot import IrisMascotWindow
     QT_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError):
     QT_AVAILABLE = False
 
 

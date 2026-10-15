@@ -11,7 +11,7 @@ if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) {
 if (-not (Test-Path -LiteralPath $internal -PathType Container)) {
     throw "Arquivos internos ausentes: extraia a pasta COMPLETA."
 }
-if ($ValidateOnly) { Write-Output "Instalador validado; nenhuma instalação executada."; exit 0 }
+if ($ValidateOnly) { Write-Output "Instalador validado; nenhuma instalação executada."; return }
 $target = Join-Path $env:LOCALAPPDATA "Programs\GenesisIris"
 if ([IO.Path]::GetFullPath($target).TrimEnd('\') -eq [IO.Path]::GetFullPath($source).TrimEnd('\')) {
     throw "Instalação já está no destino. Abra Genesis.exe diretamente."
