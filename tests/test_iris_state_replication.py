@@ -8,7 +8,7 @@ from threading import Event
 from device.iris_mesh import IrisDeviceMesh
 from device.iris_state_replication import (
     IrisReplicaSource, IrisReplicaSink, IrisReplicaPullClient,
-    IrisReplicaIntegrityError, _seal,
+    IrisReplicaIntegrityError, IrisReplicaTransportError, _seal,
 )
 from memory_system.iris_state_store import IrisEncryptedStateStore, StateConflictError
 from security.iris_instance_policy import IrisInstanceAuthority
@@ -257,6 +257,46 @@ class IrisStateReplicationTests(unittest.TestCase):
                     "instance_id": self.alice["instance_id"], "documents": [],
                 }
             ).sync_once()
+
+    def test_poller_retoma_apos_indisponibilidade_transitoria(self):
+        self.seed()
+        stop = Event()
+        attempts = {"count": 0}
+        def flaky(path, headers):
+            if path == "/api/iris/replication/manifest":
+                attempts["count"] += 1
+                if attempts["count"] == 1:
+                    raise IrisReplicaTransportError("queda transitoria")
+                stop.set()
+                return self.source.manifest(
+                    headers["X-Iris-Node-Id"], headers["X-Iris-Node-Token"],
+                )
+            return self.source.document(
+                headers["X-Iris-Node-Id"], headers["X-Iris-Node-Token"],
+                path.rsplit("/", 1)[-1],
+            )
+        puller = IrisReplicaPullClient(
+            "https://example.invalid", self.sink, transport=flaky,
+        )
+        stats = puller.run_until(stop, interval_seconds=1.0)
+        self.assertEqual(stats, {"successful_syncs": 1, "transport_errors": 1})
+        self.assertEqual(self.replica.get(
+            self.alice["instance_id"], self.alice["token"], "historia",
+        )["value"], {"memoria": "tudo bem"})
+
+    def test_replicacao_nao_fura_lock_do_banco_primario(self):
+        from device.iris_local_failover import IrisLeaseCoordinator
+        self.seed()
+        coordinator = IrisLeaseCoordinator(self.mesh, self.replica)
+        leader = coordinator.acquire(
+            self.node["node_id"], self.node["node_token"], ttl_seconds=10,
+        )
+        self.assertTrue(leader["acquired"])
+        with self.assertRaises(PermissionError):
+            self.client.sync_once()
+        self.assertFalse(self.replica.get(
+            self.alice["instance_id"], self.alice["token"], "historia",
+        )["found"])
 
     def test_poller_parada_sem_trabalho_indevido(self):
         self.seed()
