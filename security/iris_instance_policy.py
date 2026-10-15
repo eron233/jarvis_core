@@ -238,10 +238,10 @@ class IrisInstanceAuthority:
         """Conta somente codigo predefinido, sem gravar prompt ou conversa."""
         with self._lock:
             actor = self._authenticated(instance_id, token)
-            if actor.role != "resident" or not actor.feedback_opt_in:
-                return False
             if code not in _FEEDBACK_CODES:
                 raise ValueError("Codigo de sinal nao permitido: texto livre e proibido.")
+            if actor.role != "resident" or not actor.feedback_opt_in:
+                return False
             contributors = self._feedback_sources.setdefault(code, set())
             before = len(contributors)
             contributors.add(actor.instance_id)
