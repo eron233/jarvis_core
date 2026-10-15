@@ -38,6 +38,18 @@ API isolada opcional, configurada por `iris_instance_authority` + `iris_device_m
 
 A plataforma multiusuário só deve utilizar essa malha após autenticação de contas, isolamento persistente por tenant, pareamento com consentimento verificável, integração dos adaptadores certificados e homologação de segurança em ambientes reais.
 
+## Persistência cifrada e retomada de sessão (experimental)
+
+Há três componentes opcionais, separados do banco e dos endpoints globais do JARVIS antigo:
+
+- `security/iris_instance_persistence.py`: persiste identidades e **hashes de credenciais** em arquivo autenticado e cifrado por AES-256-GCM; permissões, revogações, visibilidade e opt-in sobrevivem ao reinício.
+- `device/iris_mesh_persistence.py`: registra os nós já pareados e seus hashes de tokens em arquivo cifrado. Após reiniciar, **todos aparecem offline** até que cada aparelho envie um novo heartbeat autenticado. O modo visita não é estendido após a expiração.
+- `memory_system/iris_state_store.py`: estado JSON cifrado com AES-256-GCM, SQLite WAL transacional, chave separada por instância via HKDF, controle de versão CAS, erros `409` para escritas concorrentes e backup SQLite consistente. A API opcional `/api/iris/memoria/{document_id}` usa exclusivamente autenticação de instância, nunca a credencial global JARVIS. A escrita aceita até 64 KiB por documento e exige `expected_revision`.
+
+Cada componente precisa de **segredos aleatórios próprios de 32 bytes** vindos de um serviço seguro externo ao Git, com backup e procedimento de recuperação. Os arquivos e backups devem permanecer privados; perder as chaves significa perder acesso ao estado cifrado. Os stores de identidade e malha são apropriados apenas a **um processo escritor por arquivo** neste estágio; o futuro serviço multiusuário precisa de banco central com transações, revogação em múltiplos workers e autenticação dos instaladores.
+
+Os testes exercitam um reinício completo dos três stores em processo de teste, com reautenticação de aparelho e continuidade da memória da mesma Íris. Isso **não equivale** a failover transparente entre computadores: os dispositivos ainda não trocam dados diretamente por rede, o servidor da API não configura os componentes por padrão e modelos locais não são migrados. Os arquivos cifrados possibilitam recuperação no mesmo volume ou por backup transportado de forma segura, não disponibilidade garantida independente de servidor.
+
 ## Íris no Windows
 
 A branch dev gera o executável portátil no
