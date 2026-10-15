@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from PySide6.QtCore import QEasingCurve, QEvent, QPoint, QPropertyAnimation, QSettings, Qt, QTimer, Signal
 from PySide6.QtGui import QCursor
-from PySide6.QtWidgets import QApplication, QMenu, QWidget, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QMenu, QWidget, QVBoxLayout, QToolTip
 
 from interface.native_app.iris_desktop import (
     clamp_to_screens, nearest_edge_position, next_monitor_position,
@@ -32,7 +32,7 @@ class IrisMascotWindow(QWidget):
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setWindowTitle("Íris, mascote articulado")
         self.setAccessibleName("Íris, androide articulada, andando, sentando e agarrando bordas")
-        self.setToolTip("Arraste a Íris. Clique direito para agarrar uma janela, sentar ou visitar o estúdio.")
+        self.setToolTip("Arraste a Íris. Shift+arrastar perto da borda agarra uma janela. Clique direito para ações.")
         self.settings = settings if settings is not None else QSettings("Genesis", "Iris")
         self.bridge = bridge if bridge is not None else DesktopWindowBridge()
         self._reduced_motion = os.environ.get("IRIS_REDUCED_MOTION", "").lower() in ("1", "true", "yes")
@@ -136,31 +136,34 @@ class IrisMascotWindow(QWidget):
         hx, hy = IrisPuppet.HAND_ANCHOR
         return self.x() + hx, self.y() + hy
 
+    def _inform(self, message: str) -> None:
+        self.interactionResult.emit(message)
+        QToolTip.showText(QCursor.pos(), message, self)
+
     def select_window_edge(self) -> bool:
         """Explicit context-menu action: close the five fingers around a real edge."""
         target = self.bridge.find_edge(self._hand_global_position())
         if target is None:
-            self.interactionResult.emit(
-                "Nenhuma borda de janela compatível perto da mão da Íris.")
+            self._inform("Nenhuma borda compatível perto da mão da Íris.")
             return False
         self._gripped_window = target
         self._stroll_timer.stop()
         self._animation.stop()
         self.puppet.set_pose("reach")
         self.puppet.close_hand()
-        self.interactionResult.emit("Íris agarrou a borda de: " + target.title)
+        self._inform("Íris agarrou a borda de: " + target.title)
         return True
 
     def sit_on_nearest_window(self) -> bool:
         target = self.bridge.find_edge(self._hand_global_position(), 160)
         if target is None:
-            self.interactionResult.emit("Nenhuma borda compatível para sentar.")
+            self._inform("Nenhuma borda compatível para sentar.")
             return False
         self.release_window()
         self.move_to((max(target.x, min(self.x(), target.x + target.width - self.width())),
                       target.y - 220), animated=False)
         self.puppet.set_pose("sit")
-        self.interactionResult.emit("Íris sentou na borda de: " + target.title)
+        self._inform("Íris sentou na borda de: " + target.title)
         return True
 
     def move_gripped_window(self, dx: int, dy: int) -> bool:
@@ -170,7 +173,7 @@ class IrisMascotWindow(QWidget):
         target = self.bridge.current_edge(self._gripped_window.hwnd)
         if target is None or not self.bridge.move(target, dx, dy):
             self.release_window()
-            self.interactionResult.emit("O sistema não permitiu puxar essa janela.")
+            self._inform("O sistema não permitiu puxar essa janela.")
             return False
         self.puppet.set_pose("pull")
         return True
@@ -243,6 +246,8 @@ class IrisMascotWindow(QWidget):
                     return True
                 if event.button() == Qt.LeftButton:
                     self._animation.stop()
+                    if (event.modifiers() & Qt.ShiftModifier) and self._gripped_window is None:
+                        self.select_window_edge()
                     cursor = event.globalPosition().toPoint()
                     self._drag_at = cursor - self.pos()
                     self._last_pointer = cursor

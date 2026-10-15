@@ -987,6 +987,7 @@ class JarvisMainWindow(QMainWindow):
             if self._mascot is None:
                 self._mascot = IrisMascotWindow(settings=self._mascot_settings)
                 self._mascot.hiddenByUser.connect(self._on_mascot_hidden)
+                self._mascot.interactionResult.connect(self.footer_command.setText)
             self._mascot.show()
             self._mascot.raise_()
         elif self._mascot is not None:

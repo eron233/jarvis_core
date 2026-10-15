@@ -178,3 +178,4 @@ Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato ve
 - Windows: seleção explícita de bordas de janelas externas normais pelo usuário, mover somente durante arrasto manual e somente quando o SO permite; exclusão de janelas do próprio processo, sem injeção de mouse/teclado nem privilégio elevado. Em outros sistemas, apenas animação segura.
 - Dentro do laboratório, três abas do próprio Gênesis movíveis. Abas de outros aplicativos não são manipuladas (limite técnico de integração).
 - Validação: testes/test_iris_interactions.py, screenshot Qt/Windows e pacote Windows; benchmarks e movimentação física com escala de DPI ainda precisam ser avaliados. Voz não alterada.
+- UX adicional: Shift+arrastar para agarrar diretamente uma borda próxima, tooltip transitório de resultado e status de feedback na janela principal do Gênesis.

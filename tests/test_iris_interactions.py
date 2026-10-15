@@ -123,6 +123,18 @@ class IrisInteractionTests(unittest.TestCase):
         self.assertFalse(mascot.move_gripped_window(5, 6))
         mascot.close()
 
+    def test_shift_drag_grab_is_explicit(self):
+        from PySide6.QtCore import Qt, QPoint
+        from PySide6.QtTest import QTest
+        mascot = IrisMascotWindow(settings=MemorySettings(), bridge=FakeBridge())
+        mascot.show()
+        self.app.processEvents()
+        QTest.mousePress(mascot.puppet, Qt.LeftButton, Qt.ShiftModifier, QPoint(120, 130))
+        self.assertIsNotNone(mascot._gripped_window)
+        QTest.mouseRelease(mascot.puppet, Qt.LeftButton, Qt.ShiftModifier, QPoint(120, 130))
+        self.assertIsNone(mascot._gripped_window)
+        mascot.close()
+
     def test_denied_move_releases_grip(self):
         mascot = IrisMascotWindow(settings=MemorySettings(), bridge=FakeBridge(allowed=False))
         self.assertTrue(mascot.select_window_edge())

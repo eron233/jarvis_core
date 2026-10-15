@@ -47,3 +47,5 @@ O mascote anterior com moldura foi substituído por uma personagem 2D de corpo i
 Posicione a mão da Íris perto da borda superior de uma janela comum, clique com o botão direito e escolha **Agarrar borda de janela próxima**. Os dedos fecham visualmente. Segure e arraste a Íris com o botão esquerdo para deslocar a janela, se o Windows permitir. Solte o botão para abrir a mão. A ação não tenta mover aplicativos elevados, janelas do sistema nem janelas do Gênesis, e não simula um sucesso quando o SO nega o movimento. **Sentar em janela próxima** posiciona a Íris na borda e muda as pernas de postura.
 
 No laboratório da Íris, as abas são movíveis por arraste. Abas de terceiros requerem integração específica, não são manipuladas universalmente. O código não lê telas, não grava áudio, não injeta cliques nem eleva privilégios. Voz continua por último.
+
+**Atalho:** segure Shift enquanto começa a arrastar a Íris perto da borda superior de uma janela compatível. A mão tenta agarrar automaticamente, sem precisar abrir o menu. Caso o Windows negue o movimento, a interação é cancelada; avisos aparecem próximos à personagem e no status do Gênesis.
