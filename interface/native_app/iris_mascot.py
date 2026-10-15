@@ -171,6 +171,7 @@ class IrisMascotWindow(QWidget):
     def hide_by_user(self):
         self.release_window()
         self._stroll_timer.stop()
+        self.settings.setValue("iris_mascot/visible", False)
         self.hide()
         self.hiddenByUser.emit()
 

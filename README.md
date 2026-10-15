@@ -1,38 +1,66 @@
-# Gênesis / Zero
+# Gênesis / Íris
 
-**Gênesis** é o aplicativo e sistema cognitivo; **Zero** é o assistente.
-`JARVIS` permanece apenas como identificador interno legado em imports,
-configurações e variáveis de ambiente para não quebrar compatibilidade.
+**Gênesis** é o aplicativo e sistema cognitivo. **Íris** é a assistente visual
+pessoal, com identidade de androide de cabelos prateados e olhos azuis.
+O identificador interno legado JARVIS foi mantido para preservar compatibilidade
+de API, configuração e memória. Zero não é mais a identidade de interface.
 
-## Aplicativo Windows para avaliação visual
+## Íris no Windows
 
-A branch `dev` compila o **Genesis.exe** portátil no workflow
-[Genesis Windows portable and UI review](.github/workflows/genesis-windows-build.yml).
-O pacote de distribuição é uma pasta `Genesis/` comprimida em artefato ZIP
-na execução do GitHub Actions. É necessário **extrair tudo** antes de abrir
-`Genesis.exe`; não mover o EXE para fora da pasta. Python não precisa estar
-instalado nesse modo portátil.
+A branch dev gera o executável portátil no
+[workflow Windows](.github/workflows/genesis-windows-build.yml).
+Abra a execução aprovada e baixe o artefato
+**Genesis-Iris-Windows-portatil**. Extraia a pasta completa, não apenas o EXE.
 
-O build contém o ícone e identidade Gênesis/Zero e gera capturas da classe real
-de interface desktop (`01_inicio.png`, `02_tarefas.png`,
-`03_memoria.png`, `04_seguranca.png`) SEM rede e SEM conteúdo fictício.
+**Instalação para usuário final:** depois de extrair, execute
+**Instalar-Iris.cmd** voluntariamente. O instalador copia o aplicativo para
+%LOCALAPPDATA%/Programs/GenesisIris, cria atalho no Menu Iniciar e **abre a Íris
+assim que a instalação termina**, em modo mascote. Não requer privilégios
+administrativos nem Python instalado. Um download, por si só, não executa
+programas, por segurança do Windows.
 
-**Importante:** capturas de interface não comprovam a IA funcionando.
-O primeiro lançamento operacional inicia o runtime local e cria credenciais
-iniciais na pasta `data/`. Para modelos offline, é necessário provisionar
-modelos e backends locais separadamente.
+**Iniciar a cada login (opcional):** clique com o botão direito no mascote e
+selecione **Iniciar com o Windows**. O padrão é desligado; a própria opção
+também desliga o recurso. Somente a chave do usuário atual é alterada.
 
-O release leve não inclui QtWebEngine/Chromium. O visual cognitivo utiliza
-renderer Qt de baixo custo; a cena 3D web fica disponível somente na execução
-de desenvolvimento após instalar dependências extras e optar por ativá-la.
+**Abrir só o mascote:** execute Genesis.exe --mascot-only (não precisa
+inicializar o runtime cognitivo ou o microfone).
+**Abrir o Gênesis completo:** execute Genesis.exe. O mascote aparece junto
+com o app por padrão, exceto se foi desativado pelo usuário.
 
-Desenvolvimento sem ZIP:
+### Identidade visual e interações
 
-```powershell
+A Íris possui um corpo 2D chibi articulado (não uma fotografia dentro de
+uma janela), olhos expressivos com piscar e acompanhamento horizontal do
+cursor, cabelo animado, braços/pernas e cinco dedos que fecham ao agarrar.
+A personagem pode andar, sentar, abrir uma passagem para seu laboratório
+visual e agarrar a borda de janelas compatíveis no Windows sob ação direta
+do usuário. Aplicativos elevados e abas de terceiros não são controlados
+universalmente.
+
+Pelo menu de contexto, alterne **mini, normal, grande ou escala personalizada**
+(40% a 215%), além de aparências desenhadas **mais fofinha, clássica e elegante**.
+São variações gráficas, não alteração real de idade. As escolhas são preservadas
+entre execuções, e o modo de movimentação reduzida está disponível por
+IRIS_REDUCED_MOTION=1.
+
+O pipeline faz dez capturas reais do aplicativo e valida o EXE, os testes
+nativos e o instalador em modo de verificação, sem instalá-lo no runner.
+A interface e o pacote ainda precisam de QA no Windows físico do proprietário,
+e o binário não está assinado. A voz fica para a última etapa.
+
+O pacote leve não inclui QtWebEngine/Chromium. Modelos de IA offline precisam
+ser instalados e configurados separadamente.
+
+Desenvolvimento sem pacote:
+
+
+~~~powershell
 .\INICIAR_GENESIS.cmd
 # ou
 python genesis_launcher.py
-```
+~~~
+
 
 ---
 

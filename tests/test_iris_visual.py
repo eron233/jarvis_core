@@ -110,6 +110,8 @@ class IrisVisualTests(unittest.TestCase):
         mascot = IrisMascotWindow(settings=settings)
         mascot.set_scale(.73)
         mascot.set_visual_age("madura")
+        mascot.hide_by_user()
+        self.assertFalse(settings.data["iris_mascot/visible"])
         mascot.close()
         other = IrisMascotWindow(settings=settings)
         self.assertAlmostEqual(other.puppet.scale_factor, .73)
