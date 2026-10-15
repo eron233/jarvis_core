@@ -9,7 +9,7 @@ from pathlib import Path
 import traceback
 from typing import Any, Callable
 
-from PySide6.QtCore import Qt, QThreadPool, QTimer
+from PySide6.QtCore import Qt, QThreadPool, QTimer, QSettings
 from PySide6.QtGui import QFont, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
@@ -38,6 +38,7 @@ from interface.native_app.brain_widget import (
 )
 from interface.native_app.config import NativeAppConfig
 from interface.native_app.iris_presence import IrisPresenceWidget
+from interface.native_app.iris_mascot import IrisMascotWindow
 from interface.native_app.runtime_bootstrap import RuntimeBootstrapResult
 
 
@@ -215,6 +216,9 @@ class JarvisMainWindow(QMainWindow):
         self._last_command_payload: dict[str, Any] = {}
         self._current_section = "chat"
         self._authenticated_local_session = False
+        self._mascot = None
+        self._mascot_settings = QSettings("Genesis", "Iris")
+        self._mascot_restore_pending = True
 
         self.setWindowTitle("Gênesis | Íris")
         self.resize(1440, 860)
@@ -313,6 +317,11 @@ class JarvisMainWindow(QMainWindow):
             self.sidebar_buttons[section_key] = button
             layout.addWidget(button)
 
+        self.mascot_toggle_button = QPushButton("Mostrar mascote Íris")
+        self.mascot_toggle_button.setObjectName("GhostButton")
+        self.mascot_toggle_button.setCheckable(True)
+        self.mascot_toggle_button.setToolTip("Íris pode flutuar na área de trabalho e entrar no laboratório")
+        layout.addWidget(self.mascot_toggle_button)
         layout.addStretch(1)
 
         self.sidebar_refresh_button = QPushButton("Atualizar agora")
@@ -509,6 +518,7 @@ class JarvisMainWindow(QMainWindow):
         self.refresh_brain_button.clicked.connect(self.refresh_brain_bundle)
         self.brain_level.currentTextChanged.connect(lambda _value: self.refresh_brain_bundle(force=True))
         self.brain_diagnostics_toggle.toggled.connect(self._toggle_brain_diagnostics)
+        self.mascot_toggle_button.toggled.connect(self._toggle_mascot)
         self.send_button.clicked.connect(self.send_command)
         self.command_input.returnPressed.connect(self.send_command)
 
@@ -971,8 +981,34 @@ class JarvisMainWindow(QMainWindow):
 
         QTimer.singleShot(0, _poll_future)
 
-    def closeEvent(self, event) -> None:
-        """Encerra o pool da janela sem deixar callbacks perdidos apos o close."""
+    def _toggle_mascot(self, enabled: bool) -> None:
+        """Exibe ou recolhe a Íris sem mexer em outras janelas do usuário."""
+        if enabled:
+            if self._mascot is None:
+                self._mascot = IrisMascotWindow(settings=self._mascot_settings)
+                self._mascot.hiddenByUser.connect(self._on_mascot_hidden)
+            self._mascot.show()
+            self._mascot.raise_()
+        elif self._mascot is not None:
+            self._mascot.hide()
+        self._mascot_settings.setValue("iris_mascot/visible", enabled)
+        self.mascot_toggle_button.setText("Esconder mascote Íris" if enabled else "Mostrar mascote Íris")
 
+    def _on_mascot_hidden(self) -> None:
+        self.mascot_toggle_button.setChecked(False)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self._mascot_restore_pending:
+            self._mascot_restore_pending = False
+            import os
+            if os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen":
+                if self._mascot_settings.value("iris_mascot/visible", False, type=bool):
+                    QTimer.singleShot(0, lambda: self.mascot_toggle_button.setChecked(True))
+
+    def closeEvent(self, event) -> None:
+        """Encerra mascote e pool sem processos de UI perdidos."""
+        if self._mascot is not None:
+            self._mascot.close()
         self.executor.shutdown(wait=False, cancel_futures=True)
         super().closeEvent(event)
