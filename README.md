@@ -19,6 +19,25 @@ O corredor retorna apenas metadados de instalações cuja visibilidade foi autor
 
 **Limitações e proibições para release:** esta etapa implementa regras e gates, **não uma plataforma SaaS pronta**. A autoridade guarda estado somente em memória; as credenciais de provisionamento ainda não passam por um onboarding independente de usuário; a memória legada, API global e demais recursos do Jarvis continuam pessoais e **não são multi-tenant**. Não distribuir o `JARVIS_TOKEN` pessoal a clientes nem conectar essas rotas a armazenamento compartilhado sem revisão de isolamento, credenciais, consentimento, revogação, persistência e testes E2E. Não há instalação em redes, controle de Bluetooth ou dispositivos externos neste incremento.
 
+## Malha de dispositivos da mesma Íris (fundação experimental)
+
+A Íris **não é replicada como uma pessoa diferente por dispositivo**: vários nós podem pertencer à **mesma identidade de instância** e fornecer presença, áudio, leitura de estado ou computação, conforme autorização e compatibilidade.
+
+**Diferença entre morar e controlar:** computadores Windows/Linux/macOS/Android podem executar um agente com o aplicativo voluntariamente instalado. iOS e televisores usam um cliente de interface quando o sistema permite. Switches, roteadores, cafeteiras, patinetes e outros equipamentos restritos normalmente **não executam nosso runtime**; nesses casos a integração depende de **um gateway/adaptador oficial ou autorizado**. Um aparelho desconhecido não será desbloqueado nem receberá software sem autorização do proprietário.
+
+`device/iris_mesh.py` implementa nesta etapa:
+- oferta de pareamento com validade de 5 minutos, aprovação local **declarada** por um cliente confiável, confirmação pelo titular da instância e credencial distinta de cada nó;
+- sessão `integrated` como padrão, `visit` apenas por seleção explícita e com tempo máximo; ao sair as credenciais são revogadas e a **limpeza no SO ainda depende do cliente local**;
+- inventário isolado por instância, heartbeat (90 s), perda de conectividade, seleção determinística de nó e indicadores de continuidade;
+- restrições de superfícies por plataforma: gateway IoT apenas leitura compatível, não execução arbitrária; menus e permissões nunca substituem a autenticação;
+- **adaptação por observação técnica**: CPU, memória livre, bateria e latência reportadas por cada cliente autenticado, usadas para escolher nós menos sobrecarregados. Os perfis são **declarativos, não benchmarks independentes**, não contêm conversa, tela, áudio nem dados de terceiros.
+
+API isolada opcional, configurada por `iris_instance_authority` + `iris_device_mesh`: `GET /api/iris/dispositivos`, `GET /api/iris/continuidade`, `GET /api/iris/roteamento?recurso=...`, `GET /api/iris/perfis-tecnicos`, `POST /api/iris/dispositivo/heartbeat` e `POST /api/iris/dispositivo/estado`. Essas rotas **não** expõem o cadastro/pareamento publicamente nem executam comandos remotos.
+
+**Ainda não é uma malha distribuída autônoma em computadores reais.** Não existe transporte seguro P2P, drivers para todos os aparelhos, execução remota, memória criptografada replicada, consenso/eleição entre processos reais, reconexão automática, onboarding comercial autenticado ou recuperação garantida sem servidor. A presença lógica continua existindo no registro quando um nó cai, mas só fica operacional se houver outro runtime compatível e o estado necessário estiver disponível. Os testes simulam perda de nós e decisões, **não provam failover real de uma IA**.
+
+A plataforma multiusuário só deve utilizar essa malha após autenticação de contas, isolamento persistente por tenant, pareamento com consentimento verificável, integração dos adaptadores certificados e homologação de segurança em ambientes reais.
+
 ## Íris no Windows
 
 A branch dev gera o executável portátil no
