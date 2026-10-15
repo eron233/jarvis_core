@@ -329,7 +329,11 @@ class IrisReplicaPullClient:
                 if len(data) > _MAX_ENVELOPE_BYTES:
                     raise IrisReplicaTransportError("Resposta muito grande.")
                 value = json.loads(data.decode("utf-8"))
-            except (HTTPError, URLError, OSError, ValueError) as exc:
+            except HTTPError as exc:
+                if exc.code in (401, 403):
+                    raise PermissionError("Permissao de replica revogada ou negada.") from exc
+                raise IrisReplicaTransportError("Falha HTTP temporaria na origem.") from exc
+            except (URLError, OSError, ValueError) as exc:
                 raise IrisReplicaTransportError("Origem da replica indisponivel.") from exc
         if not isinstance(value, dict):
             raise IrisReplicaTransportError("Resposta inesperada de replicacao.")
@@ -364,9 +368,27 @@ class IrisReplicaPullClient:
                     unchanged += 1
             return {"applied": copied, "unchanged": unchanged}
 
-    def run_until(self, stop: Event, *, interval_seconds: float = 5.0) -> None:
+    def run_until(self, stop: Event, *, interval_seconds: float = 5.0) -> dict[str, int]:
+        """Polling automatico com backoff; erros de integridade sao fatais.
+
+        Falhas temporarias de rede nao apagam nem promovem snapshots antigos.
+        Retorna indicadores; o supervisor do cliente deve monitorar o thread.
+        """
         if not 1.0 <= interval_seconds <= 300.0:
             raise ValueError("Intervalo de replicacao fora do limite.")
+        successful, transient = 0, 0
+        consecutive = 0
         while not stop.is_set():
-            self.sync_once()  # Falha na conexao/conflito encerra; nao ignora erro.
+            try:
+                self.sync_once()
+            except IrisReplicaTransportError:
+                transient += 1
+                consecutive += 1
+                stop.wait(min(60.0, interval_seconds * 2 ** min(consecutive - 1, 5)))
+                continue
+            # PermissionError, StateConflictError e IrisReplicaIntegrityError
+            # nunca sao escondidos nem automaticamente resolvidos.
+            successful += 1
+            consecutive = 0
             stop.wait(interval_seconds)
+        return {"successful_syncs": successful, "transport_errors": transient}
