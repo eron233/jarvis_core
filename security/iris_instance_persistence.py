@@ -51,9 +51,9 @@ class PersistentIrisInstanceAuthority(IrisInstanceAuthority):
         super().__init__(owner_token, clock=clock)
         if self.storage_path.is_file():
             self._load(owner_token)
-        else:
-            self._save()
         self._loading = False
+        if not self.storage_path.is_file():
+            self._save()
 
     def _cipher(self) -> AESGCM:
         key = HKDF(
