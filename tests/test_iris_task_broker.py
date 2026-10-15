@@ -64,7 +64,7 @@ class IrisTaskBrokerTests(unittest.TestCase):
             self.assertFalse(receipt["verified"])
         self.assertEqual(self.broker.claim(pc["node_id"], pc["node_token"])["status"], "idle")
         self.assertEqual(self.broker.inspect(
-            self.a["instance_id"], self.a["token"], job1["job_id"],
+            self.a["instance_id"], self.a["token"], job_id=job1["job_id"],
         )["result"], {"sum": 6.0})
 
     def test_isolamento_de_dois_clientes(self):
@@ -128,7 +128,7 @@ class IrisTaskBrokerTests(unittest.TestCase):
             result={"sum": 6},
         )
         self.assertEqual(self.broker.inspect(
-            self.a["instance_id"], self.a["token"], job["job_id"],
+            self.a["instance_id"], self.a["token"], job_id=job["job_id"],
         )["attempts"], 2)
 
     def test_visitante_nao_processa_e_nao_aceita_tarefas(self):
