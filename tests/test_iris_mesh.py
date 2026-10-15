@@ -196,6 +196,91 @@ class IrisMeshTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.mesh.route(self.owner_id, self.secret, surface="device.hack")
 
+    def test_perfil_aprende_capacidade_sem_dados_pessoais(self):
+        pc = self.pair(name="desktop", kind="windows")
+        tablet = self.pair(name="tablet", kind="android")
+        self.mesh.report_health(
+            pc["node_id"], pc["node_token"],
+            cpu_percent=99.0, memory_available_mb=1024,
+            battery_percent=None, latency_ms=12,
+        )
+        self.mesh.report_health(
+            tablet["node_id"], tablet["node_token"],
+            cpu_percent=10.0, memory_available_mb=4096,
+            battery_percent=80.0, latency_ms=25,
+        )
+        route = self.mesh.route(
+            self.owner_id, self.secret, surface="compute.light",
+        )
+        self.assertEqual(route["node_id"], tablet["node_id"])
+        profiles = self.mesh.resource_profiles(self.owner_id, self.secret)
+        self.assertEqual(len(profiles), 2)
+        self.assertFalse(any("conversation" in str(profile) for profile in profiles))
+        for profile in profiles:
+            self.assertNotIn("token", profile)
+        self.mesh.report_health(
+            tablet["node_id"], tablet["node_token"],
+            cpu_percent=20.0, memory_available_mb=4096,
+            battery_percent=75.0, latency_ms=15,
+        )
+        update = next(profile for profile in
+                      self.mesh.resource_profiles(self.owner_id, self.secret)
+                      if profile["node_id"] == tablet["node_id"])
+        self.assertEqual(update["samples"], 2)
+        self.assertEqual(update["cpu_percent"], 13.0)
+
+    def test_bateria_e_memoria_baixas_suspendem_roteamento_pesado(self):
+        laptop = self.pair(name="laptop", kind="linux")
+        self.mesh.report_health(
+            laptop["node_id"], laptop["node_token"],
+            cpu_percent=10.0, memory_available_mb=64,
+            battery_percent=2.0, latency_ms=20.0,
+        )
+        self.assertEqual(
+            self.mesh.route(self.owner_id, self.secret,
+                            surface="compute.light")["status"],
+            "unavailable",
+        )
+        # Presenca visual continua permitida, se suportada.
+        self.assertEqual(
+            self.mesh.route(self.owner_id, self.secret,
+                            surface="presence.display")["status"],
+            "routed",
+        )
+
+    def test_perfil_rejeita_telemetria_invalida(self):
+        laptop = self.pair()
+        for invalid in (float("nan"), float("inf"), True, -1, 101):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    self.mesh.report_health(
+                        laptop["node_id"], laptop["node_token"],
+                        cpu_percent=invalid, memory_available_mb=1000,
+                        battery_percent=None, latency_ms=10,
+                    )
+        with self.assertRaises(ValueError):
+            self.mesh.report_health(
+                laptop["node_id"], laptop["node_token"],
+                cpu_percent=1, memory_available_mb=1000,
+                battery_percent=None, latency_ms=float("nan"),
+            )
+
+    def test_perfis_nao_vazam_entre_residentes(self):
+        resident = self.identity.create_resident(
+            self.secret, tenant_id="cliente-001",
+            display_name="Iris local", user_consented=True,
+        )
+        node = self.pair(resident["instance_id"], resident["token"])
+        self.mesh.report_health(
+            node["node_id"], node["node_token"], cpu_percent=20,
+            memory_available_mb=1024, battery_percent=90, latency_ms=10,
+        )
+        self.assertEqual(self.mesh.resource_profiles(self.owner_id, self.secret), [])
+        self.assertEqual(
+            len(self.mesh.resource_profiles(resident["instance_id"], resident["token"])),
+            1,
+        )
+
     def test_credencial_da_iris_nao_basta_para_forjar_heartbeat(self):
         node = self.pair()
         with self.assertRaises(PermissionError):
