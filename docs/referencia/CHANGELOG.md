@@ -155,3 +155,6 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 - Adicionados os diretorios de nucleo constitucional, planejamento, intencao, memoria, workers, runtime, infraestrutura, interface e testes.
 - Adicionados os arquivos JSON iniciais e os stubs de modulos Python.
 - Adicionada a documentacao inicial da arquitetura e do fluxo de trabalho.
+
+## 2026-10-14: Íris, interface nativa (dev)
+Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato vetorial, estados ligados ao runtime, diagnóstico carregado sob demanda e fallback de avatar. Testes: tests/test_iris_presence.py e screenshot Qt/Windows. Pendente validação física, voz e métricas. Código preserva API/memória do JARVIS.
