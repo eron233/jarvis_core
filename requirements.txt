@@ -4,3 +4,4 @@ httpx>=0.28,<1.0
 httpx2>=2.0,<3.0
 PySide6>=6.8,<7.0
 pywin32>=311 ; platform_system == "Windows"
+cryptography>=44,<47
