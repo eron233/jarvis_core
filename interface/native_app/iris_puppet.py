@@ -232,11 +232,11 @@ class IrisPuppet(QWidget):
         cursor = QCursor.pos()
         global_center = self.mapToGlobal(__import__("PySide6.QtCore", fromlist=["QPoint"]).QPoint(self.width()//2, 0))
         gaze = 0 if self._reduced_motion else max(-3, min(3, (cursor.x() - global_center.x()) / 90))
-        blink = (self._tick % 105) in (0, 1, 2)
+        blink = self._tick > 0 and (self._tick % 105) in (0, 1, 2)
         hair_shift = 0 if self._reduced_motion else 3*math.sin(self.step*.35)
 
         p.save()
-        p.translate(0, bob + (19 if sit else 0))
+        p.translate(0, bob + (19 if sit else 0) - (22 * abs(math.sin(self.step)) if self.pose == "jump" else 0))
         p.setBrush(QColor(26, 88, 136, 22))
         p.setPen(Qt.NoPen)
         p.drawEllipse(QRectF(67, 299, 111, 10))
