@@ -25,6 +25,10 @@ class IrisStateTests(unittest.TestCase):
             path = Path(__file__).resolve().parents[1] / "interface/native_app/assets" / name
             self.assertEqual(ET.parse(path).getroot().tag, "{http://www.w3.org/2000/svg}svg")
 
+    def test_photo_asset_exists(self):
+        path = Path(__file__).resolve().parents[1] / "interface/native_app/assets/iris_photo.jpg"
+        self.assertGreater(path.stat().st_size, 1024)
+
 
 try:
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -43,6 +47,7 @@ class IrisQtTests(unittest.TestCase):
 
     def test_real_command_states(self):
         avatar = IrisPresenceWidget()
+        self.assertFalse(avatar.portrait.pixmap().isNull())
         self.assertEqual(avatar.state, "offline")
         avatar.set_state("working", "Comando em execução")
         self.assertEqual(avatar.state, "working")

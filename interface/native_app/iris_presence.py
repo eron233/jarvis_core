@@ -11,7 +11,8 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 from interface.native_app.iris_state import normalize_state, state_metadata
 
 
-ASSET_PATH = Path(__file__).resolve().parent / "assets" / "iris_portrait.svg"
+ASSET_PATH = Path(__file__).resolve().parent / "assets" / "iris_photo.jpg"
+FALLBACK_ASSET_PATH = Path(__file__).resolve().parent / "assets" / "iris_portrait.svg"
 
 
 class IrisPresenceWidget(QFrame):
@@ -90,6 +91,8 @@ class IrisPresenceWidget(QFrame):
         if not source_path.is_file():
             source_path = ASSET_PATH
         original = QPixmap(str(source_path))
+        if original.isNull():
+            original = QPixmap(str(FALLBACK_ASSET_PATH))
         if original.isNull():
             self.portrait.setText("Í")
             self.portrait.setStyleSheet("font-size: 90px; color: #a3f1ff; background: #142738;")
