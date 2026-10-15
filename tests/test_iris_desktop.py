@@ -92,6 +92,33 @@ class IrisDesktopQtTests(unittest.TestCase):
         self.assertEqual(door.openness, 0.0)
         door.close()
 
+    def test_studio_room_matches_reference_environment(self):
+        from PySide6.QtGui import QPixmap
+        from interface.native_app.iris_lab import IrisLabWindow
+        self.assertTrue(IrisLabWindow.ROOM_IMAGE.is_file())
+        self.assertFalse(QPixmap(str(IrisLabWindow.ROOM_IMAGE)).isNull())
+        room = IrisLabWindow()
+        self.assertIsNotNone(room.room_background)
+        self.assertEqual(len(room.cards), 3)
+        self.assertIn("HOME OFFICE", room.findChildren(
+            __import__("PySide6.QtWidgets", fromlist=["QLabel"]).QLabel
+        )[1].text())
+        room.close()
+
+    def test_studio_room_drag_reset_and_lighting(self):
+        room = IrisLabWindow()
+        initial = room.cards[0].pos()
+        room.cards[0].moveBy(190, -80)
+        self.assertNotEqual(room.cards[0].pos(), initial)
+        room.reset_cards()
+        self.assertEqual(room.cards[0].pos(), initial)
+        self.assertFalse(room._lights_dimmed)
+        room.toggle_lights()
+        self.assertTrue(room._lights_dimmed)
+        room.toggle_lights()
+        self.assertFalse(room._lights_dimmed)
+        room.close()
+
     def test_lab_has_movable_tabs(self):
         from PySide6.QtWidgets import QGraphicsItem
         lab = IrisLabWindow()

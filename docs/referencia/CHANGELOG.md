@@ -165,3 +165,9 @@ Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato ve
 - Experiência: portal animado de entrada para laboratório visual, três cartões internos que podem ser agarrados e reposicionados pelo usuário. O mascote retorna ao desktop ao fechar o laboratório.
 - Segurança: a Íris controla somente suas janelas e cartões. Não move abas de navegadores nem manipula aplicativos externos.
 - Validação: tests/test_iris_desktop.py, sete capturas reais de Qt e workflows Windows de construção/execução. A voz permanece intocada, para a etapa final.
+
+## 2026-10-14: Sala-estúdio da Íris, a partir da referência fotográfica
+- Antes: laboratório com fundo digital abstrato escuro e cartões genéricos.
+- Agora: reconstrução vetorial do escritório doméstico visível atrás da Íris (luz âmbar, quadro urbano, prateleiras, planta, monitores de código, cadeira preta), cartões reordenáveis, botão de reorganização e ajuste de luz local.
+- Arquivos: interface/native_app/assets/iris_studio_room.svg, iris_lab.py, tests/test_iris_desktop.py, docs/guias/IRIS_INTERFACE_PTBR.md.
+- Limite: fotografia não permite réplica arquitetônica exata. Voz preservada para última fase. Validação física pendente.

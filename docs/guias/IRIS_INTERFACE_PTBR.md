@@ -31,3 +31,11 @@ Captura de áudio real, wake phrase Íris (com fallback de compatibilidade), res
 - Respeita IRIS_REDUCED_MOTION=1 para não executar animação de deslocamento.
 - Efeitos visuais nunca afirmam executar testes, observar abas ou controlar outros aplicativos.
 - A voz, captura de microfone e sincronização labial continuam reservadas para a última etapa.
+
+## Ambiente recriado da fotografia
+A imagem anterior mostrava a Íris diante de um **escritório doméstico / estúdio de programação**, e não um quarto. O fundo é uma reconstrução artística da parte visível: luz quente, quadro urbano à esquerda, monitor com código, cadeira preta, prateleiras de madeira e planta à direita. A foto não permite reconstruir com fidelidade as dimensões ou o que está fora do enquadramento; nenhum detalhe oculto é apresentado como fato.
+
+O arquivo editável está em \`interface/native_app/assets/iris_studio_room.svg\`.
+O laboratório agora usa a recriação como cenário; cartões são arrastáveis e podem ser reorganizados e reposicionados; as luzes digitais alternam entre quente/noturna. Os controles afetam **somente o ambiente desenhado**.
+
+A voz continua reservada para a etapa final.
