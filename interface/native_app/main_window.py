@@ -166,6 +166,7 @@ class ChatTimeline(QScrollArea):
         self.setObjectName("ChatTimeline")
 
         self.container = QWidget()
+        self.container.setObjectName("ChatStreamContainer")
         self.container_layout = QVBoxLayout(self.container)
         self.container_layout.setContentsMargins(0, 0, 0, 0)
         self.container_layout.setSpacing(12)
@@ -553,7 +554,8 @@ class JarvisMainWindow(QMainWindow):
             #DetailTitle { font-size: 18px; font-weight: 700; }
             #DetailSummary { color: #bfd1dd; line-height: 1.45; }
             #PayloadView { background: #010203; border-radius: 14px; border: 1px solid #141c22; }
-            #ChatTimeline { background: #000000; border: none; }
+            #ChatTimeline, #ChatStreamContainer { background: #050a10; border: none; }
+            QSplitter::handle { background: #172732; width: 2px; }
             #BubbleShell-user { background: #0f6d86; border: 1px solid #22a7ca; border-radius: 16px; }
             #BubbleShell-assistant { background: #0a0f14; border: 1px solid #19242d; border-radius: 16px; }
             #BubbleShell-system { background: #120f05; border: 1px solid #5b4914; border-radius: 16px; }
