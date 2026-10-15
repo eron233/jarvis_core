@@ -54,6 +54,8 @@ class IrisMeshTests(unittest.TestCase):
         self.assertEqual(state["active_nodes"], 3)
         self.assertEqual(state["alternate_nodes"], 1)
         self.assertFalse(state["durable_state_replication"])
+        self.assertTrue(state["coordinator_candidate_available"])
+        self.assertFalse(state["control_plane_running"])
 
     def test_modo_visita_expira_e_nao_vira_coordenador(self):
         visitor = self.pair(mode="visit", visit_seconds=60)
