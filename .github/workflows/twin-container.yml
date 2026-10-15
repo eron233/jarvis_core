@@ -1,0 +1,39 @@
+name: Experimental Twin - Docker isolado
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "security/container_executor.py"
+      - "runtime/tool_developer_engine.py"
+      - "tests/test_container_docker_live.py"
+      - ".github/workflows/twin-container.yml"
+  workflow_dispatch:
+
+jobs:
+  docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Disponibilizar imagem Python de teste
+        run: |
+          docker pull python:3.11-alpine
+          DIGEST="$(docker image inspect python:3.11-alpine --format '{{index .RepoDigests 0}}')"
+          if [[ ! "$DIGEST" =~ @sha256:[0-9a-f]{64}$ ]]; then
+            echo "Imagem sem digest imutavel" >&2
+            exit 1
+          fi
+          echo "JARVIS_TWIN_DOCKER_IMAGE=$DIGEST" >> "$GITHUB_ENV"
+
+      - name: Executar no contêiner real com rede e filesystem restritos
+        env:
+          JARVIS_TWIN_RUN_DOCKER_SMOKE: "1"
+        run: python -m unittest discover -s tests -p "test_container_docker_live.py" -v

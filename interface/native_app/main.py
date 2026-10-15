@@ -15,7 +15,7 @@ from startup_bootstrap import ensure_project_root_on_path
 
 ensure_project_root_on_path(__file__)
 
-from PySide6.QtCore import Qt, QThreadPool
+from PySide6.QtCore import Qt, QThreadPool, QTimer
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (
     QApplication,
@@ -37,8 +37,10 @@ from interface.native_app.runtime_bootstrap import JarvisRuntimeBootstrapper, Ru
 def build_arg_parser() -> argparse.ArgumentParser:
     """Monta os argumentos do app nativo."""
 
-    parser = argparse.ArgumentParser(description="Aplicativo nativo leve do JARVIS.")
+    parser = argparse.ArgumentParser(description="Gênesis, interface nativa da assistente Íris.")
     parser.add_argument("--offscreen", action="store_true", help="Usa backend Qt offscreen para smoke tests.")
+    parser.add_argument("--mascot-only", action="store_true",
+                        help="Inicia Íris no desktop sem inicializar servidor, memória ou microfone.")
     parser.add_argument(
         "--auto-close-ms",
         type=int,
@@ -83,7 +85,7 @@ class StartupDialog(QDialog):
 
     def _build_ui(self) -> None:
         """Monta ui para o fluxo atual."""
-        self.setWindowTitle("JARVIS")
+        self.setWindowTitle("Gênesis | Íris")
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         self.setModal(True)
         self.resize(520, 300)
@@ -92,7 +94,7 @@ class StartupDialog(QDialog):
         layout.setContentsMargins(24, 22, 24, 22)
         layout.setSpacing(14)
 
-        title = QLabel("Abrindo o JARVIS")
+        title = QLabel("Iniciando Gênesis")
         title.setStyleSheet("font-size: 22px; font-weight: 700; color: #f5f7fa;")
         subtitle = QLabel(
             "O app nativo verifica o runtime local, sobe o servidor se necessario e so libera a janela principal depois do healthcheck positivo."
@@ -189,9 +191,32 @@ def main(argv: list[str] | None = None) -> int:
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
     app = QApplication([sys.argv[0], *(argv or [])])
-    app.setApplicationName("Jarvis")
+    app.setApplicationName("Gênesis")
     app.setQuitOnLastWindowClosed(True)
     apply_dark_palette(app)
+
+    if args.mascot_only:
+        from PySide6.QtCore import QLockFile, QSettings, QStandardPaths
+        from interface.native_app.iris_mascot import IrisMascotWindow
+        # Evita um segundo mascote do autostart, sem travar execuções de teste offscreen.
+        lock = None
+        if os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen":
+            directory = Path(QStandardPaths.writableLocation(QStandardPaths.AppLocalDataLocation))
+            directory.mkdir(parents=True, exist_ok=True)
+            lock = QLockFile(str(directory / "iris_mascot.lock"))
+            if not lock.tryLock(100):
+                return 0  # Já há mascote independente em execução.
+        mascot = IrisMascotWindow(settings=QSettings("Genesis", "Iris"))
+        mascot.hiddenByUser.connect(app.quit)
+        if args.auto_close_ms is not None:
+            QTimer.singleShot(args.auto_close_ms, app.quit)
+        mascot.show()
+        try:
+            return app.exec()
+        finally:
+            mascot.close()
+            if lock is not None:
+                lock.unlock()
 
     config = NativeAppConfig.from_env()
     api_client = JarvisApiClient(config)

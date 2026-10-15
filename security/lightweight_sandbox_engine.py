@@ -21,6 +21,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -75,6 +76,19 @@ class UltraLightweightSandboxEngine:
         Valida o código via AST estático e executa em um micro-processo isolado com limites estritos de memória e CPU.
         """
         now = datetime.now(timezone.utc).isoformat()
+
+        # Nome e usado como arquivo temporario e arquivo de telemetria.
+        # Recusar path traversal ANTES de qualquer escrita.
+        if not isinstance(tool_name, str) or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9_-]{0,79}", tool_name
+        ):
+            return {
+                "ferramenta": tool_name,
+                "status": "nome_invalido",
+                "motivo": "Nome deve conter somente letras ASCII, numeros, _ ou -, com ate 80 caracteres.",
+                "executado_em": now,
+                "sucesso": False,
+            }
 
         # 1. Análise Estática AST de Segurança
         ast_valid, ast_message = self._validate_ast_security(code_str)
@@ -153,18 +167,23 @@ class UltraLightweightSandboxEngine:
             # 3. Execução em Subprocesso Isolado
             try:
                 proc = subprocess.run(
-                    [sys.executable, str(temp_script)],
+                    [sys.executable, "-I", str(temp_script)],
                     capture_output=True,
                     text=True,
                     timeout=self.max_cpu_time_seconds + 2,
                     cwd=temp_dir,
+                    # Nao passar credenciais nem tokens do processo principal
+                    # ao filho. Python -I tambem ignora variaveis PYTHON*.
+                    env={"PYTHONIOENCODING": "utf-8", "PYTHONNOUSERSITE": "1"},
                 )
 
                 if proc.returncode == 0:
                     try:
                         output_data = json.loads(proc.stdout.strip().splitlines()[-1])
-                    except Exception:
-                        output_data = {"status": "sucesso", "saida_bruta": proc.stdout.strip()}
+                    except (ValueError, IndexError, TypeError):
+                        output_data = {"status": "erro_saida_invalida", "saida_bruta": proc.stdout.strip()[:512]}
+                    if not isinstance(output_data, dict):
+                        output_data = {"status": "erro_saida_invalida", "motivo": "Saida JSON nao e um objeto."}
 
                     # O valor relatado passa a ser o pico medido pelo proprio
                     # processo filho. Antes era uma constante apresentada como
@@ -175,7 +194,9 @@ class UltraLightweightSandboxEngine:
                     # O status interno precisa chegar ao status externo: uma
                     # ferramenta que levantou excecao dentro do sandbox era
                     # reportada como "sucesso" na resposta ao chamador.
-                    status_interno = output_data.get("status", "sucesso") if isinstance(output_data, dict) else "sucesso"
+                    status_interno = output_data.get("status", "erro_saida_invalida")
+                    if status_interno == "sucesso" and not {"RLIMIT_CPU", "RLIMIT_AS"}.issubset(set(limites)):
+                        status_interno = "limites_indisponiveis"
                     executou_dentro_do_limite = status_interno == "sucesso"
                     run_result = {
                         "ferramenta": tool_name,

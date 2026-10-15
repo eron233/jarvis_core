@@ -79,7 +79,7 @@ class JarvisDashboardTests(unittest.TestCase):
 
         unlocked_response = client.get("/painel")
         self.assertEqual(unlocked_response.status_code, 200)
-        self.assertIn("<title>JARVIS — Sistema Cognitivo Operacional</title>", unlocked_response.text)
+        self.assertIn("<title>Gênesis | Zero</title>", unlocked_response.text)
         self.assertIn("JARVIS", unlocked_response.text)
 
     def test_assets_do_brain_avatar_sao_servidos_pela_api(self) -> None:
@@ -129,7 +129,7 @@ class JarvisDashboardTests(unittest.TestCase):
 
         unlocked_response = client.get("/painel")
         self.assertEqual(unlocked_response.status_code, 200)
-        self.assertIn("<title>JARVIS — Sistema Cognitivo Operacional</title>", unlocked_response.text)
+        self.assertIn("<title>Gênesis | Zero</title>", unlocked_response.text)
 
 
 if __name__ == "__main__":

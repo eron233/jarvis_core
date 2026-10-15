@@ -5,11 +5,13 @@ from __future__ import annotations
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime
 import json
+from pathlib import Path
 import traceback
 from typing import Any, Callable
 
-from PySide6.QtCore import Qt, QThreadPool, QTimer
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt, QThreadPool, QTimer, QSettings
+from PySide6.QtGui import QFont, QPainter, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -35,11 +37,13 @@ from interface.native_app.brain_widget import (
     format_brain_summary,
 )
 from interface.native_app.config import NativeAppConfig
+from interface.native_app.iris_presence import IrisPresenceWidget
+from interface.native_app.iris_mascot import IrisMascotWindow
 from interface.native_app.runtime_bootstrap import RuntimeBootstrapResult
 
 
 SECTION_ORDER = [
-    ("chat", "Chat"),
+    ("chat", "Conversa"),
     ("status", "Status"),
     ("objetivos", "Objetivos"),
     ("tarefas", "Tarefas"),
@@ -163,6 +167,7 @@ class ChatTimeline(QScrollArea):
         self.setObjectName("ChatTimeline")
 
         self.container = QWidget()
+        self.container.setObjectName("ChatStreamContainer")
         self.container_layout = QVBoxLayout(self.container)
         self.container_layout.setContentsMargins(0, 0, 0, 0)
         self.container_layout.setSpacing(12)
@@ -202,7 +207,7 @@ class JarvisMainWindow(QMainWindow):
         self.auto_close_ms = auto_close_ms
         self.initial_command = initial_command
         self.thread_pool = QThreadPool.globalInstance()
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.executor = ThreadPoolExecutor(max_workers=2)
         self._active_jobs: set[str] = set()
         self._running_tasks: dict[str, BackgroundTask] = {}
         self._running_futures: dict[str, Future[Any]] = {}
@@ -211,10 +216,13 @@ class JarvisMainWindow(QMainWindow):
         self._last_command_payload: dict[str, Any] = {}
         self._current_section = "chat"
         self._authenticated_local_session = False
+        self._mascot = None
+        self._mascot_settings = QSettings("Genesis", "Iris")
+        self._mascot_restore_pending = True
 
-        self.setWindowTitle("JARVIS")
-        self.resize(1540, 940)
-        self.setMinimumSize(1280, 760)
+        self.setWindowTitle("Gênesis | Íris")
+        self.resize(1440, 860)
+        self.setMinimumSize(1080, 690)
         self._build_ui()
         self._apply_styles()
         self._connect_signals()
@@ -266,13 +274,31 @@ class JarvisMainWindow(QMainWindow):
         layout.setContentsMargins(18, 20, 18, 18)
         layout.setSpacing(14)
 
-        brand = QLabel("JARVIS")
+        branding = QHBoxLayout()
+        branding.setSpacing(10)
+        logo = QLabel()
+        svg_path = Path(__file__).resolve().parent / "assets" / "iris_mark.svg"
+        if svg_path.is_file():
+            renderer = QSvgRenderer(str(svg_path))
+            if renderer.isValid():
+                pixmap = QPixmap(44, 44)
+                pixmap.fill(Qt.transparent)
+                painter = QPainter(pixmap)
+                renderer.render(painter)
+                painter.end()
+                logo.setPixmap(pixmap)
+        logo.setFixedSize(44, 44)
+        brand_stack = QVBoxLayout()
+        brand_stack.setSpacing(0)
+        brand = QLabel("GÊNESIS")
         brand.setObjectName("BrandTitle")
-        subtitle = QLabel("")
+        subtitle = QLabel("Í R I S")
         subtitle.setObjectName("BrandSubtitle")
-        subtitle.setWordWrap(True)
-        layout.addWidget(brand)
-        subtitle.hide()
+        brand_stack.addWidget(brand)
+        brand_stack.addWidget(subtitle)
+        branding.addWidget(logo)
+        branding.addLayout(brand_stack, 1)
+        layout.addLayout(branding)
 
         self.runtime_chip = QLabel("Runtime")
         self.health_chip = QLabel("Saude")
@@ -291,6 +317,11 @@ class JarvisMainWindow(QMainWindow):
             self.sidebar_buttons[section_key] = button
             layout.addWidget(button)
 
+        self.mascot_toggle_button = QPushButton("Mostrar mascote Íris")
+        self.mascot_toggle_button.setObjectName("GhostButton")
+        self.mascot_toggle_button.setCheckable(True)
+        self.mascot_toggle_button.setToolTip("Íris pode flutuar na área de trabalho e entrar no laboratório")
+        layout.addWidget(self.mascot_toggle_button)
         layout.addStretch(1)
 
         self.sidebar_refresh_button = QPushButton("Atualizar agora")
@@ -314,15 +345,16 @@ class JarvisMainWindow(QMainWindow):
         hero_layout = QVBoxLayout(hero)
         hero_layout.setContentsMargins(18, 16, 18, 16)
         hero_layout.setSpacing(8)
-        hero_title = QLabel("Conversa central")
+        hero_title = QLabel("ÍRIS  /  ESPAÇO DE TRABALHO")
         hero_title.setObjectName("SectionTitle")
         hero_text = QLabel(
-            "Converse com o Jarvis por aqui."
+            "Converse, organize ideias e execute tarefas supervisionadas."
         )
         hero_text.setWordWrap(True)
         hero_text.setObjectName("SectionBody")
         hero_layout.addWidget(hero_title)
         hero_layout.addWidget(hero_text)
+        self.hero_card = hero
         layout.addWidget(hero)
 
         self.chat_timeline = ChatTimeline()
@@ -337,7 +369,7 @@ class JarvisMainWindow(QMainWindow):
         command_row = QHBoxLayout()
         command_row.setSpacing(10)
         self.command_input = QLineEdit()
-        self.command_input.setPlaceholderText("Digite um comando para o Jarvis")
+        self.command_input.setPlaceholderText("O que vamos construir hoje?")
         self.send_button = QPushButton("Enviar")
         self.send_button.setObjectName("PrimaryButton")
         command_row.addWidget(self.command_input, 1)
@@ -365,7 +397,7 @@ class JarvisMainWindow(QMainWindow):
             ("Objetivos", "mostrar objetivos"),
             ("Tarefas", "mostrar fila"),
             ("Memoria", "mostrar memoria"),
-            ("Jarvis ta ai", "Jarvis ta ai"),
+            ("Verificar presença", "Jarvis ta ai"),
         ):
             button = QPushButton(label)
             button.setObjectName("GhostButton")
@@ -375,6 +407,7 @@ class JarvisMainWindow(QMainWindow):
         command_layout.addLayout(command_row)
         command_layout.addLayout(advanced_row)
         command_layout.addLayout(quick_row)
+        self.composer_frame = command_frame
         layout.addWidget(command_frame)
 
         self.detail_pages: dict[str, DetailPage] = {}
@@ -393,63 +426,90 @@ class JarvisMainWindow(QMainWindow):
         return panel
 
     def _build_brain_panel(self) -> QWidget:
-        """Monta brain panel para o fluxo atual."""
+        """Presença da Íris; diagnóstico cognitivo opcional e sob demanda."""
         panel = QFrame()
         panel.setObjectName("BrainPanel")
-        panel.setMinimumWidth(360)
-        panel.setMaximumWidth(460)
-
+        panel.setMinimumWidth(292)
+        panel.setMaximumWidth(410)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(18, 20, 18, 18)
-        layout.setSpacing(14)
+        layout.setContentsMargins(14, 18, 14, 14)
+        layout.setSpacing(10)
 
-        title = QLabel("Cerebro")
+        self.iris_presence = IrisPresenceWidget()
+        layout.addWidget(self.iris_presence)
+
+        self.brain_diagnostics_toggle = QPushButton("Mostrar diagnóstico técnico")
+        self.brain_diagnostics_toggle.setObjectName("GhostButton")
+        self.brain_diagnostics_toggle.setCheckable(True)
+        layout.addWidget(self.brain_diagnostics_toggle)
+
+        self.brain_diagnostics = QFrame()
+        self.brain_diagnostics.setObjectName("DetailContainer")
+        diagnostics = QVBoxLayout(self.brain_diagnostics)
+        diagnostics.setSpacing(7)
+
+        title = QLabel("Cérebro / diagnóstico")
         title.setObjectName("SectionTitle")
-        subtitle = QLabel("Estado cognitivo do runtime.")
-        subtitle.setObjectName("SectionBody")
-        subtitle.setWordWrap(True)
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
+        diagnostics.addWidget(title)
 
-        brain_toolbar = QHBoxLayout()
-        brain_toolbar.setSpacing(8)
+        controls = QHBoxLayout()
         self.brain_level = QComboBox()
         self.brain_level.addItems(["recente", "semanal", "mensal", "historica"])
         self.brain_level.setCurrentText("semanal")
-        self.refresh_brain_button = QPushButton("Atualizar cerebro")
+        self.refresh_brain_button = QPushButton("Atualizar")
         self.refresh_brain_button.setObjectName("GhostButton")
-        brain_toolbar.addWidget(self.brain_level, 1)
-        brain_toolbar.addWidget(self.refresh_brain_button)
-        layout.addLayout(brain_toolbar)
+        controls.addWidget(self.brain_level, 1)
+        controls.addWidget(self.refresh_brain_button)
+        diagnostics.addLayout(controls)
 
-        self.brain_widget = NativeBrainWidget()
-        layout.addWidget(self.brain_widget, 1)
-
+        self.brain_widget = None
+        self._brain_canvas_position = diagnostics.count()
+        self._brain_diagnostics_layout = diagnostics
         self.brain_runtime_label = QLabel("Runtime conectando")
-        self.brain_runtime_label.setObjectName("SidebarChip")
         self.brain_cycle_label = QLabel("Ciclos --")
-        self.brain_cycle_label.setObjectName("SidebarChip")
         self.brain_auth_label = QLabel("Acesso aguardando")
-        self.brain_auth_label.setObjectName("SidebarChip")
-        layout.addWidget(self.brain_runtime_label)
-        layout.addWidget(self.brain_cycle_label)
-        layout.addWidget(self.brain_auth_label)
+        for label in (self.brain_runtime_label, self.brain_cycle_label, self.brain_auth_label):
+            label.setObjectName("SidebarChip")
+            diagnostics.addWidget(label)
 
         self.brain_summary_view = QPlainTextEdit()
         self.brain_summary_view.setReadOnly(True)
         self.brain_summary_view.setObjectName("PayloadView")
         self.brain_summary_view.setMaximumBlockCount(200)
-        self.brain_summary_view.setFont(QFont("Consolas", 10))
-        layout.addWidget(self.brain_summary_view, 0)
+        self.brain_summary_view.setMaximumHeight(85)
+        diagnostics.addWidget(self.brain_summary_view)
 
         self.brain_analysis_view = QPlainTextEdit()
         self.brain_analysis_view.setReadOnly(True)
         self.brain_analysis_view.setObjectName("PayloadView")
         self.brain_analysis_view.setMaximumBlockCount(200)
-        self.brain_analysis_view.setFont(QFont("Consolas", 10))
-        layout.addWidget(self.brain_analysis_view, 0)
+        self.brain_analysis_view.setMaximumHeight(85)
+        diagnostics.addWidget(self.brain_analysis_view)
 
+        layout.addWidget(self.brain_diagnostics, 1)
+        self.brain_diagnostics.hide()
+        layout.addStretch(1)
         return panel
+
+    def _toggle_brain_diagnostics(self, enabled: bool) -> None:
+        """O visualizador pesado só é construído quando solicitado."""
+        self.brain_diagnostics.setVisible(enabled)
+        self.brain_diagnostics_toggle.setText(
+            "Ocultar diagnóstico técnico" if enabled else "Mostrar diagnóstico técnico"
+        )
+        if enabled and self.brain_widget is None:
+            self.brain_widget = NativeBrainWidget()
+            self.brain_widget.setMinimumHeight(170)
+            self._brain_diagnostics_layout.insertWidget(
+                self._brain_canvas_position, self.brain_widget, 1
+            )
+        if enabled:
+            if self._latest_brain_bundle and self.brain_widget is not None:
+                self.brain_widget.set_payload(
+                    self._latest_brain_bundle.get("evolution", {}),
+                    self._latest_brain_bundle.get("analysis", {}),
+                )
+            self.refresh_brain_bundle(force=True)
 
     def _connect_signals(self) -> None:
         """Conecta signals deste componente."""
@@ -457,6 +517,8 @@ class JarvisMainWindow(QMainWindow):
         self.sidebar_refresh_button.clicked.connect(self.refresh_everything)
         self.refresh_brain_button.clicked.connect(self.refresh_brain_bundle)
         self.brain_level.currentTextChanged.connect(lambda _value: self.refresh_brain_bundle(force=True))
+        self.brain_diagnostics_toggle.toggled.connect(self._toggle_brain_diagnostics)
+        self.mascot_toggle_button.toggled.connect(self._toggle_mascot)
         self.send_button.clicked.connect(self.send_command)
         self.command_input.returnPressed.connect(self.send_command)
 
@@ -464,7 +526,9 @@ class JarvisMainWindow(QMainWindow):
         """Aplica styles ao estado atual."""
         self.setStyleSheet(
             """
-            QMainWindow, QWidget { background: #000000; color: #f5f7fa; font-family: "Bahnschrift"; }
+            QMainWindow { background: #060c12; color: #f5f7fa; }
+            QWidget { color: #f5f7fa; font-family: "Segoe UI"; }
+            QLabel { background: transparent; border: none; }
             QStatusBar { background: #050505; border-top: 1px solid #11171c; }
             #Sidebar { background: #030303; border-right: 1px solid #11171c; }
             #CenterPanel { background: #010101; }
@@ -472,7 +536,7 @@ class JarvisMainWindow(QMainWindow):
             #HeroCard, #ComposerFrame, #DetailContainer {
                 background: #07090c; border: 1px solid #11171c; border-radius: 18px;
             }
-            #BrandTitle { font-size: 28px; font-weight: 700; letter-spacing: 2px; }
+            #BrandTitle { font-size: 20px; font-weight: 700; letter-spacing: 2px; }
             #BrandSubtitle { color: #9ca8b5; font-size: 12px; line-height: 1.35; }
             #SidebarChip {
                 background: #070d12; border: 1px solid #16222b; border-radius: 12px;
@@ -500,7 +564,8 @@ class JarvisMainWindow(QMainWindow):
             #DetailTitle { font-size: 18px; font-weight: 700; }
             #DetailSummary { color: #bfd1dd; line-height: 1.45; }
             #PayloadView { background: #010203; border-radius: 14px; border: 1px solid #141c22; }
-            #ChatTimeline { background: #000000; border: none; }
+            #ChatTimeline, #ChatStreamContainer { background: #050a10; border: none; }
+            QSplitter::handle { background: #172732; width: 2px; }
             #BubbleShell-user { background: #0f6d86; border: 1px solid #22a7ca; border-radius: 16px; }
             #BubbleShell-assistant { background: #0a0f14; border: 1px solid #19242d; border-radius: 16px; }
             #BubbleShell-system { background: #120f05; border: 1px solid #5b4914; border-radius: 16px; }
@@ -513,11 +578,20 @@ class JarvisMainWindow(QMainWindow):
         """Aplica bootstrap state ao estado atual."""
         self.chat_timeline.add_message(
             "assistant",
-            "JARVIS pronto para conversar.",
-            "Jarvis",
+            "Olá. Sou Íris, sua assistente no Gênesis. Como posso ajudar?",
+            "ÍRIS",
         )
-        self.footer_runtime.setText(f"Conectado em {self.bootstrap_result.startup_duration_seconds:.1f}s")
-        self.footer_command.setText("Pronto.")
+        health_confirmed = self.bootstrap_result.health_payload.get("status") == "ok"
+        if health_confirmed:
+            self.footer_runtime.setText(
+                f"Conectado em {self.bootstrap_result.startup_duration_seconds:.1f}s"
+            )
+            self.iris_presence.set_state("idle")
+            self.footer_command.setText("Pronto.")
+        else:
+            self.footer_runtime.setText("Runtime ainda não confirmado.")
+            self.iris_presence.set_state("offline")
+            self.footer_command.setText("Aguardando conexão.")
         self._set_section("chat")
 
     def _schedule_refresh(self) -> None:
@@ -560,6 +634,11 @@ class JarvisMainWindow(QMainWindow):
     def _set_section(self, section: str) -> None:
         """Atualiza section no estado atual."""
         self._current_section = section
+        is_chat = section == "chat"
+        self.hero_card.setVisible(is_chat)
+        self.chat_timeline.setVisible(is_chat)
+        self.composer_frame.setVisible(is_chat)
+        self.detail_stack.setVisible(not is_chat)
         for section_key, page in self.detail_pages.items():
             page.setVisible(section_key == section)
         self._render_current_section()
@@ -575,6 +654,8 @@ class JarvisMainWindow(QMainWindow):
 
     def refresh_brain_bundle(self, force: bool = False) -> None:
         """Atualiza o pacote de dados do cerebro visual."""
+        if not force and not self.brain_diagnostics.isVisible():
+            return
         level = self.brain_level.currentText()
         job_name = f"brain_bundle:{level}"
         if not force and job_name in self._active_jobs:
@@ -599,6 +680,7 @@ class JarvisMainWindow(QMainWindow):
         self.command_input.clear()
         self._set_command_busy(True)
         self.footer_command.setText("Processando...")
+        self.iris_presence.set_state("working")
 
         self._run_background(
             "send_command",
@@ -616,6 +698,8 @@ class JarvisMainWindow(QMainWindow):
         """Executa a rotina interna de on bundle ready."""
         self._authenticated_local_session = True
         self._latest_bundle = bundle
+        if self.iris_presence.state == "offline":
+            self.iris_presence.set_state("idle")
         self._render_current_section()
         self._render_runtime_summary()
         self.footer_refresh.setText(f"Ultimo refresh {datetime.now().strftime('%H:%M:%S')}")
@@ -625,7 +709,8 @@ class JarvisMainWindow(QMainWindow):
         self._latest_brain_bundle = bundle
         evolution = bundle.get("evolution", {})
         analysis = bundle.get("analysis", {})
-        self.brain_widget.set_payload(evolution, analysis)
+        if self.brain_widget is not None:
+            self.brain_widget.set_payload(evolution, analysis)
         self.brain_summary_view.setPlainText(format_brain_summary(evolution))
         self.brain_analysis_view.setPlainText(format_brain_analysis(analysis))
 
@@ -636,9 +721,10 @@ class JarvisMainWindow(QMainWindow):
         self.chat_timeline.add_message(
             "assistant",
             self._format_command_response(payload),
-            "Jarvis",
+            "ÍRIS",
         )
         self.footer_command.setText("Resposta recebida.")
+        self.iris_presence.set_state("idle", "Resposta concluída.")
         self._render_current_section()
         self.refresh_everything()
 
@@ -680,12 +766,15 @@ class JarvisMainWindow(QMainWindow):
 
         if job_name == "send_command":
             friendly_message = self._friendly_command_error(message)
-            self.chat_timeline.add_message("assistant", friendly_message, "Jarvis")
+            self.chat_timeline.add_message("assistant", friendly_message, "ÍRIS")
             self.footer_command.setText(friendly_message)
+            self.iris_presence.set_state("error", "Comando não concluído.")
             return
 
         self.footer_refresh.setText("Atualizacao temporariamente indisponivel.")
         self.footer_runtime.setText("Conexao instavel com o runtime.")
+        if self._looks_like_auth_error(message):
+            self.iris_presence.set_state("offline")
         self._render_runtime_summary()
 
     def _render_runtime_summary(self) -> None:
@@ -734,7 +823,7 @@ class JarvisMainWindow(QMainWindow):
 
         if section == "chat":
             payload = self._last_command_payload or {
-                "mensagem": "Use o chat central para falar com o runtime real do Jarvis.",
+                "mensagem": "Converse com Íris para interagir com o Gênesis.",
                 "sugestoes": [
                     "status do sistema",
                     "mostrar objetivos",
@@ -892,8 +981,35 @@ class JarvisMainWindow(QMainWindow):
 
         QTimer.singleShot(0, _poll_future)
 
-    def closeEvent(self, event) -> None:
-        """Encerra o pool da janela sem deixar callbacks perdidos apos o close."""
+    def _toggle_mascot(self, enabled: bool) -> None:
+        """Exibe ou recolhe a Íris sem mexer em outras janelas do usuário."""
+        if enabled:
+            if self._mascot is None:
+                self._mascot = IrisMascotWindow(settings=self._mascot_settings)
+                self._mascot.hiddenByUser.connect(self._on_mascot_hidden)
+                self._mascot.interactionResult.connect(self.footer_command.setText)
+            self._mascot.show()
+            self._mascot.raise_()
+        elif self._mascot is not None:
+            self._mascot.hide()
+        self._mascot_settings.setValue("iris_mascot/visible", enabled)
+        self.mascot_toggle_button.setText("Esconder mascote Íris" if enabled else "Mostrar mascote Íris")
 
+    def _on_mascot_hidden(self) -> None:
+        self.mascot_toggle_button.setChecked(False)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self._mascot_restore_pending:
+            self._mascot_restore_pending = False
+            import os
+            if os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen":
+                if self._mascot_settings.value("iris_mascot/visible", True, type=bool):
+                    QTimer.singleShot(0, lambda: self.mascot_toggle_button.setChecked(True))
+
+    def closeEvent(self, event) -> None:
+        """Encerra mascote e pool sem processos de UI perdidos."""
+        if self._mascot is not None:
+            self._mascot.close()
         self.executor.shutdown(wait=False, cancel_futures=True)
         super().closeEvent(event)

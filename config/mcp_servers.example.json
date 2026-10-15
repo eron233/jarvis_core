@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0",
+  "servers": {
+    "exemplo_local_http": {
+      "enabled": false,
+      "transport": "streamable-http",
+      "url": "http://127.0.0.1:8000/mcp",
+      "allowed_tools": [],
+      "allowed_resources": [],
+      "allowed_prompts": []
+    },
+    "exemplo_local_stdio": {
+      "enabled": false,
+      "transport": "stdio",
+      "command": "python",
+      "args": [
+        "-m",
+        "meu_servidor_mcp"
+      ],
+      "cwd": ".",
+      "env_allowlist": [],
+      "allowed_tools": [],
+      "allowed_resources": [],
+      "allowed_prompts": []
+    },
+    "codebase-memory": {
+      "enabled": false,
+      "transport": "stdio",
+      "command": "codebase-memory-mcp",
+      "args": [],
+      "cwd": ".",
+      "env_allowlist": [],
+      "allowed_tools": [
+        "index_repository",
+        "list_projects",
+        "index_status",
+        "check_index_coverage",
+        "search_graph",
+        "trace_path",
+        "detect_changes",
+        "get_graph_schema",
+        "get_code_snippet",
+        "get_file_outline",
+        "get_architecture",
+        "search_code"
+      ],
+      "allowed_resources": [],
+      "allowed_prompts": []
+    },
+    "graft-context": {
+      "enabled": false,
+      "transport": "stdio",
+      "command": "graft",
+      "args": [
+        "serve"
+      ],
+      "cwd": ".",
+      "env_allowlist": [
+        "PATH",
+        "HOME",
+        "USERPROFILE",
+        "LOCALAPPDATA",
+        "APPDATA"
+      ],
+      "allowed_tools": [
+        "safe_read",
+        "file_outline",
+        "read_range",
+        "changed_since"
+      ],
+      "allowed_resources": [],
+      "allowed_prompts": []
+    },
+    "rea-investigation": {
+      "enabled": false,
+      "transport": "stdio",
+      "command": "node",
+      "args": [
+        "/ABSOLUTE/LOCAL/REA_INSTALL/scripts/rea.mjs",
+        "mcp"
+      ],
+      "cwd": ".",
+      "env_allowlist": [],
+      "allowed_tools": [
+        "inspect_managed_artifact",
+        "inspect_managed_members",
+        "analyze_javascript_application",
+        "inspect_analysis_view",
+        "get_evidence_bundle"
+      ],
+      "allowed_resources": [],
+      "allowed_prompts": []
+    }
+  }
+}

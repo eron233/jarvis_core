@@ -253,3 +253,88 @@ Este indice resume o que ja existe no JARVIS, onde cada capacidade mora, como o 
 | Extração estruturada | Implementado opcional | `learning/scrapegraph_engine.py` | JSON-CSS Crawl4AI; sem placeholders |
 | Envelope web legado | Corrigido | `runtime/scrapling_mcp_engine.py` | não afirma MCP/stealth/bypass |
 | Agregação multi-fonte | Corrigido | `learning/agent_reach_engine.py` | mede cobertura, não inventa confiança |
+
+
+## Inferência Local — Ponto 6
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Runtime llama.cpp | Adapter implementado opcional | `runtime/inference_stack.py` | OpenAI-compatible; modelo não escolhido |
+| Runtime Ollama | Adapter implementado opcional | `runtime/inference_stack.py` | fallback/gerenciamento local |
+| Roteamento de modelo | Implementado | `runtime/inference_stack.py` | capability → tier → general |
+| Fallback de provider | Implementado | `runtime/inference_stack.py` | ordem configurável |
+| Métricas de inferência | Implementado | `runtime/inference_stack.py` | latência, usage e tokens/s quando disponível |
+| API de inferência | Implementado | `interface/api/app.py` | status/probe/chat |
+| Hierarquia sem modelo fictício | Implementado | `runtime/corporate_agent_hierarchy.py` | aliases vazios até benchmark |
+| Modelo-base | Deliberadamente pendente | Constituição | escolher somente no hardware real |
+
+
+## MCP Oficial — Ponto 7
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Cliente MCP v2 | Adapter implementado opcional | `runtime/mcp_stack.py` | SDK oficial `mcp>=2.2,<3` |
+| Descoberta tools/resources/prompts | Implementado | `runtime/mcp_stack.py` | descoberta não concede execução |
+| Allowlist de tools | Implementado | `runtime/mcp_stack.py` | bloqueio antes da chamada |
+| Allowlist resources/prompts | Implementado | `runtime/mcp_stack.py` | permissões independentes |
+| Transporte stdio | Implementado opcional | `runtime/mcp_stack.py` | command/env/cwd controlados |
+| Streamable HTTP | Implementado opcional | `runtime/mcp_stack.py` | remoto bloqueado por padrão |
+| Servidor MCP do JARVIS | Implementado opcional | `runtime/mcp_stack.py`, `runtime/mcp_server.py` | read-only por padrão |
+| API MCP interna | Implementado | `interface/api/app.py` | protegida por dispositivo confiável |
+| MCP simulado | Rejeitado | Constituição | envelope legado não conta como protocolo |
+
+
+## Inteligência do Código — Ponto 8
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Grafo AST Python local | Implementado | `learning/codebase_intelligence_engine.py` | baseline determinístico + SQLite |
+| Símbolos/classes/funções | Implementado | `learning/codebase_intelligence_engine.py` | path/linha auditáveis |
+| Call graph local | Implementado | `learning/codebase_intelligence_engine.py` | ambiguidades permanecem não resolvidas |
+| Imports e rotas HTTP | Implementado | `learning/codebase_intelligence_engine.py` | evidência estrutural |
+| Trace callers/callees | Implementado | `learning/codebase_intelligence_engine.py` | profundidade 1–5 |
+| Impacto estrutural | Implementado | `learning/codebase_intelligence_engine.py` | não inventa score de risco |
+| Snippet por símbolo | Implementado | `learning/codebase_intelligence_engine.py` | leitura localizada |
+| codebase-memory-mcp | Validado opcional / interop real | `learning/codebase_intelligence_engine.py` | v0.11.0 pinado por SHA-256 no CI |
+| Graphify heurístico | Endurecido | `runtime/graphify_engine.py` | não fabrica dependências/ciclos |
+
+
+## Governança de Contexto — Ponto 9
+
+| Capacidade | Estado | Implementação | Observação |
+|---|---|---|---|
+| Governor de leitura local | Validado | `learning/development_context_engine.py` | determinístico, sem LLM |
+| Arquivo pequeno → conteúdo | Validado | `LocalDevelopmentContextGovernor` | ≤150 linhas e ≤12 KiB por default |
+| Arquivo grande → outline | Validado | `LocalDevelopmentContextGovernor` | Python AST / Markdown headings |
+| Recusa de secrets/binários/lockfiles | Validado | `LocalDevelopmentContextGovernor` | conteúdo recusado nunca é retornado |
+| Read range limitado | Validado | `LocalDevelopmentContextGovernor` | máximo 250 linhas |
+| Recibos de consumo | Validado | `_SessionLedger` | bytes retornados/evitados; sem inventar tokens |
+| Tripwires de leitura | Validado | `_SessionLedger` | repeated path / runaway loop |
+| API dev-context | Validado | `interface/api/app.py` | dispositivo confiável |
+| flyingrobots/graft v0.14.0 | Quarentena | adapter MCP em `development_context_engine.py` | CLI real falhou com Git code 128 no ambiente reproduzido |
+| TrailHQ/Nanonets Graft | Watchlist challenger | Experimental Twin futuro | sobreposição forte com ponto 8 |
+
+
+## Modelos especializados da memoria — nao confundir com modelo-base
+
+| Componente | Papel | Estado | Regra |
+|---|---|---|---|
+| Qwen3-Embedding-0.6B | embedding da memoria semantica para Qdrant | Especializado / opcional | nao remover sem benchmark + regressao |
+| Qwen3-Reranker-0.6B | reranking de memorias recuperadas | Especializado / opcional | nao remover sem benchmark + regressao |
+| qwen3:4b via Ollama | backend opcional do Mem0 | Especializado / opcional | nao remover sem backend substituto validado |
+| Modelo-base do JARVIS | inferencia geral | Nao selecionado | escolha adiada ate benchmark no hardware alvo |
+
+A ausencia de modelo-base selecionado **nao** significa ausencia de modelos
+especializados. Ponto 1 (memoria) e Ponto 10 (cache semantico) possuem contratos
+separados.
+
+## Cache Semantico — Ponto 10
+
+| Capacidade | Estado | Implementacao | Observacao |
+|---|---|---|---|
+| Cache exato normalizado | Validado | `memory_system/semantic_cache_engine.py` | SHA-256; funciona sem modelo |
+| Similaridade Jaccard heuristica | Removida | — | nao e tratada como semantica real |
+| Backend vetorial Qdrant | Implementado opcional | `QdrantSemanticCacheBackend` | so ativa com configuracao explicita |
+| Modelo de embedding | Nao selecionado | configuracao vazia por default | escolha fica para benchmark/decisao do proprietario |
+| Threshold vetorial | Configuravel | `JARVIS_SEMANTIC_CACHE_SIMILARITY_THRESHOLD` | default operacional 0.90; nao escolhe modelo |
+| Metricas do cache | Validado | `SemanticCacheEngine.get_stats` | hits/misses observados; sem economia de tokens inventada |

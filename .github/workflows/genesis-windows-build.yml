@@ -1,0 +1,166 @@
+name: Genesis Windows portable and UI review
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "genesis_launcher.py"
+      - "INICIAR_GENESIS.cmd"
+      - "interface/native_app/**"
+      - "installation/**"
+      - "tools/build_genesis_icon.py"
+      - ".github/workflows/genesis-windows-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-app:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      JARVIS_INFERENCE_OFFLINE_MODE: "true"
+      JARVIS_NATIVE_BRAIN_FORCE_FALLBACK: "1"
+      JARVIS_FREELLMAPI_ENABLED: "false"
+      JARVIS_AGENCY_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Dependencies (build runner only)
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install "pyinstaller>=6.13,<7" "pillow>=11,<13" pytest
+
+      - name: Check native UI unit tests
+        run: |
+          $env:QT_QPA_PLATFORM="offscreen"
+          python -m pytest -q tests/test_native_app.py tests/test_iris_presence.py tests/test_iris_desktop.py tests/test_iris_interactions.py tests/test_iris_visual.py tests/test_startup_launchers.py
+
+      - name: Capture the actual Python/Qt interface before packaging
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+          python -m interface.native_app.preview "build/ui-previews"
+          if ($LASTEXITCODE -ne 0) { throw "Source Qt capture failed: $LASTEXITCODE" }
+          $screens = Get-ChildItem "build/ui-previews/*.png"
+          if ($screens.Count -ne 10) { throw "Expected ten source UI screenshots" }
+
+      - name: Generate Genesis icon from reviewed SVG
+        run: python tools/build_genesis_icon.py
+
+      - name: Package lightweight Windows onedir executable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $options = @(
+            "--noconfirm", "--clean", "--windowed", "--noupx",
+            "--name", "Genesis", "--paths", ".",
+            "--icon", ".build-assets/genesis.ico",
+            "--add-data", "interface/native_app/assets;interface/native_app/assets",
+            "--add-data", "interface/dashboard;interface/dashboard",
+            "--add-data", "constitutional_core;constitutional_core",
+            "--exclude-module", "PySide6.QtWebEngineWidgets",
+            "--exclude-module", "PySide6.QtWebEngineCore",
+            "--exclude-module", "PySide6.QtWebEngineQuick",
+            "--exclude-module", "PySide6.QtQml",
+            "--exclude-module", "PySide6.QtQuick",
+            "--exclude-module", "PySide6.QtQuickWidgets",
+            "--collect-submodules", "uvicorn",
+            "genesis_launcher.py"
+          )
+          python -m PyInstaller @options
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
+
+      - name: Include user-initiated installer in the portable folder
+        shell: pwsh
+        run: |
+          Copy-Item "installation/Instalar-Iris.ps1" -Destination "dist/Genesis/Instalar-Iris.ps1"
+          Copy-Item "installation/Instalar-Iris.cmd" -Destination "dist/Genesis/Instalar-Iris.cmd"
+
+      - name: Verify actual EXE startup and create screenshots without data
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $exe = Join-Path (Get-Location) "dist/Genesis/Genesis.exe"
+          if (-not (Test-Path $exe)) { throw "Genesis.exe missing" }
+          # Windows GUI subsystem nao define LASTEXITCODE com o operador &.
+          # Start-Process -Wait retorna o codigo real, sem corrida de processos.
+          $check = Start-Process -FilePath $exe -ArgumentList @("--server", "--check-config") -Wait -PassThru
+          if ($check.ExitCode -ne 0) { throw "EXE configuration check failed: $($check.ExitCode)" }
+          $env:QT_QPA_PLATFORM = "offscreen"
+          # Launch the actual mascot-only executable without starting the runtime.
+          $standalone = Start-Process -FilePath $exe -ArgumentList @("--mascot-only", "--offscreen", "--auto-close-ms", "700") -Wait -PassThru
+          if ($standalone.ExitCode -ne 0) { throw "Mascot-only EXE failed: $($standalone.ExitCode)" }
+          # Validate installer prerequisites WITHOUT installing, registering startup or launching.
+          & "dist/Genesis/Instalar-Iris.ps1" -ValidateOnly
+          if (-not $?) { throw "Installer dry-run failed" }
+          $preview = Start-Process -FilePath $exe -ArgumentList @("--capture-ui", "build/ui-previews") -Wait -PassThru
+          if ($preview.ExitCode -ne 0) {
+            Write-Output "EXE preview failed with exit code $($preview.ExitCode)"
+            Get-ChildItem "build/ui-previews/" -ErrorAction SilentlyContinue | Select-Object Name,Length
+            Get-Content "dist/Genesis/logs/genesis_preview_errors.log" -ErrorAction SilentlyContinue
+            throw "EXE screenshot failed: $($preview.ExitCode)"
+          }
+          $screens = Get-ChildItem "build/ui-previews/*.png"
+          if ($screens.Count -ne 10) { throw "Expected 10 real UI screens, found $($screens.Count)" }
+          $screens | ForEach-Object { Write-Output ("Screenshot: {0}, bytes={1}" -f $_.Name, $_.Length) }
+          $files = Get-ChildItem "dist/Genesis" -Recurse -File
+          $total = ($files | Measure-Object Length -Sum).Sum
+          $exeSize = (Get-Item $exe).Length
+          Write-Output ("RELEASE_PAYLOAD_MB={0:N2}" -f ($total / 1MB))
+          Write-Output ("EXE_SIZE_MB={0:N2}" -f ($exeSize / 1MB))
+          if ($total -gt 1500MB) { throw "Build larger than 1.5 GB safety budget" }
+
+      - name: Remove generated credentials and private runtime data before release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $dist = Join-Path (Get-Location) "dist/Genesis"
+          # Running --server --check-config may generate one-off credentials
+          # in data/ and reports/. NEVER distribute those to multiple machines.
+          foreach ($dirname in @("data", "reports", "logs")) {
+            $path = Join-Path $dist $dirname
+            if (Test-Path -LiteralPath $path) {
+              Remove-Item -LiteralPath $path -Recurse -Force
+            }
+          }
+          # This is a hard release gate, not a warning.
+          foreach ($dirname in @("data", "reports", "logs")) {
+            if (Test-Path -LiteralPath (Join-Path $dist $dirname)) {
+              throw "Private runtime directory remains in release: $dirname"
+            }
+          }
+          $sensitive = Get-ChildItem $dist -Recurse -File | Where-Object {
+            $_.Name -match '(?i)(credential|password|api.?token|secret|private.?key|access_bootstrap)' -and
+            $_.FullName -notmatch '(?i)[\\/]_internal[\\/]'
+          }
+          if ($sensitive) {
+            throw "Potential credential file detected in portable release."
+          }
+          if (-not (Test-Path (Join-Path $dist "Genesis.exe"))) {
+            throw "Sanitization removed executable unexpectedly"
+          }
+          Write-Output "Release sanitized: no shared bootstrap credentials, logs or reports."
+
+      - name: Publish review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Genesis-Iris-telas-reais
+          path: build/ui-previews/*.png
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish Windows portable application
+        uses: actions/upload-artifact@v4
+        with:
+          name: Genesis-Iris-Windows-portatil
+          path: dist/Genesis/
+          retention-days: 30
+          compression-level: 6
+          if-no-files-found: error

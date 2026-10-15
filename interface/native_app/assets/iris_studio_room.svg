@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-labelledby="title" preserveAspectRatio="xMidYMid slice">
+<title>Estúdio da Íris, recriação do escritório quente visto na fotografia: quadros, telas, estante, plantas e poltrona escura</title>
+<defs>
+ <linearGradient id="wall" x1="0" y1="0" x2="0.9" y2="1"><stop stop-color="#574439"/><stop offset=".4" stop-color="#9e795c"/><stop offset=".8" stop-color="#826146"/><stop offset="1" stop-color="#3b2b28"/></linearGradient>
+ <linearGradient id="desk" x1="0" y1="0" x2="0.9" y2="1"><stop stop-color="#cc9260"/><stop offset=".22" stop-color="#996845"/><stop offset=".7" stop-color="#52352b"/><stop offset="1" stop-color="#30232a"/></linearGradient>
+ <linearGradient id="screen" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#101a2b"/><stop offset=".5" stop-color="#21384c"/><stop offset="1" stop-color="#080f19"/></linearGradient>
+ <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#03070d"/><stop offset=".5" stop-color="#15161a"/><stop offset="1" stop-color="#070d14"/></linearGradient>
+ <radialGradient id="amber"><stop stop-color="#ffd9a0" stop-opacity=".65"/><stop offset=".38" stop-color="#ffc88e" stop-opacity=".3"/><stop offset="1" stop-color="#ffb772" stop-opacity="0"/></radialGradient>
+ <radialGradient id="cyan"><stop stop-color="#6ad5ff" stop-opacity=".2"/><stop offset="1" stop-color="#6ad5ff" stop-opacity="0"/></radialGradient>
+ <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#211d1d"/><stop offset="1" stop-color="#0b121b"/></linearGradient>
+ <pattern id="wallgrain" width="47" height="57" patternUnits="userSpaceOnUse"><circle cx="7" cy="11" r="1" fill="#fff7e9" opacity=".09"/><path d="M2 25 L21 32 M35 8 L40 21" stroke="#402f2a" stroke-width=".5" opacity=".16"/></pattern>
+ <pattern id="floorgrain" width="112" height="45" patternUnits="userSpaceOnUse"><path d="M0 0 H112 M56 0 L77 45" fill="none" stroke="#82624c" stroke-width="1" opacity=".11"/></pattern>
+</defs>
+<!-- Atmosfera aconchegante e paredes bege da foto -->
+<rect width="1200" height="650" fill="url(#wall)"/><rect width="1200" height="650" fill="url(#wallgrain)"/>
+<path d="M0 0 H1200 V120 L970 100 L740 45 L505 0Z" fill="#211d21" opacity=".3"/>
+<path d="M250 -40 L392 -20 L524 298 L420 314Z" fill="url(#beam)"/>
+<path d="M382 -12 L416 -12 L516 242 L490 260Z" fill="#433c35" opacity=".7"/>
+<path d="M0 438 Q315 420 680 443 T1200 426 V650 H0Z" fill="#231f22" opacity=".4"/>
+<!-- luminária azul muito suave / interface digital -->
+<ellipse cx="696" cy="296" rx="420" ry="265" fill="url(#cyan)"/>
+<ellipse cx="1016" cy="344" rx="370" ry="337" fill="url(#amber)"/>
+<!-- quadro urbano à esquerda, referência da fotografia -->
+<g transform="translate(43 111) rotate(-7 120 140)">
+ <rect x="-9" y="-9" width="265" height="304" rx="4" fill="#241a1c"/>
+ <rect x="0" y="0" width="247" height="285" fill="#14283f"/>
+ <rect x="0" y="159" width="247" height="126" fill="#142e47"/>
+ <path d="M0 196 L22 189 L22 121 L51 124 L51 150 L72 150 L72 107 L91 107 L91 166 L111 166 L111 83 L132 84 L132 118 L162 112 L162 142 L185 138 L185 99 L214 108 L214 181 L247 162 V285 H0" fill="#081824"/>
+ <path d="M0 257 L22 246 L22 206 L39 206 L39 218 L67 215 L67 244 L90 238 L90 190 L114 191 L114 227 L135 230 L135 202 L168 202 L168 239 L185 225 L185 192 L211 191 L211 236 L247 219 V285 H0" fill="#213c54"/>
+ <g fill="#eeb970" opacity=".85">
+ <rect x="18" y="199" width="6" height="7"/><rect x="35" y="185" width="7" height="5"/><rect x="81" y="165" width="5" height="7"/><rect x="119" y="136" width="5" height="7"/><rect x="127" y="158" width="5" height="4"/><rect x="148" y="180" width="5" height="8"/><rect x="179" y="164" width="6" height="10"/><rect x="217" y="198" width="5" height="10"/><rect x="199" y="138" width="7" height="6"/><rect x="90" y="225" width="6" height="4"/>
+ </g><path d="M0 228 Q52 212 90 234 Q146 251 247 218" fill="none" stroke="#e1ba89" stroke-width="1.5" opacity=".6"/>
+ <rect x="0" y="0" width="247" height="285" fill="none" stroke="#604a42" stroke-width="4"/>
+</g>
+<!-- Pequenas fotos presas na parede -->
+<g transform="translate(325 200) rotate(9)">
+ <rect width="78" height="92" rx="3" fill="#ddd4be"/><rect x="7" y="7" width="64" height="66" fill="#68513e"/><path d="M7 73 L36 36 L48 58 L71 22 V73Z" fill="#a58864"/><rect x="29" y="-5" width="24" height="12" fill="#cfae7a" opacity=".75"/>
+</g>
+<!-- Prateleiras à direita -->
+<path d="M917 218 L1196 215 L1196 236 L912 239Z" fill="#5a372b"/><path d="M919 215 H1200 V224 H915" fill="#bd8354"/>
+<path d="M872 320 L1200 322 V343 L868 341Z" fill="#58392a"/><path d="M868 320 H1200 V329 H870" fill="#b98051"/>
+<path d="M958 411 L1200 405 V424 L955 431Z" fill="#684532"/><path d="M958 409 L1200 400 V407 L960 419Z" fill="#e5a96e"/>
+<!-- livros e caixas -->
+<g opacity=".95">
+ <rect x="1008" y="164" width="30" height="50" rx="2" fill="#3e302b"/><rect x="1040" y="177" width="23" height="37" fill="#ad8a64"/>
+ <rect x="1081" y="157" width="9" height="58" fill="#c9ae86"/><rect x="1094" y="165" width="13" height="50" fill="#654634"/><rect x="1111" y="174" width="17" height="41" fill="#2f3c3c"/><rect x="1134" y="163" width="10" height="52" fill="#a47856"/>
+ <rect x="932" y="265" width="11" height="53" fill="#a8764b"/><rect x="946" y="275" width="13" height="43" fill="#d2ac76"/><rect x="962" y="271" width="16" height="47" fill="#454c4b"/><rect x="988" y="294" width="25" height="24" fill="#816451"/>
+ <rect x="1069" y="269" width="90" height="44" rx="3" fill="#232c33"/><circle cx="1111" cy="294" r="12" fill="#111a21" stroke="#84745c" stroke-width="2"/>
+</g>
+<!-- planta na prateleira -->
+<g>
+<path d="M1047 212 L1084 212 L1078 239 L1053 239Z" fill="#a4774d"/>
+<path d="M1065 212 Q1034 178 1030 143 M1065 213 Q1082 168 1123 149 M1065 215 Q1085 188 1080 111 M1065 208 Q1013 193 1006 177" fill="none" stroke="#233c2a" stroke-width="5"/>
+<g fill="#324d31"><ellipse cx="1036" cy="161" rx="11" ry="27" transform="rotate(-38 1036 161)"/><ellipse cx="1092" cy="163" rx="14" ry="32" transform="rotate(30 1092 163)"/><ellipse cx="1073" cy="133" rx="12" ry="28" transform="rotate(-14 1073 133)"/><ellipse cx="1008" cy="185" rx="19" ry="9" transform="rotate(30 1008 185)"/><ellipse cx="1124" cy="150" rx="9" ry="24" transform="rotate(42 1124 150)"/></g>
+<g fill="#607b45" opacity=".76"><ellipse cx="1050" cy="162" rx="5" ry="16" transform="rotate(-33 1050 162)"/><ellipse cx="1087" cy="143" rx="6" ry="19" transform="rotate(22 1087 143)"/></g>
+</g>
+<!-- luminaria linear quente atrás das telas -->
+<rect x="782" y="442" width="408" height="13" rx="6" fill="#e7a55a" opacity=".32"/>
+<rect x="778" y="435" width="422" height="7" rx="3" fill="#ffe8b2"/>
+<path d="M780 438 L1200 438 V481 H782Z" fill="#f3bd74" opacity=".1"/>
+<!-- mesa de madeira; tampo e estrutura -->
+<path d="M428 475 L1200 457 V511 L410 533Z" fill="url(#desk)"/>
+<path d="M432 474 L1200 457 V468 L418 492Z" fill="#f1ba79" opacity=".75"/>
+<path d="M446 533 L1194 510 V650 H440Z" fill="#251d20" opacity=".75"/>
+<path d="M453 524 L1191 501" stroke="#b37a4f" stroke-width="3" opacity=".35"/>
+<!-- monitor secundário -->
+<g transform="translate(515 275) rotate(2 123 92)">
+ <rect x="-8" y="-8" width="269" height="200" rx="11" fill="#0a111a" stroke="#3c5260" stroke-width="6"/>
+ <rect x="5" y="5" width="242" height="172" rx="2" fill="url(#screen)"/>
+ <rect x="18" y="19" width="67" height="8" rx="3" fill="#315f87"/><rect x="98" y="19" width="100" height="8" rx="3" fill="#263a50"/>
+ <g fill="#64bfdf" opacity=".75"><rect x="24" y="41" width="78" height="4" rx="2"/><rect x="52" y="66" width="124" height="4" rx="2"/><rect x="24" y="92" width="169" height="4" rx="2"/><rect x="65" y="121" width="117" height="4" rx="2"/><rect x="37" y="144" width="182" height="4" rx="2"/></g>
+ <g fill="#a5a0bd" opacity=".65"><rect x="23" y="53" width="147" height="3"/><rect x="39" y="78" width="196" height="3"/><rect x="42" y="106" width="144" height="3"/><rect x="23" y="132" width="194" height="3"/></g>
+ <path d="M123 194 V214 L95 222 H155 L129 214V194" fill="#111a20"/><rect x="89" y="221" width="72" height="8" rx="3" fill="#151f27"/>
+</g>
+<!-- principal monitor com código -->
+<g transform="translate(801 249) rotate(-3 130 116)">
+ <rect x="-9" y="-9" width="310" height="226" rx="11" fill="#090d12" stroke="#353b43" stroke-width="7"/>
+ <rect x="6" y="6" width="280" height="196" fill="url(#screen)"/>
+ <rect x="6" y="6" width="280" height="18" fill="#24394a"/><circle cx="20" cy="15" r="3" fill="#d8a37a"/><circle cx="33" cy="15" r="3" fill="#789b91"/><circle cx="46" cy="15" r="3" fill="#6593cb"/>
+ <rect x="16" y="33" width="49" height="157" fill="#142638"/><g stroke="#29485d" stroke-width="2"><path d="M24 44 H57 M24 58 H57 M24 72 H51 M24 86 H57 M24 99 H51 M24 112 H57 M24 126 H45 M24 143 H57 M24 160 H51"/></g>
+ <g stroke-linecap="round" stroke-width="3.2">
+ <path d="M82 42 H137 M149 42 H198 M89 58 H159 M168 58 H229 M82 74 H181 M191 74 H245" stroke="#79bed8"/>
+ <path d="M107 90 H155 M168 90 H243 M82 108 H174 M182 108 H212 M109 125 H200 M211 125 H256" stroke="#a2a2d2"/>
+ <path d="M87 141 H151 M167 141 H246 M91 158 H184 M198 158 H241" stroke="#e6b77b"/>
+ <path d="M81 175 H169 M182 175 H231" stroke="#88c6ab"/>
+ </g>
+ <path d="M132 217 V234 L98 241 H173 L143 233V217" fill="#131a21"/><rect x="89" y="240" width="89" height="9" rx="4" fill="#1e2932"/>
+</g>
+<!-- black office chair foreground, common to reference -->
+<g opacity=".96">
+<path d="M638 435 Q608 420 597 451 L570 593 Q571 624 598 633 L719 633 Q750 622 739 590 L719 456 Q712 428 687 430Z" fill="#141419" stroke="#393639" stroke-width="8"/>
+<path d="M637 445 Q612 441 610 461 L587 587 Q603 611 646 610 L697 609 Q722 596 713 571 L702 456 Q696 441 681 444Z" fill="#1e2023"/>
+<path d="M578 533 Q535 525 526 551 L536 568 L593 573" fill="none" stroke="#15191b" stroke-width="15"/>
+<path d="M730 538 Q761 533 790 553 L781 569 L721 576" fill="none" stroke="#16191c" stroke-width="16"/>
+</g>
+<!-- floor, baixo contraste para cards -->
+<path d="M0 570 Q296 536 460 550 L1200 536 V650 H0Z" fill="url(#floor)" opacity=".93"/><path d="M0 570 Q296 536 460 550 L1200 536 V650 H0Z" fill="url(#floorgrain)"/>
+<!-- discreta luz azul da identidade -->
+<path d="M0 627 H1200" stroke="#62c7e5" stroke-width="2" opacity=".28"/>
+<path d="M12 17 H73 M12 17 V80 M1188 17 H1127 M1188 17 V80 M12 633 H72 M12 633 V580 M1188 633 H1128 M1188 633 V580" stroke="#86cbe8" stroke-width="2" opacity=".5" fill="none"/>
+</svg>

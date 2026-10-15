@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>JARVIS — Sistema Cognitivo Operacional</title>
+  <title>Gênesis | Zero</title>
   <style>
     /* Estética Anthropic Claude Desktop / Claude Code */
     :root {
@@ -357,7 +357,7 @@
       <div>
         <div class="brand">
           <div class="brand-icon" aria-hidden="true">J</div>
-          <div class="brand-name">JARVIS</div>
+          <div class="brand-name">GÊNESIS</div>
         </div>
 
         <nav class="nav-group" aria-label="Navegação principal">
@@ -370,7 +370,7 @@
 
       <div class="sidebar-status" role="status" aria-live="polite">
         <span class="status-dot" aria-hidden="true"></span>
-        <span>JARVIS Operacional</span>
+        <span>ZERO / Sistema Gênesis</span>
       </div>
     </aside>
 
@@ -384,16 +384,16 @@
         </div>
       </header>
 
-      <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-atomic="false" aria-label="Conversa com o JARVIS" tabindex="0">
+      <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-atomic="false" aria-label="Conversa com Zero" tabindex="0">
         <div class="msg-group assistant">
-          <div class="msg-author">JARVIS</div>
+          <div class="msg-author">ZERO</div>
           <div class="msg-content">Olá. O sistema está operacional com todos os módulos, análise topológica Graphify, busca web e voz local ativos. Como posso ajudar?</div>
         </div>
       </div>
 
       <div class="composer-container">
         <div class="composer-wrapper">
-          <label for="composerInput" class="sr-only">Mensagem para o JARVIS</label>
+          <label for="composerInput" class="sr-only">Mensagem para Zero</label>
           <textarea id="composerInput" class="composer-textarea" placeholder="Envie uma mensagem ou solicite uma análise..." rows="1"></textarea>
           <div class="composer-controls">
             <div class="quick-tools" role="group" aria-label="Ferramentas rápidas">
@@ -448,8 +448,8 @@
         body: JSON.stringify({ texto: text })
       })
       .then(r => r.json())
-      .then(d => appendMsg('assistant', 'JARVIS', d.resposta || d.mensagem || 'Comando executado.'))
-      .catch(e => appendMsg('assistant', 'JARVIS', 'Erro: ' + e.message));
+      .then(d => appendMsg('assistant', 'ZERO', d.resposta || d.mensagem || 'Comando executado.'))
+      .catch(e => appendMsg('assistant', 'ZERO', 'Erro: ' + e.message));
     }
 
     function appendMsg(role, author, text) {
@@ -471,26 +471,26 @@
       appendMsg('user', 'Você', 'Executar análise Graphify.');
       apiFetch('/api/graphify/estruturar?titulo=Projeto_JARVIS&descricao=Topologia', { method: 'POST' })
       .then(r => r.json())
-      .then(d => appendMsg('assistant', 'JARVIS', d.resultado?.resumo_topologico_ptbr || 'Análise Graphify gerada.'));
+      .then(d => appendMsg('assistant', 'ZERO', d.resultado?.resumo_topologico_ptbr || 'Análise Graphify gerada.'));
     }
 
     function runWebSearch() {
       appendMsg('user', 'Você', 'Pesquisar na web.');
       apiFetch('/api/web/pesquisar?q=JARVIS+AI')
       .then(r => r.json())
-      .then(d => appendMsg('assistant', 'JARVIS', `Pesquisa web concluída. ${d.total_fontes_encontradas || 0} fontes consultadas.`));
+      .then(d => appendMsg('assistant', 'ZERO', `Pesquisa web concluída. ${d.total_fontes_encontradas || 0} fontes consultadas.`));
     }
 
     function runVoice() {
-      apiFetch('/api/voz/falar?texto=JARVIS+online', { method: 'POST' })
+      apiFetch('/api/voz/falar?texto=Zero+online', { method: 'POST' })
       .then(r => r.json())
-      .then(() => appendMsg('assistant', 'JARVIS', 'Áudio de voz gerado localmente.'));
+      .then(() => appendMsg('assistant', 'ZERO', 'Áudio de voz gerado localmente.'));
     }
 
     function runAutoEvolution() {
       apiFetch('/api/modulos/autoevolucao/ciclo', { method: 'POST' })
       .then(r => r.json())
-      .then(() => appendMsg('assistant', 'JARVIS', 'Ciclo de autoevolução executado.'));
+      .then(() => appendMsg('assistant', 'ZERO', 'Ciclo de autoevolução executado.'));
     }
 
     let lastFocusBeforeModal = null;
@@ -544,7 +544,7 @@
 
     function clearStream() {
       document.getElementById('chatStream').innerHTML = '';
-      appendMsg('assistant', 'JARVIS', 'Chat limpo.');
+      appendMsg('assistant', 'ZERO', 'Chat limpo.');
     }
   </script>
 </body>

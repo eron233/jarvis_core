@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">Gênesis, símbolo Zero</title>
+  <defs>
+    <linearGradient id="arc" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#23618c"/>
+      <stop offset=".45" stop-color="#5ac6f5"/>
+      <stop offset="1" stop-color="#d0f5ff"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round">
+    <circle cx="128" cy="128" r="91" stroke="#173d56" stroke-width="6" opacity=".78"/>
+    <path d="M190 50 A100 100 0 1 0 214 163" stroke="url(#arc)" stroke-width="16"/>
+    <path d="M91 41 A90 90 0 0 1 213 127" stroke="#8bdafa" stroke-width="5" opacity=".9"/>
+    <path d="M190 76 A77 77 0 1 1 70 178" stroke="#357ea5" stroke-width="7" opacity=".88"/>
+    <path d="M158 88 A47 47 0 1 0 164 163" stroke="#d8f7ff" stroke-width="3" opacity=".8"/>
+  </g>
+  <circle cx="194" cy="51" r="7" fill="#e0f7ff"/>
+</svg>

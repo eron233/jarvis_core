@@ -808,6 +808,41 @@ def create_app(
         tools = runtime.tool_developer_engine.list_developed_tools()
         return {"mensagem": "Ferramentas recuperadas com sucesso.", "ferramentas": tools}
 
+    # --- Capability Foundry (planejamento seguro e editor FFmpeg restrito) ---
+
+    @app.get("/api/foundry/capacidades", dependencies=[Depends(require_trusted_device)])
+    def foundry_list_capabilities(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return {"capacidades": runtime.capability_foundry.list_capabilities()}
+
+    @app.post("/api/foundry/planejar", dependencies=[Depends(require_trusted_device)])
+    def foundry_plan_capability(
+        request: Request,
+        pedido: str = Body(..., embed=True),
+        capacidade: str | None = Body(default=None, embed=True),
+    ) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.capability_foundry.plan(pedido, capacidade)
+
+    @app.post("/api/foundry/video/cortar", dependencies=[Depends(require_trusted_device)])
+    def foundry_trim_video(
+        request: Request,
+        arquivo_origem: str = Body(...),
+        arquivo_saida: str = Body(...),
+        inicio_segundos: float = Body(...),
+        duracao_segundos: float = Body(...),
+        aprovado: bool = Body(default=False),
+    ) -> Dict[str, Any]:
+        """Acao explicitamente autorizada, dentro do workspace, sem overwrite."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.capability_foundry.trim_video(
+            arquivo_origem,
+            arquivo_saida,
+            inicio_segundos,
+            duracao_segundos,
+            approved=aprovado,
+        )
+
     @app.get("/api/modulos/conhecimento", dependencies=[Depends(require_trusted_device)])
     def search_knowledge_base(request: Request, q: str = Query(default="")) -> Dict[str, Any]:
         """Módulo 3: Consulta base de conhecimento comprimida."""
@@ -1022,22 +1057,32 @@ def create_app(
 
     @app.post("/api/seguranca/caca-vulnerabilidades/campanha", dependencies=[Depends(require_trusted_device)])
     def execute_vulnerability_hunting_campaign(request: Request, nome_alvo: str = Query(min_length=1), caminho_alvo: str = Query(default="src")) -> Dict[str, Any]:
-        """Executa campanha de caça a vulnerabilidades (Zero-Days) com sub-agentes e auto-evolução de ferramentas."""
+        """Registra proposta, sem afirmar scanner/fuzzer ou achados nao executados."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.vulnerability_hunter.execute_hunting_campaign(
             target_name=nome_alvo,
             target_codebase_path=caminho_alvo,
         )
-        return {"mensagem": "Campanha de caça a vulnerabilidades concluída com sucesso.", "relatorio_campanha": res}
+        return {"mensagem": "Consulte status do relatorio; sem scanner real, a campanha nao e executada.", "relatorio_campanha": res}
+
+    @app.get("/api/seguranca/guardian/estado", dependencies=[Depends(require_trusted_device)])
+    def get_guardian_defender_state(request: Request) -> Dict[str, Any]:
+        """Consulta pontual, somente leitura, do estado e historico do Defender."""
+        runtime = _ensure_runtime_initialized(request)
+        report = runtime.guardian.observe()
+        return {
+            "mensagem": "Consulta defensiva somente leitura; nenhum malware foi escaneado pelo JARVIS.",
+            "guardian": report,
+        }
 
     @app.post("/api/web/scrapegraph/extrair", dependencies=[Depends(require_trusted_device)])
-    def extract_structured_scrapegraph(request: Request, url: str = Query(min_length=1), html: str = Body(...), schema: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    def extract_structured_scrapegraph(request: Request, url: str = Query(min_length=1), html: str = Body(...), extraction_schema: Dict[str, Any] = Body(..., alias="schema")) -> Dict[str, Any]:
         """Executa extração estruturada real via schema JSON-CSS do Crawl4AI."""
         runtime = _ensure_runtime_initialized(request)
         res = runtime.scrapegraph_engine.extract_structured_graph(
             target_url=url,
             html_content=html,
-            extraction_schema=schema,
+            extraction_schema=extraction_schema,
         )
         return {
             "mensagem": "Extração estruturada processada; consulte o campo status.",
@@ -1067,6 +1112,287 @@ def create_app(
             "relatorio_alcance": res,
         }
 
+    # --- Endpoints de Inferencia Local ---
+
+    @app.get("/api/inferencia/status", dependencies=[Depends(require_trusted_device)])
+    def inference_status(
+        request: Request,
+        probe: bool = Query(default=False),
+        consultar_externo: bool = Query(default=False),
+    ) -> Dict[str, Any]:
+        """Probe de FreeLLMAPI exige opt-in distinto do probe local."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.inference_router.status(
+            probe=probe, probe_external=consultar_externo
+        )
+
+    @app.post("/api/inferencia/chat", dependencies=[Depends(require_trusted_device)])
+    def inference_chat(
+        request: Request,
+        messages: list[Dict[str, Any]] = Body(...),
+        tier: str = Query(default="general"),
+        capacidade: Optional[str] = Query(default=None),
+        provider: Optional[str] = Query(default=None),
+        modelo: Optional[str] = Query(default=None),
+        permitir_externo: bool = Query(default=False),
+        classificacao: str = Query(default="private", pattern="^(private|public)$"),
+    ) -> Dict[str, Any]:
+        """Inferencia local; envio ao FreeLLMAPI exige opt-in + dados publicos."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.inference_router.chat(
+            messages=messages,
+            tier=tier,
+            capability=capacidade,
+            provider=provider,
+            explicit_model=modelo,
+            allow_external=permitir_externo,
+            data_classification=classificacao,
+        )
+
+    @app.post("/api/inferencia/benchmark", dependencies=[Depends(require_trusted_device)])
+    def inference_benchmark(
+        request: Request,
+        prompts: list[str] = Body(...),
+        repeticoes: int = Query(default=1, ge=1, le=5),
+        tier: str = Query(default="general"),
+        capacidade: Optional[str] = Query(default=None),
+        provider: Optional[str] = Query(default=None),
+        modelo: Optional[str] = Query(default=None),
+        permitir_externo: bool = Query(default=False),
+        classificacao: str = Query(default="private", pattern="^(private|public)$"),
+    ) -> Dict[str, Any]:
+        """Benchmark sem egresso externo implicito nem execucao ficticia."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.inference_router.benchmark_model(
+            prompts=prompts,
+            repetitions=repeticoes,
+            tier=tier,
+            capability=capacidade,
+            provider=provider,
+            explicit_model=modelo,
+            allow_external=permitir_externo,
+            data_classification=classificacao,
+        )
+
+    # --- Endpoints MCP Oficial ---
+
+    @app.post("/api/rea/inspecionar", dependencies=[Depends(require_trusted_device)])
+    def rea_inspect_static(
+        request: Request,
+        caminho: str = Body(...),
+        tipo: str = Body(...),
+        aprovado: bool = Body(default=False),
+    ) -> Dict[str, Any]:
+        """Analise estatica opcional; exige aprovacao pois o REA nao e sandbox."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.rea_investigator.inspect_static(caminho, tipo, approved=aprovado)
+
+    @app.get("/api/mcp/status", dependencies=[Depends(require_trusted_device)])
+    def mcp_status(request: Request) -> Dict[str, Any]:
+        """Mostra servidores MCP cadastrados e o estado do SDK oficial."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.status()
+
+    @app.get("/api/mcp/{server_name}/discover", dependencies=[Depends(require_trusted_device)])
+    def mcp_discover(request: Request, server_name: str) -> Dict[str, Any]:
+        """Descobre tools/resources/prompts sem conceder permissão de execução."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.discover(server_name)
+
+    @app.post("/api/mcp/{server_name}/tools/{tool_name}", dependencies=[Depends(require_trusted_device)])
+    def mcp_call_tool(
+        request: Request,
+        server_name: str,
+        tool_name: str,
+        arguments: Dict[str, Any] | None = Body(default=None),
+    ) -> Dict[str, Any]:
+        """Executa apenas tools explicitamente autorizadas no registro MCP."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.call_tool(
+            server_name,
+            tool_name,
+            arguments=arguments or {},
+        )
+
+    @app.get("/api/mcp/{server_name}/resource", dependencies=[Depends(require_trusted_device)])
+    def mcp_read_resource(
+        request: Request,
+        server_name: str,
+        uri: str = Query(min_length=1),
+    ) -> Dict[str, Any]:
+        """Lê somente resources explicitamente autorizados."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.read_resource(server_name, uri)
+
+    @app.post("/api/mcp/{server_name}/prompt/{prompt_name}", dependencies=[Depends(require_trusted_device)])
+    def mcp_get_prompt(
+        request: Request,
+        server_name: str,
+        prompt_name: str,
+        arguments: Dict[str, str] | None = Body(default=None),
+    ) -> Dict[str, Any]:
+        """Obtém somente prompts explicitamente autorizados."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.mcp_manager.get_prompt(
+            server_name,
+            prompt_name,
+            arguments=arguments or {},
+        )
+
+    # --- Endpoints de Inteligencia Estrutural do Codigo ---
+
+    @app.get("/api/codebase/status", dependencies=[Depends(require_trusted_device)])
+    def codebase_status(request: Request) -> Dict[str, Any]:
+        """Mostra o backend estrutural local/externo e seu estado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.status()
+
+    @app.post("/api/codebase/indexar", dependencies=[Depends(require_trusted_device)])
+    def codebase_index(
+        request: Request,
+        preferir_externo: bool = Query(default=True),
+    ) -> Dict[str, Any]:
+        """Indexa o repositório atual; backend externo só roda quando explicitamente habilitado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.index(prefer_external=preferir_externo)
+
+    @app.get("/api/codebase/arquitetura", dependencies=[Depends(require_trusted_device)])
+    def codebase_architecture(
+        request: Request,
+        preferir_externo: bool = Query(default=True),
+    ) -> Dict[str, Any]:
+        """Retorna visão estrutural do código baseada em grafo real."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.architecture(
+            prefer_external=preferir_externo
+        )
+
+    @app.get("/api/codebase/buscar", dependencies=[Depends(require_trusted_device)])
+    def codebase_search(
+        request: Request,
+        q: str = Query(min_length=1),
+        limite: int = Query(default=30, ge=1, le=200),
+        preferir_externo: bool = Query(default=True),
+    ) -> Dict[str, Any]:
+        """Busca símbolos/estruturas no grafo do código."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.search(
+            q,
+            limit=limite,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/codebase/rastrear", dependencies=[Depends(require_trusted_device)])
+    def codebase_trace(
+        request: Request,
+        simbolo: str = Query(min_length=1),
+        direcao: str = Query(default="both"),
+        profundidade: int = Query(default=3, ge=1, le=5),
+        preferir_externo: bool = Query(default=True),
+    ) -> Dict[str, Any]:
+        """Rastreia callers/callees com evidência estrutural."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.trace(
+            simbolo,
+            direction=direcao,
+            depth=profundidade,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/codebase/impacto", dependencies=[Depends(require_trusted_device)])
+    def codebase_impact(
+        request: Request,
+        simbolo: str = Query(min_length=1),
+        profundidade: int = Query(default=3, ge=1, le=5),
+    ) -> Dict[str, Any]:
+        """Calcula dependências inbound observadas sem inventar risco."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.impact(
+            simbolo,
+            depth=profundidade,
+        )
+
+    @app.get("/api/codebase/snippet", dependencies=[Depends(require_trusted_device)])
+    def codebase_snippet(
+        request: Request,
+        simbolo: str = Query(min_length=1),
+    ) -> Dict[str, Any]:
+        """Lê somente o trecho-fonte do símbolo estrutural encontrado."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.codebase_intelligence_engine.snippet(simbolo)
+
+    # --- Endpoints de Governanca de Contexto de Desenvolvimento ---
+
+    @app.get("/api/dev-context/status", dependencies=[Depends(require_trusted_device)])
+    def development_context_status(request: Request) -> Dict[str, Any]:
+        """Mostra baseline local, backend Graft e limiares de leitura."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.status()
+
+    @app.get("/api/dev-context/read", dependencies=[Depends(require_trusted_device)])
+    def development_context_read(
+        request: Request,
+        path: str = Query(min_length=1),
+        session_id: str = Query(default="default"),
+        session_depth: str = Query(default="unknown"),
+        budget_remaining: Optional[int] = Query(default=None, ge=0),
+        intent: Optional[str] = Query(default=None),
+        preferir_externo: Optional[bool] = Query(default=None),
+    ) -> Dict[str, Any]:
+        """Le um arquivo sob politica de contexto; arquivos grandes viram outline."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.safe_read(
+            path,
+            session_id=session_id,
+            session_depth=session_depth,
+            budget_remaining=budget_remaining,
+            intent=intent,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/dev-context/outline", dependencies=[Depends(require_trusted_device)])
+    def development_context_outline(
+        request: Request,
+        path: str = Query(min_length=1),
+        session_id: str = Query(default="default"),
+        preferir_externo: Optional[bool] = Query(default=None),
+    ) -> Dict[str, Any]:
+        """Retorna a estrutura do arquivo sem despejar o corpo inteiro."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.file_outline(
+            path,
+            session_id=session_id,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/dev-context/range", dependencies=[Depends(require_trusted_device)])
+    def development_context_range(
+        request: Request,
+        path: str = Query(min_length=1),
+        inicio: int = Query(ge=1),
+        fim: int = Query(ge=1),
+        session_id: str = Query(default="default"),
+        preferir_externo: Optional[bool] = Query(default=None),
+    ) -> Dict[str, Any]:
+        """Le somente um intervalo limitado de linhas."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.read_range(
+            path,
+            inicio,
+            fim,
+            session_id=session_id,
+            prefer_external=preferir_externo,
+        )
+
+    @app.get("/api/dev-context/session/{session_id}", dependencies=[Depends(require_trusted_device)])
+    def development_context_session(
+        request: Request,
+        session_id: str,
+    ) -> Dict[str, Any]:
+        """Expõe recibos cumulativos do baseline local para auditoria."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.development_context_engine.session_status(session_id)
+
     # --- Endpoints de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e WebSocket Feed ---
 
     @app.post("/api/corporativo/despachar", dependencies=[Depends(require_trusted_device)])
@@ -1081,6 +1407,42 @@ def create_app(
         )
         return {"mensagem": "Tarefa corporativa roteada. A execucao ainda nao foi realizada.", "relatorio_dispatch": res}
 
+    # --- Agencia de especialistas, somente inferencia textual local ---
+
+    @app.get("/api/agencia/especialistas", dependencies=[Depends(require_trusted_device)])
+    def agency_specialists(request: Request) -> Dict[str, Any]:
+        """Perfis originais e limites operacionais da agencia."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.agent_agency.specialists()
+
+    @app.post("/api/agencia/planejar", dependencies=[Depends(require_trusted_device)])
+    def agency_plan(
+        request: Request,
+        objetivo: str = Body(...),
+        especialidade: str = Body(default="engenharia"),
+        criterios: Optional[list[str]] = Body(default=None),
+    ) -> Dict[str, Any]:
+        """Previsualiza delegacao sem chamar modelos e sem executar ferramentas."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.agent_agency.plan(
+            goal=objetivo, discipline=especialidade, criteria=criterios,
+        )
+
+    @app.post("/api/agencia/executar", dependencies=[Depends(require_trusted_device)])
+    def agency_execute(
+        request: Request,
+        objetivo: str = Body(...),
+        especialidade: str = Body(default="engenharia"),
+        criterios: Optional[list[str]] = Body(default=None),
+        aprovado: bool = Body(default=False),
+    ) -> Dict[str, Any]:
+        """Opt-in de execucao de ate tres chamadas locais, sem tool calls."""
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.agent_agency.execute(
+            goal=objetivo, discipline=especialidade, criteria=criterios,
+            approved=aprovado,
+        )
+
     @app.get("/api/corporativo/status", dependencies=[Depends(require_trusted_device)])
     def get_corporate_hierarchy_status(request: Request) -> Dict[str, Any]:
         """Retorna o status dos departamentos e sub-agentes corporativos (ativos vs hibernados)."""
@@ -1089,7 +1451,7 @@ def create_app(
 
     @app.get("/api/cache/semantico/estatisticas", dependencies=[Depends(require_trusted_device)])
     def get_semantic_cache_stats(request: Request) -> Dict[str, Any]:
-        """Retorna estatísticas do cache semântico local e estimativa de tokens economizados."""
+        """Retorna métricas observadas do cache exato e do backend vetorial opcional."""
         runtime = _ensure_runtime_initialized(request)
         return runtime.semantic_cache_engine.get_stats()
 

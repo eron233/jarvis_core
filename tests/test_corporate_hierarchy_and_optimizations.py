@@ -77,7 +77,8 @@ class TestCorporateHierarchyAndOptimizations(unittest.TestCase):
         # Cache Miss
         self.assertIsNone(self.semantic_cache.get(query, domain="system"))
 
-        # Put Cache
+        # Put Cache. O parametro legado e aceito por compatibilidade, mas
+        # nao pode virar uma alegacao de economia sem medicao real.
         self.semantic_cache.put(query, response_payload, domain="system", tokens_saved_estimate=300)
 
         # Cache Hit (Exato)
@@ -87,7 +88,8 @@ class TestCorporateHierarchyAndOptimizations(unittest.TestCase):
 
         stats = self.semantic_cache.get_stats()
         self.assertEqual(stats["total_hits_acumulados"], 1)
-        self.assertEqual(stats["estimativa_tokens_economizados"], 300)
+        self.assertEqual(stats["hits_exatos"], 1)
+        self.assertNotIn("estimativa_tokens_economizados", stats)
 
     def test_git_branch_patcher_engine(self):
         patch_res = self.git_patcher.prepare_patch_for_review(

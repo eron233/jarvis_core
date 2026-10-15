@@ -1,6 +1,6 @@
 # JARVIS Experimental Twin — Arquitetura de Segurança e Melhoria Contínua
 
-**Status:** projeto arquitetural em `dev`  
+**Status:** arquitetura + executor Tier 2 experimental em `dev`  
 **Data:** 2026-10-07
 
 ## 1. Mudança de conceito
@@ -199,7 +199,7 @@ A recomendação pode estar errada; os artefatos precisam permitir que um humano
 
 ## 6. Isolamento por risco
 
-O `runtime/tool_developer_engine.py` atual usa subprocesso e timeout, porém isso **não é sandbox forte**: ele herda grande parte do ambiente do processo e não constitui fronteira suficiente para código não confiável.
+**Estado de segurança após a correção P0:** o `runtime/tool_developer_engine.py` não executa mais código ao validar ferramentas geradas. A API legada `execute_tool_in_sandbox` agora retorna `bloqueado_por_seguranca` sem iniciar processo. Isso é uma contenção temporária e significa que **execução de ferramentas geradas está indisponível**, não que um novo sandbox seguro foi implementado. O executor futuro precisa de isolamento real de filesystem, rede, credenciais e recursos, além de teste no host alvo. O motor de micro-sandbox existente, baseado em AST + limites de processo, também não deve ser considerado uma fronteira de segurança forte.
 
 Arquitetura alvo:
 
@@ -209,6 +209,58 @@ Arquitetura alvo:
 4. **Tier 3 — VM/Windows Sandbox/microVM:** código gerado, dependências desconhecidas ou experimento de segurança com risco maior.
 
 Candidatos de infraestrutura: MXC para políticas portáveis, containers/WSL2 para rotina e VM/Windows Sandbox para isolamento forte. Wasmtime/WASI pode ser usado quando uma ferramenta puder ser empacotada como WebAssembly.
+
+### Executor de containers (primeiro bloco executável)
+
+Foi integrado `security/container_executor.py` ao cadastro de ferramentas do
+`ToolDeveloperEngine`. Isto é um **executor Tier 2 para Linux**, nao um
+gêmeo experimental completo, nem uma VM. O comando legado
+`execute_tool_in_sandbox` permanece compatível, mas o fallback de
+subprocesso sem isolamento nunca é retomado.
+
+**O padrão é recusar execução.** Para habilitar deliberadamente no Linux,
+o operador precisa provisionar Docker local, carregar previamente uma
+imagem de Python auditada e indicar o digest imutável:
+
+```env
+JARVIS_TWIN_DOCKER_ENABLED=true
+JARVIS_TWIN_DOCKER_IMAGE=python:3.11-alpine@sha256:<digest-real-de-64-hex>
+```
+
+O digest acima é apenas um exemplo de formato, **não é um valor real pronto**.
+O executor não faz pull remoto (`--pull never`), não aceita tag mutável
+e exige socket Unix local em `/var/run/docker.sock`. Windows nativo e
+Docker Desktop via named pipe permanecem desativados até validação própria;
+o uso em WSL2 exige um host Linux separado e validação operacional.
+
+**Controles impostos:**
+
+- Docker conectado somente ao socket Unix local, com configuração de cliente
+  temporária e ambiente allowlist, sem repassar variáveis do processo JARVIS;
+- nenhum diretório do host montado, nenhum Docker socket passado ao container;
+- `--network none`, `--read-only`, usuário não-root (`65534`);
+- todas as capabilities removidas, `no-new-privileges` e seccomp builtin;
+- memória 256 MB, pids 32, CPU 1, tmpfs temporário de 16 MB;
+- entrada JSON limitada, saída capturada com teto de 64 KiB, tempo de
+  execução de 1 a 30 s e remoção forçada do container em erro/timeout.
+
+**Contrato de verdade:** `executado_sem_verificacao` indica apenas que o
+processo retornou dados de uma ferramenta dentro do container. O campo
+`concluido_verificado` continua sempre `false` até existir um verificador
+externo de efeito/resultado. A ferramenta nunca pode declarar que concluiu
+uma tarefa só por retornar `status: sucesso`.
+
+**Testes:** `tests/test_container_executor.py` cobre negativas, allowlist,
+limites de saída, pinning, travessia de caminhos e flags. O workflow
+`.github/workflows/twin-container.yml` executa smoke test com Docker real
+para isolamento de rede, filesystem, segredos e tratamento de erro. O runner
+puxa uma tag apenas para preparação do ambiente de teste e resolve seu digest
+antes da execução: a aplicação normal não puxa tags mutáveis.
+
+**Limites:** Docker compartilha o kernel com o host. Isolamento por containers
+não fornece garantia absoluta contra exploração de kernel/runtime; para
+código de risco elevado, Tier 3 (VM/microVM) continua exigido. Não há promoção
+automática de artefatos nem acesso a recursos do usuário.
 
 ## 7. Loop contínuo sem loop destrutivo
 
@@ -311,4 +363,4 @@ Uma alteração que aumenta um benchmark em 5% mas dobra RAM, quebra pt-BR ou re
 
 ## 12. Estado desta proposta
 
-Arquitetura aprovada conceitualmente pelo direcionamento do projeto, mas ainda não implementada no runtime. A implementação deve ocorrer incrementalmente, um bloco por vez, em `dev`, com testes antes de `validado`.
+O executor Tier 2 inicial está integrado em `dev`. O gêmeo completo, os tiers adicionais, a orquestração de experimentos e os verificadores independentes ainda não estão implementados. Promoção a `validado` depende de resultados de teste.

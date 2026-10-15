@@ -78,19 +78,67 @@
       "capability": "lightweight_web_fetch",
       "component": "stdlib HTTP extractor with SSRF gate",
       "state": "validated"
+    },
+    {
+      "capability": "local_inference_runtime",
+      "component": "llama.cpp OpenAI-compatible adapter",
+      "state": "validated_optional_model_provisioning_pending"
+    },
+    {
+      "capability": "local_model_manager",
+      "component": "Ollama OpenAI-compatible adapter",
+      "state": "validated_optional_model_provisioning_pending"
+    },
+    {
+      "capability": "model_routing",
+      "component": "LocalInferenceRouter",
+      "state": "validated_no_model_selected"
+    },
+    {
+      "capability": "official_mcp_protocol",
+      "component": "Model Context Protocol Python SDK v2",
+      "state": "validated_optional_least_privilege"
+    },
+    {
+      "capability": "mcp_tool_governance",
+      "component": "OfficialMCPClientManager allowlists",
+      "state": "validated"
+    },
+    {
+      "capability": "local_code_structure_graph",
+      "component": "LocalPythonCodeGraph (AST + SQLite)",
+      "state": "validated_baseline_python"
+    },
+    {
+      "capability": "persistent_codebase_intelligence",
+      "component": "codebase-memory-mcp v0.11.0 via official MCP",
+      "state": "validated_optional_real_interop_pinned_release"
+    },
+    {
+      "capability": "code_impact_trace",
+      "component": "CodebaseIntelligenceEngine",
+      "state": "validated_evidence_only"
+    },
+    {
+      "capability": "development_context_governance",
+      "component": "LocalDevelopmentContextGovernor",
+      "state": "validated_local_evidence_only"
+    },
+    {
+      "capability": "semantic_cache",
+      "component": "Exact SHA-256 cache + optional Qdrant vector adapter",
+      "state": "validated_exact_vector_optional_model_unselected"
     }
   ],
   "high_priority_experiments": [
-    "official_mcp_python_sdk",
-    "codebase-memory-mcp",
-    "Graft_development_context",
     "Hypothesis",
     "Schemathesis",
     "Ruff",
     "Bandit",
     "OSV-Scanner",
     "py-spy",
-    "Optuna"
+    "Optuna",
+    "LiteLLM_gateway"
   ],
   "on_demand_candidates": [
     "Joern",
@@ -119,7 +167,9 @@
   "watchlist": [
     "OpenCut_headless_api_mcp",
     "Parakeet_cpp_pt_br_quality",
-    "Langfuse_vs_Phoenix_local_resource_cost"
+    "Langfuse_vs_Phoenix_local_resource_cost",
+    "flyingrobots_graft_after_git_runtime_fix",
+    "TrailHQ_Graft_context_graph_challenger"
   ],
   "integrity_blockers": [
     {
@@ -140,5 +190,125 @@
     "validado",
     "staging_when_authorized",
     "master_when_authorized"
-  ]
+  ],
+  "model_policy": {
+    "selected_base_model": null,
+    "aliases": {
+      "light": null,
+      "heavy": null,
+      "general": null,
+      "coding": null,
+      "reasoning": null
+    },
+    "rule": "No base/general/coding/reasoning model is constitutional until benchmarked on target hardware. This rule does not remove or unset specialized memory models explicitly registered in specialized_model_policy."
+  },
+  "mcp_policy": {
+    "sdk": "mcp>=2.2,<3",
+    "protocol_revision": "2026-07-28",
+    "default_client_scope": "local_only",
+    "discovery_grants_execution": false,
+    "tool_execution_requires_allowlist": true,
+    "resources_require_allowlist": true,
+    "prompts_require_allowlist": true,
+    "jarvis_server_default": "read_only",
+    "remote_http_default": false
+  },
+  "codebase_intelligence_policy": {
+    "baseline": "python_ast_local",
+    "preferred_backend": "codebase-memory-mcp",
+    "pinned_validation_release": "v0.11.0",
+    "external_auto_index_default": false,
+    "external_persistence_default": false,
+    "structural_evidence_is_not_risk_score": true,
+    "unresolved_edges_must_not_be_guessed": true,
+    "graphify_fabricated_edges_forbidden": true
+  },
+  "context_governance_policy": {
+    "baseline": "LocalDevelopmentContextGovernor",
+    "external_candidate": "flyingrobots/graft v0.14.0",
+    "external_candidate_state": "quarantined_reproducible_git_code_128_on_git_2_55",
+    "external_enabled_default": false,
+    "external_init_hooks_default": false,
+    "external_allowed_tools": [
+      "safe_read",
+      "file_outline",
+      "read_range",
+      "changed_since"
+    ],
+    "full_read_thresholds": {
+      "lines": 150,
+      "bytes": 12288
+    },
+    "session_byte_caps": {
+      "early": 20480,
+      "mid": 10240,
+      "late": 4096
+    },
+    "budget_fraction_per_read": 0.05,
+    "range_max_lines": 250,
+    "secrets_binaries_lockfiles_must_be_refused": true,
+    "receipts_measure_bytes_not_unproven_token_savings": true
+  },
+  "semantic_cache_policy": {
+    "exact_cache_without_model": true,
+    "heuristic_jaccard_as_semantic_cache": false,
+    "vector_backend": "Qdrant_optional",
+    "vector_enabled_default": false,
+    "embedding_model_selected": null,
+    "owner_or_benchmark_must_select_embedding_model": true,
+    "measured_hits_and_misses_only": true,
+    "unmeasured_token_savings_forbidden": true,
+    "does_not_override_advanced_memory_specialized_models": true
+  },
+  "specialized_model_policy": {
+    "base_model_distinction": "Specialized memory models are not the JARVIS base model and are not governed by selected_base_model=null.",
+    "removal_default": "forbidden_without_replacement_benchmark_and_memory_regression_tests",
+    "components": [
+      {
+        "component": "Qwen/Qwen3-Embedding-0.6B",
+        "role": "semantic_embedding_for_memory",
+        "used_by": [
+          "memory_system/advanced_memory.py",
+          "QdrantSemanticIndex"
+        ],
+        "purpose": "Transform memory text into vectors so Qdrant can retrieve by semantic similarity.",
+        "may_remove": false,
+        "breakage_if_removed": [
+          "advanced semantic memory indexing",
+          "semantic vector retrieval through Qdrant"
+        ],
+        "replacement_allowed_when": "A benchmark on target hardware demonstrates an equal-or-better embedding model and advanced-memory regression tests pass."
+      },
+      {
+        "component": "Qwen/Qwen3-Reranker-0.6B",
+        "role": "semantic_memory_reranking",
+        "used_by": [
+          "memory_system/advanced_memory.py",
+          "AdvancedMemoryRetriever"
+        ],
+        "purpose": "Rerank Qdrant candidates so the most relevant memories are placed first.",
+        "may_remove": false,
+        "breakage_if_removed": [
+          "advanced semantic reranking quality",
+          "hybrid memory ranking contract"
+        ],
+        "replacement_allowed_when": "A benchmark demonstrates equal-or-better reranking quality and advanced-memory regression tests pass."
+      },
+      {
+        "component": "qwen3:4b",
+        "role": "optional_mem0_llm_backend",
+        "used_by": [
+          "memory_system/advanced_memory.py",
+          "Mem0Bridge"
+        ],
+        "purpose": "Local Ollama backend used by Mem0 for extraction/consolidation of conversational long-term memory.",
+        "may_remove": false,
+        "optional_runtime_component": true,
+        "breakage_if_removed": [
+          "Mem0 conversational memory extraction/consolidation when this backend is enabled"
+        ],
+        "replacement_allowed_when": "A compatible local Mem0 backend is validated and conversational-memory regression tests pass."
+      }
+    ]
+  }
 }

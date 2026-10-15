@@ -48,18 +48,18 @@ Nenhum item B/C é tratado como inferior por definição; ele simplesmente exige
 
 | Domínio | Candidato / tecnologia | Papel no JARVIS | Classe inicial | Observação |
 |---|---|---|---|---|
-| Runtime de LLM local | **llama.cpp** | Inferência GGUF quantizada, CPU/GPU offload, servidor local | EXPERIMENTAL → provável CORE | Excelente candidato para PC fraco; modelo ainda não escolhido |
-| Gerência local de modelos | **Ollama** | Instalação/serviço/API e modelos locais | EXPERIMENTAL | Conveniência; não deve aprisionar o core |
-| Gateway multi-modelo | **LiteLLM** | Interface unificada e roteamento | EXPERIMENTAL | Útil quando houver múltiplos backends; revisar licença/overhead |
+| Runtime de LLM local | **llama.cpp** | Inferência GGUF quantizada, CPU/GPU offload, servidor local | ADAPTER VALIDADO / modelo pendente | Runtime principal de baixo nível; nenhum modelo escolhido |
+| Gerência local de modelos | **Ollama** | Instalação/serviço/API e modelos locais | ADAPTER VALIDADO / modelo pendente | Fallback/gerenciamento; core não depende dele |
+| Gateway multi-modelo | **LiteLLM** | Interface unificada, políticas e roteamento amplo | EXPERIMENTAL — próximo nível | Avaliar quando houver múltiplos provedores além dos runtimes locais |
 | Orquestração tipada | **PydanticAI** | Padrões de tools, outputs, dependências e subagentes | EXPERIMENTAL / padrões | Não substituir o planner constitucional por padrão |
-| Protocolo de ferramentas | **MCP oficial** | Integração interoperável de ferramentas/contexto | EXPERIMENTAL → provável CORE | Substitui implementações MCP simuladas |
+| Protocolo de ferramentas | **MCP Python SDK v2 oficial** | Tools/resources/prompts interoperáveis | VALIDADO opcional / least privilege | SDK 2.x, spec 2026-07-28; execução exige allowlist |
 | Memória vetorial | **Qdrant** | Índice vetorial persistente | VALIDADO | Já integrado de forma opcional |
 | Embedding | **Qwen3-Embedding 0.6B** | Representação semântica multilíngue | VALIDADO/condicional | Já integrado; validar consumo no hardware |
 | Reranking | **Qwen3-Reranker 0.6B** | Reordenação semântica | VALIDADO/condicional | Já integrado; validar consumo no hardware |
 | Memória conversacional | **Mem0 OSS** | Consolidação/recuperação de memória longa | VALIDADO/condicional | Integração opcional; backend local preferido |
 | Memória temporal/relacional | **Graphiti + FalkorDB** | Eventos, entidades, relações e validade temporal | EXPERIMENTAL | Complementa vetores; não substituir Qdrant automaticamente |
-| Conhecimento do próprio código | **codebase-memory-mcp** | Grafo persistente, call graph, impacto, rotas e consultas | EXPERIMENTAL — alta prioridade | Candidato forte para autoconsciência estrutural do código |
-| Contexto para agentes de desenvolvimento | **Graft** | Reduzir exploração repetitiva do repo por agentes | EXPERIMENTAL — dev only | Ferramenta para construir o JARVIS, não necessariamente cérebro residente |
+| Conhecimento do próprio código | **codebase-memory-mcp v0.11.0 + AST local** | Grafo persistente, call graph, impacto, rotas e consultas | VALIDADO opcional / interop real | Release pinado testado via MCP; benchmarks do autor ainda exigem reprodução no Twin |
+| Contexto para agentes de desenvolvimento | **Governor local + flyingrobots/graft v0.14.0** | Leitura mínima segura, outlines, ranges e recibos | LOCAL VALIDADO / Graft externo QUARENTENA | CLI oficial reproduziu Git code 128; adapter permanece desligado até nova prova |
 | Segurança/dataflow de código | **Joern** | Code Property Graph e análise profunda | ON_DEMAND candidato | Especializado; mais pesado que busca estrutural cotidiana |
 | Busca web privada | **SearXNG** | Metabusca local/self-hosted | ADAPTER VALIDADO / serviço opcional | JSON API; sem fonte fictícia quando indisponível |
 | Extração web | **Crawl4AI 0.9.4** | Web → Markdown/dados limpos para agentes | ADAPTER VALIDADO / backend opcional | Release de segurança; substitui scraping heurístico improvisado |

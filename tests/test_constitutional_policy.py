@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import sys
 import unittest
 
@@ -46,6 +47,37 @@ class ConstitutionalPolicyTests(unittest.TestCase):
         self.assertEqual(report["identidade"]["locale_padrao"], "pt-BR")
         self.assertEqual(len(report["principios_ativos"]), 4)
         self.assertIn("finance", report["dominios_autonomos"])
+
+    def test_specialized_memory_models_are_protected_from_base_model_policy(self) -> None:
+        """Separa modelo-base pendente dos modelos especializados da memoria."""
+
+        constitution_path = PROJECT_ROOT / "constitutional_core" / "technology_constitution.json"
+        constitution = json.loads(constitution_path.read_text(encoding="utf-8"))
+
+        self.assertIsNone(constitution["model_policy"]["selected_base_model"])
+
+        specialized = constitution["specialized_model_policy"]
+        self.assertIn("not the JARVIS base model", specialized["base_model_distinction"])
+
+        components = {
+            item["component"]: item
+            for item in specialized["components"]
+        }
+
+        for component in (
+            "Qwen/Qwen3-Embedding-0.6B",
+            "Qwen/Qwen3-Reranker-0.6B",
+            "qwen3:4b",
+        ):
+            self.assertIn(component, components)
+            self.assertFalse(components[component]["may_remove"])
+            self.assertTrue(components[component]["replacement_allowed_when"])
+
+        self.assertTrue(
+            constitution["semantic_cache_policy"][
+                "does_not_override_advanced_memory_specialized_models"
+            ]
+        )
 
     def test_validator_denies_absolutely_prohibited_task(self) -> None:
         """Garante negacao de tarefas que violam proibicoes absolutas."""

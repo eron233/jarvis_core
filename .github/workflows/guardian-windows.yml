@@ -1,0 +1,26 @@
+name: Guardian - Windows somente leitura
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "security/guardian.py"
+      - "tests/test_guardian.py"
+      - ".github/workflows/guardian-windows.yml"
+  workflow_dispatch:
+
+jobs:
+  defender-read-only:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Consultar Defender sem alterar configuracoes nem fazer scans
+        shell: pwsh
+        run: |
+          python -c "from security.guardian import Guardian; r=Guardian(timeout_seconds=25).observe(); print('Guardian status:', r['status']); print('Estado:', r['consultas']['estado']['status']); print('Historico:', r['consultas']['historico']['status']); assert r['leitura_apenas'] and not r['verificacao_antivirus_iniciada'] and r['ameacas_ativas_confirmadas'] is None and not r['maquina_livre_de_malware_confirmada']; assert r['status'] in ('consultado','parcial','indisponivel')"

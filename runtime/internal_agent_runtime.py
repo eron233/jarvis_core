@@ -75,6 +75,7 @@ class InternalAgentRuntime:
         self.device_registry: Any = None
         self.access_control: Any = None
         self.self_defense_monitor: Any = None
+        self.guardian: Any = None
         self.learning_advisor: Any = None
         self.last_self_defense_report: Dict[str, Any] | None = None
         self.cognitive_evolution_tracker: Any = None
@@ -323,6 +324,7 @@ class InternalAgentRuntime:
             # Inicializa os 6 Módulos Especializados
             from security.auto_evolution_engine import AutoEvolutionEngine
             from runtime.tool_developer_engine import ToolDeveloperEngine
+            from runtime.capability_foundry import CapabilityFoundry
             from learning.research_knowledge_engine import ResearchKnowledgeEngine
             from workers.worker_market_analysis import MarketAnalysisWorker
             from workers.worker_creative_studio import CreativeStudioWorker
@@ -330,6 +332,7 @@ class InternalAgentRuntime:
 
             self.auto_evolution_engine = AutoEvolutionEngine()
             self.tool_developer_engine = ToolDeveloperEngine()
+            self.capability_foundry = CapabilityFoundry()
             self.research_knowledge_engine = ResearchKnowledgeEngine()
             self.market_analysis_worker = MarketAnalysisWorker()
             self.creative_studio_worker = CreativeStudioWorker()
@@ -383,12 +386,14 @@ class InternalAgentRuntime:
             # Motores de Caça a Vulnerabilidades por Sub-Agentes, ScrapeGraph, Scrapling MCP e Agent Reach
             from security.subagent_tool_evolver import SubAgentToolEvolver
             from security.vulnerability_hunter import AgenticVulnerabilityHunter
+            from security.guardian import Guardian
             from learning.scrapegraph_engine import ScrapeGraphEngine
             from runtime.scrapling_mcp_engine import ScraplingMCPEngine
             from learning.agent_reach_engine import AgentReachEngine
 
             self.subagent_tool_evolver = SubAgentToolEvolver()
             self.vulnerability_hunter = AgenticVulnerabilityHunter(tool_evolver=self.subagent_tool_evolver)
+            self.guardian = self.guardian if self.guardian is not None else Guardian()
             self.scrapegraph_engine = ScrapeGraphEngine(
                 web_stack=self.web_browser_engine.web_stack,
             )
@@ -399,13 +404,34 @@ class InternalAgentRuntime:
                 web_browser_engine=self.web_browser_engine,
             )
 
-            # Motores de Hierarquia Corporativa, Cache Semântico, Git Branch Patcher e Micro-Sandbox
+            # Inferencia local + Hierarquia Corporativa, Cache, Git Patcher e Micro-Sandbox
+            from runtime.inference_stack import LocalInferenceRouter
             from runtime.corporate_agent_hierarchy import CorporateAgentHierarchyEngine
+            from runtime.agent_agency import AgentAgency
             from memory_system.semantic_cache_engine import SemanticCacheEngine
             from security.git_branch_patcher import GitBranchPatcherEngine
             from security.lightweight_sandbox_engine import UltraLightweightSandboxEngine
 
-            self.corporate_hierarchy_engine = CorporateAgentHierarchyEngine()
+            self.inference_router = LocalInferenceRouter()
+            self.agent_agency = AgentAgency(inference_router=self.inference_router)
+
+            from runtime.mcp_stack import OfficialMCPClientManager
+            self.mcp_manager = OfficialMCPClientManager()
+            from runtime.rea_integration import REAInvestigator
+            self.rea_investigator = REAInvestigator(mcp_manager=self.mcp_manager)
+
+            from learning.codebase_intelligence_engine import CodebaseIntelligenceEngine
+            from learning.development_context_engine import DevelopmentContextEngine
+            self.codebase_intelligence_engine = CodebaseIntelligenceEngine(
+                mcp_manager=self.mcp_manager,
+            )
+            self.development_context_engine = DevelopmentContextEngine(
+                mcp_manager=self.mcp_manager,
+            )
+
+            self.corporate_hierarchy_engine = CorporateAgentHierarchyEngine(
+                inference_router=self.inference_router,
+            )
             self.semantic_cache_engine = SemanticCacheEngine()
             self.git_branch_patcher_engine = GitBranchPatcherEngine()
             self.lightweight_sandbox_engine = UltraLightweightSandboxEngine()

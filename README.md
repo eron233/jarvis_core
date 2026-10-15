@@ -1,4 +1,72 @@
-# Sistema Cognitivo JARVIS
+# Gênesis / Íris
+
+**Gênesis** é o aplicativo e sistema cognitivo. **Íris** é a assistente visual
+pessoal, com identidade de androide de cabelos prateados e olhos azuis.
+O identificador interno legado JARVIS foi mantido para preservar compatibilidade
+de API, configuração e memória. Zero não é mais a identidade de interface.
+
+## Íris no Windows
+
+A branch dev gera o executável portátil no
+[workflow Windows](.github/workflows/genesis-windows-build.yml).
+Abra a execução aprovada e baixe o artefato
+**Genesis-Iris-Windows-portatil**. Extraia a pasta completa, não apenas o EXE.
+
+**Instalação para usuário final:** depois de extrair, execute
+**Instalar-Iris.cmd** voluntariamente. O instalador copia o aplicativo para
+%LOCALAPPDATA%/Programs/GenesisIris, cria atalho no Menu Iniciar e **abre a Íris
+assim que a instalação termina**, em modo mascote. Não requer privilégios
+administrativos nem Python instalado. Um download, por si só, não executa
+programas, por segurança do Windows.
+
+**Iniciar a cada login (opcional):** clique com o botão direito no mascote e
+selecione **Iniciar com o Windows**. O padrão é desligado; a própria opção
+também desliga o recurso. Somente a chave do usuário atual é alterada.
+
+**Abrir só o mascote:** execute Genesis.exe --mascot-only (não precisa
+inicializar o runtime cognitivo ou o microfone).
+**Abrir o Gênesis completo:** execute Genesis.exe. O mascote aparece junto
+com o app por padrão, exceto se foi desativado pelo usuário.
+
+### Identidade visual e interações
+
+A Íris possui um corpo 2D chibi articulado (não uma fotografia dentro de
+uma janela), olhos expressivos com piscar e acompanhamento horizontal do
+cursor, cabelo animado, braços/pernas e cinco dedos que fecham ao agarrar.
+A personagem pode andar, sentar, abrir uma passagem para seu laboratório
+visual e agarrar a borda de janelas compatíveis no Windows sob ação direta
+do usuário. Aplicativos elevados e abas de terceiros não são controlados
+universalmente.
+
+Pelo menu de contexto, alterne **mini, normal, grande ou escala personalizada**
+(40% a 215%, ajustável por controle deslizante), além de aparências desenhadas **mais fofinha, clássica e elegante**.
+São variações gráficas, não alteração real de idade. As escolhas são preservadas
+entre execuções, e o modo de movimentação reduzida está disponível por
+IRIS_REDUCED_MOTION=1.
+
+O pipeline faz dez capturas reais do aplicativo e valida o EXE, os testes
+nativos e o instalador em modo de verificação, sem instalá-lo no runner.
+O pacote publicado **não inclui credenciais, tokens, logs ou relatórios gerados**
+no ambiente de testes; cada instalação gera seus próprios dados locais.
+A interface e o pacote ainda precisam de QA no Windows físico do proprietário,
+e o binário não está assinado. A voz fica para a última etapa.
+
+O pacote leve não inclui QtWebEngine/Chromium. Modelos de IA offline precisam
+ser instalados e configurados separadamente.
+
+Desenvolvimento sem pacote:
+
+
+~~~powershell
+.\INICIAR_GENESIS.cmd
+# ou
+python genesis_launcher.py
+~~~
+
+
+---
+
+## Histórico técnico: Sistema Cognitivo JARVIS (nome interno legado)
 
 O JARVIS e um sistema cognitivo modular em construcao, orientado por planejamento deterministico, memoria persistente, objetivos, API de controle, painel mobile-first, auditoria, operacao supervisionada, autodefesa interna e um cerebro cognitivo evolutivo para introspeccao historica. Nesta etapa, o projeto ja consegue subir como servico HTTP, manter fila e memoria entre reinicios, proteger acesso por token + dispositivo confiavel, ser preparado para deploy em VPS simples com Docker e manter um nucleo defensivo de conhecimento para diagnostico de risco do proprio sistema.
 
