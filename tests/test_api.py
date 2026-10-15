@@ -26,6 +26,7 @@ from runtime.system_config import JarvisEnvironmentConfig
 from security.access_control import AccessControl
 from security.iris_instance_policy import IrisInstanceAuthority
 from device.iris_mesh import IrisDeviceMesh
+from device.iris_state_replication import IrisReplicaSource, IrisReplicaSink, IrisReplicaPullClient
 from memory_system.iris_state_store import IrisEncryptedStateStore
 from device.iris_task_broker import IrisTaskBroker
 from device.iris_node_worker import IrisNodeWorker
@@ -505,6 +506,98 @@ class JarvisApiTests(unittest.TestCase):
             __import__("hashlib").sha256("Iris".encode()).hexdigest(),
         )
         self.assertEqual(worker.run_once()["status"], "idle")
+
+    def test_iris_replica_api_pareada_e_isolada_entre_clientes(self) -> None:
+        import secrets
+        import tempfile
+        from pathlib import Path
+        client, _ = self.build_client("iris_replica_http")
+        secret = secrets.token_urlsafe(32)
+        auth = IrisInstanceAuthority(secret)
+        mesh = IrisDeviceMesh(auth)
+        client.app.state.iris_instance_authority = auth
+        client.app.state.iris_device_mesh = mesh
+        with tempfile.TemporaryDirectory() as folder:
+            store = IrisEncryptedStateStore(
+                Path(folder) / "source.db", auth, root_key=secrets.token_bytes(32),
+            )
+            target = IrisEncryptedStateStore(
+                Path(folder) / "target.db", auth, root_key=secrets.token_bytes(32),
+            )
+            try:
+                alice = auth.create_resident(
+                    secret, tenant_id="cliente-alice", display_name="Iris Alice",
+                    user_consented=True,
+                )
+                bob = auth.create_resident(
+                    secret, tenant_id="cliente-bob", display_name="Iris Bob",
+                    user_consented=True,
+                )
+                store.put(alice["instance_id"], alice["token"], "historia",
+                          {"lembranca": "somente Alice"}, expected_revision=0)
+                store.put(bob["instance_id"], bob["token"], "historico",
+                          {"segredo": "Bob"}, expected_revision=0)
+                offer = mesh.offer_device(
+                    device_name="PC secundario", device_type="linux",
+                    surfaces={"memory.sync"}, locally_approved=True,
+                )
+                node = mesh.approve_offer(
+                    alice["instance_id"], alice["token"],
+                    offer_id=offer["offer_id"],
+                    verification_code=offer["verification_code"],
+                )
+                client.app.state.iris_state_store = store
+                client.app.state.iris_replica_source = IrisReplicaSource(
+                    mesh, store, source_id="iris-source-primary-test",
+                )
+                headers = {
+                    "X-Iris-Node-Id": node["node_id"],
+                    "X-Iris-Node-Token": node["node_token"],
+                }
+                manifest = client.get("/api/iris/replication/manifest", headers=headers)
+                self.assertEqual(manifest.status_code, 200)
+                self.assertEqual(
+                    manifest.json()["documents"], [{"document_id": "historia", "revision": 1}],
+                )
+                sink = IrisReplicaSink(
+                    target, node_id=node["node_id"], node_token=node["node_token"],
+                    instance_id=alice["instance_id"],
+                    source_id="iris-source-primary-test",
+                )
+                def remote_get(path, request_headers):
+                    response = client.get(path, headers=request_headers)
+                    self.assertEqual(response.status_code, 200)
+                    return response.json()
+                pull = IrisReplicaPullClient(
+                    "https://remote.invalid", sink, transport=remote_get,
+                )
+                self.assertEqual(pull.sync_once()["applied"], 1)
+                self.assertEqual(target.get(
+                    alice["instance_id"], alice["token"], "historia",
+                )["value"], {"lembranca": "somente Alice"})
+                self.assertFalse(target.get(
+                    bob["instance_id"], bob["token"], "historico",
+                )["found"])
+                self.assertEqual(client.get(
+                    "/api/iris/replication/manifest",
+                    headers={"X-Iris-Node-Id": node["node_id"],
+                             "X-Iris-Node-Token": bob["token"]},
+                ).status_code, 403)
+                mesh.disconnect(
+                    alice["instance_id"], alice["token"], node_id=node["node_id"],
+                )
+                self.assertEqual(client.get(
+                    "/api/iris/replication/manifest", headers=headers,
+                ).status_code, 403)
+            finally:
+                target.close()
+                store.close()
+
+    def test_iris_replica_ausente_falha_fechado(self) -> None:
+        client, _ = self.build_client("iris_replica_off")
+        self.assertEqual(client.get(
+            "/api/iris/replication/manifest",
+        ).status_code, 503)
 
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
         """Confirma que o healthcheck simples responde com a API ativa."""
