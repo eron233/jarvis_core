@@ -116,6 +116,37 @@ jobs:
           Write-Output ("EXE_SIZE_MB={0:N2}" -f ($exeSize / 1MB))
           if ($total -gt 1500MB) { throw "Build larger than 1.5 GB safety budget" }
 
+      - name: Remove generated credentials and private runtime data before release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $dist = Join-Path (Get-Location) "dist/Genesis"
+          # Running --server --check-config may generate one-off credentials
+          # in data/ and reports/. NEVER distribute those to multiple machines.
+          foreach ($dirname in @("data", "reports", "logs")) {
+            $path = Join-Path $dist $dirname
+            if (Test-Path -LiteralPath $path) {
+              Remove-Item -LiteralPath $path -Recurse -Force
+            }
+          }
+          # This is a hard release gate, not a warning.
+          foreach ($dirname in @("data", "reports", "logs")) {
+            if (Test-Path -LiteralPath (Join-Path $dist $dirname)) {
+              throw "Private runtime directory remains in release: $dirname"
+            }
+          }
+          $sensitive = Get-ChildItem $dist -Recurse -File | Where-Object {
+            $_.Name -match '(?i)(credential|password|api.?token|secret|private.?key|access_bootstrap)' -and
+            $_.FullName -notmatch '(?i)[\\/]_internal[\\/]'
+          }
+          if ($sensitive) {
+            throw "Potential credential file detected in portable release."
+          }
+          if (-not (Test-Path (Join-Path $dist "Genesis.exe"))) {
+            throw "Sanitization removed executable unexpectedly"
+          }
+          Write-Output "Release sanitized: no shared bootstrap credentials, logs or reports."
+
       - name: Publish review screenshots
         if: always()
         uses: actions/upload-artifact@v4

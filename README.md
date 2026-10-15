@@ -46,6 +46,8 @@ IRIS_REDUCED_MOTION=1.
 
 O pipeline faz dez capturas reais do aplicativo e valida o EXE, os testes
 nativos e o instalador em modo de verificação, sem instalá-lo no runner.
+O pacote publicado **não inclui credenciais, tokens, logs ou relatórios gerados**
+no ambiente de testes; cada instalação gera seus próprios dados locais.
 A interface e o pacote ainda precisam de QA no Windows físico do proprietário,
 e o binário não está assinado. A voz fica para a última etapa.
 

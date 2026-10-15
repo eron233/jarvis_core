@@ -188,3 +188,8 @@ Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato ve
 - Testes: tests/test_iris_visual.py; 10 capturas de tela reais; smoke do exe e dry-run do instalador no CI Windows. Pendente QA de uso real e aprimoramento dos assets artísticos; voz por último.
 
 - Ajuste visual livre refinado: slider diretamente no menu de tamanho e teste de redimensionamento imediato, além dos presets e da caixa numérica.
+
+## 2026-10-15: Sanitização obrigatória dos artefatos Windows
+- Falha encontrada na revisão do ZIP: a checagem de configuração no CI criava uma chave/token compartilhado em dist/Genesis/data/ e um relatório em dist/Genesis/reports/.
+- Correção: remover data/, reports/ e logs/ do pacote antes da publicação e reprovar o release caso restem. Credenciais são criadas individualmente na máquina de destino.
+- Validação: artefato ZIP do CI deve ser inspecionado após cada build; binário continua testado antes da limpeza. Pacotes anteriores devem ser descartados.

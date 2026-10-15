@@ -45,6 +45,14 @@ class IrisConfigurationTests(unittest.TestCase):
         ):
             self.assertFalse(startup_supported())
 
+    def test_windows_release_has_credential_sanitization_gate(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/genesis-windows-build.yml").read_text(encoding="utf-8")
+        self.assertIn("Remove generated credentials and private runtime data before release", workflow)
+        for dirname in ("data", "reports", "logs"):
+            self.assertIn(dirname, workflow)
+        self.assertIn("Potential credential file detected", workflow)
+
     def test_installer_is_explicit_and_has_validate_only_mode(self):
         root = Path(__file__).resolve().parents[1]
         installer = (root / "installation" / "Instalar-Iris.ps1").read_text(encoding="utf-8")
