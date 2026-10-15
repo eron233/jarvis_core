@@ -208,6 +208,17 @@ class IrisReplicaSink:
             db = self.store._db
             db.execute("BEGIN IMMEDIATE")
             try:
+                # NUNCA importar snapshot para o banco marcado como escritor
+                # cercado por lease; isso contornaria o token de fencing.
+                if db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='iris_writer_leases'"
+                ).fetchone() is not None:
+                    if db.execute(
+                        "SELECT 1 FROM iris_writer_leases WHERE instance_id=?",
+                        (self.instance_id,),
+                    ).fetchone() is not None:
+                        raise PermissionError("Nao replicar sobre banco de escritor protegido.")
                 row = self.store._get_row(self.instance_id, doc_id)
                 checkpoint = db.execute(
                     "SELECT source_id, revision, fingerprint FROM iris_replica_checkpoints "
