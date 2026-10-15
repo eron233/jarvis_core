@@ -387,7 +387,7 @@ class JarvisMainWindow(QMainWindow):
             ("Objetivos", "mostrar objetivos"),
             ("Tarefas", "mostrar fila"),
             ("Memoria", "mostrar memoria"),
-            ("Zero, está aí?", "Jarvis ta ai"),
+            ("Verificar presença", "Jarvis ta ai"),
         ):
             button = QPushButton(label)
             button.setObjectName("GhostButton")
