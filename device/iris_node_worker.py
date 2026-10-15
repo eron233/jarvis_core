@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 from urllib.request import build_opener, HTTPRedirectHandler, Request
 
 from device.iris_task_broker import execute_local_operation
+from device.iris_inference_tasks import IrisLocalInferenceExecutor, IrisInferenceUnavailable
 
 
 class IrisNodeTransportError(Exception):
@@ -28,7 +29,10 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class IrisNodeWorker:
-    def __init__(self, endpoint: str, node_id: str, node_token: str):
+    def __init__(
+        self, endpoint: str, node_id: str, node_token: str,
+        *, inference_executor: IrisLocalInferenceExecutor | None = None,
+    ):
         url = urlsplit(endpoint)
         if url.username is not None or url.password is not None:
             raise ValueError("Credenciais na URL nao sao aceitas.")
@@ -46,6 +50,7 @@ class IrisNodeWorker:
         self.node_id = node_id
         self._node_token = node_token
         self._opener = build_opener(NoRedirect())
+        self._inference_executor = inference_executor
 
     def _post(self, path: str, payload: dict | None = None) -> dict:
         data = json.dumps(payload if payload is not None else {}).encode("utf-8")
@@ -86,7 +91,14 @@ class IrisNodeWorker:
         if not isinstance(job_id, str) or not isinstance(lease_token, str):
             raise IrisNodeTransportError("Lease invalido.")
         # O contrato de operacao nao confia no payload recebido: valida antes.
-        result = execute_local_operation(operation, payload)
+        if operation == "inference.chat":
+            if self._inference_executor is None:
+                self._inference_executor = IrisLocalInferenceExecutor()
+            # Se o modelo estiver indisponivel, nao confirmar a tarefa. O
+            # broker tentara reentregar apos expirar a lease.
+            result = self._inference_executor.execute(payload)
+        else:
+            result = execute_local_operation(operation, payload)
         receipt = self._post("/api/iris/no/tarefa/complete", {
             "job_id": job_id, "lease_token": lease_token, "result": result,
         })

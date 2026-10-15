@@ -19,6 +19,7 @@ import time
 from typing import Any, Callable
 
 from device.iris_mesh import IrisDeviceMesh
+from device.iris_inference_tasks import validate_inference_request, validate_inference_result
 
 MAX_PENDING_PER_INSTANCE = 64
 MAX_PAYLOAD_BYTES = 4096
@@ -27,14 +28,16 @@ LEASE_SECONDS = 45
 TASK_TTL_SECONDS = 600
 MAX_TASKS_TOTAL = 1024
 
-_OPERATIONS = frozenset({"text.word_count", "math.sum", "hash.sha256"})
+_OPERATIONS = frozenset({"text.word_count", "math.sum", "hash.sha256", "inference.chat"})
 
 
 def validate_operation(operation: str, payload: Any) -> dict[str, Any]:
     """Converte a tarefa a formato seguro e fechado, sem entrada arbitraria."""
     if operation not in _OPERATIONS or not isinstance(payload, dict):
         raise ValueError("Operacao nao autorizada.")
-    if operation == "text.word_count":
+    if operation == "inference.chat":
+        safe = validate_inference_request(payload)
+    elif operation == "text.word_count":
         if set(payload) != {"text"} or not isinstance(payload["text"], str) or len(payload["text"]) > 2000:
             raise ValueError("Texto invalido ou longo demais.")
         safe = {"text": payload["text"]}
@@ -104,13 +107,19 @@ class IrisTaskBroker:
     ) -> dict[str, Any]:
         self.mesh.authority.require(instance_id, instance_token, "device.local")
         safe = validate_operation(operation, payload)
-        route = self.mesh.route(instance_id, instance_token, surface="compute.light")
-        if route["status"] != "routed" or route.get("execution_kind") != "native_agent":
-            return {"status": "unavailable", "submitted": False}
-        if not any(
-            device["node_id"] == route.get("node_id") and device["mode"] == "integrated"
+        surface = "compute.infer" if operation == "inference.chat" else "compute.light"
+        # Um servidor recem-iniciado recupera os dispositivos cadastrados
+        # como OFFLINE ate o primeiro heartbeat. Recusar uma tarefa nesse
+        # momento cria um deadlock: o worker nao consegue receber trabalho.
+        # Permitir fila limitada para um agente integrado PAREADO, mesmo
+        # temporariamente offline; nunca para visitantes ou aparelhos IoT.
+        eligible = any(
+            device["mode"] == "integrated"
+            and device["execution_kind"] == "native_agent"
+            and surface in device["surfaces"]
             for device in self.mesh.devices(instance_id, instance_token)
-        ):
+        )
+        if not eligible:
             return {"status": "unavailable", "submitted": False}
         with self._lock:
             self._purge()
@@ -129,14 +138,27 @@ class IrisTaskBroker:
 
     def claim(self, node_id: str, node_token: str) -> dict[str, Any]:
         """Um agente de computador pareado recolhe trabalho do proprio dono."""
-        instance_id = self.mesh.authorize_node(
-            node_id, node_token, required_surface="compute.light",
-        )
+        # Um no pode oferecer apenas inferencia, apenas computacao leve,
+        # ou ambas. A identidade continua sendo a mesma Iris.
+        instance_id = None
+        permitted: set[str] = set()
+        for surface in ("compute.light", "compute.infer"):
+            try:
+                instance_id = self.mesh.authorize_node(
+                    node_id, node_token, required_surface=surface,
+                )
+                permitted.add(surface)
+            except PermissionError:
+                continue
+        if instance_id is None:
+            raise PermissionError("No sem capacidade de computacao.")
         with self._lock:
             self._purge()
             jobs = sorted(
                 (job for job in self._jobs.values()
                  if job.instance_id == instance_id
+                 and ("compute.infer" if job.operation == "inference.chat"
+                      else "compute.light") in permitted
                  and (job.status == "queued"
                       or (job.status == "leased"
                           and job.lease_until is not None
@@ -166,12 +188,17 @@ class IrisTaskBroker:
         self, node_id: str, node_token: str,
         *, job_id: str, lease_token: str, result: Any,
     ) -> dict[str, Any]:
-        instance_id = self.mesh.authorize_node(
-            node_id, node_token, required_surface="compute.light",
-        )
+        # Nao permitir que um no compute.light conclua trabalho de inferencia.
         with self._lock:
             self._purge()
             job = self._jobs.get(job_id)
+            surface = (
+                "compute.infer" if job is not None and job.operation == "inference.chat"
+                else "compute.light"
+            )
+            instance_id = self.mesh.authorize_node(
+                node_id, node_token, required_surface=surface,
+            )
             if (
                 not job or job.instance_id != instance_id
                 or job.status != "leased" or job.assigned_node != node_id
@@ -192,6 +219,8 @@ class IrisTaskBroker:
                 raise ValueError("Resultado nao serializavel.") from exc
             if len(encoded) > MAX_RESULT_BYTES:
                 raise ValueError("Resultado excede limite.")
+            if job.operation == "inference.chat":
+                result = validate_inference_result(result)
             job.status = "completed"
             job.result = result
             job.lease_digest = None
