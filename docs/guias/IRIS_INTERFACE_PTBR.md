@@ -49,3 +49,23 @@ Posicione a mão da Íris perto da borda superior de uma janela comum, clique co
 No laboratório da Íris, as abas são movíveis por arraste. Abas de terceiros requerem integração específica, não são manipuladas universalmente. O código não lê telas, não grava áudio, não injeta cliques nem eleva privilégios. Voz continua por último.
 
 **Atalho:** segure Shift enquanto começa a arrastar a Íris perto da borda superior de uma janela compatível. A mão tenta agarrar automaticamente, sem precisar abrir o menu. Caso o Windows negue o movimento, a interação é cancelada; avisos aparecem próximos à personagem e no status do Gênesis.
+
+
+## Mascote ilustrada chibi (visual V3)
+O recorte fotográfico no corpo do boneco foi substituído por **rosto desenhado em Qt**: olhos grandes, pupilas que olham para o cursor, piscar, cabelo prateado com movimento leve, cabeça proporcionalmente maior, traje branco com detalhes azuis e dedos individuais fechando ao agarrar.
+
+**Clique com o botão direito na Íris**:
+- **Tamanho:** mini (56%), normal (100%), grande (145%) ou personalizado (40% a 215%). Corpo, área clicável e âncora da mão são redimensionados juntos, com posição corrigida para monitores reais.
+- **Estilo visual:** mais fofinha, clássica ou elegante. São variações artísticas de proporções, olhos e cabelo; não representam idade biológica.
+- **Iniciar com o Windows:** aparece apenas no executável Windows, desativado por padrão. Esta opção modifica somente a chave de inicialização do usuário atual. Pode ser revertida pelo mesmo menu.
+
+Movimentos mantidos: caminhar, sentar, agarrar, puxar, saltar, repousar e atravessar o portal do estúdio. Não existe voz nem captura de microfone nesta etapa.
+
+## Instalação e inicialização
+A transferência de arquivos **não pode executar software automaticamente**, por segurança do sistema operacional. Ao extrair o pacote Windows e executar voluntariamente **Instalar-Iris.cmd**, a Íris é copiada para o perfil do usuário, recebe um atalho no Menu Iniciar e **abre automaticamente após a instalação** em modo mascote, sem depender do servidor.
+
+Se desejar inicializar a cada login, ative **Iniciar com o Windows** pelo menu da Íris após a instalação; não há persistência silenciosa. Também é possível chamar manualmente o script PowerShell com o parâmetro StartWithWindows, mas só deve ser usado com autorização do usuário.
+
+O instalador atua somente no diretório LOCALAPPDATA/Programs/GenesisIris, sem pedir acesso administrativo. O binário portátil continua utilizável sem instalação. O caminho de inicialização é Genesis.exe --mascot-only. A janela principal normal continua disponível ao abrir Genesis.exe sem esse parâmetro. Primeiro lançamento normal mostra o mascote por padrão, salvo se o usuário o tiver escondido.
+
+Validação em Windows: os workflows executam a interface real, o novo modo independente e uma checagem segura do instalador sem alterações no computador do runner. O executável permanece **não assinado** (o SmartScreen pode pedir confirmação). A execução no computador final e integração com janelas de terceiros dependem de testes físicos.

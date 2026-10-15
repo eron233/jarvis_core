@@ -7,6 +7,7 @@ on:
       - "genesis_launcher.py"
       - "INICIAR_GENESIS.cmd"
       - "interface/native_app/**"
+      - "installation/**"
       - "tools/build_genesis_icon.py"
       - ".github/workflows/genesis-windows-build.yml"
   workflow_dispatch:
@@ -38,7 +39,7 @@ jobs:
       - name: Check native UI unit tests
         run: |
           $env:QT_QPA_PLATFORM="offscreen"
-          python -m pytest -q tests/test_native_app.py tests/test_iris_presence.py tests/test_iris_desktop.py tests/test_iris_interactions.py tests/test_startup_launchers.py
+          python -m pytest -q tests/test_native_app.py tests/test_iris_presence.py tests/test_iris_desktop.py tests/test_iris_interactions.py tests/test_iris_visual.py tests/test_startup_launchers.py
 
       - name: Capture the actual Python/Qt interface before packaging
         shell: pwsh
@@ -47,7 +48,7 @@ jobs:
           python -m interface.native_app.preview "build/ui-previews"
           if ($LASTEXITCODE -ne 0) { throw "Source Qt capture failed: $LASTEXITCODE" }
           $screens = Get-ChildItem "build/ui-previews/*.png"
-          if ($screens.Count -ne 7) { throw "Expected seven source UI screenshots" }
+          if ($screens.Count -ne 10) { throw "Expected ten source UI screenshots" }
 
       - name: Generate Genesis icon from reviewed SVG
         run: python tools/build_genesis_icon.py
@@ -75,6 +76,12 @@ jobs:
           python -m PyInstaller @options
           if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed" }
 
+      - name: Include user-initiated installer in the portable folder
+        shell: pwsh
+        run: |
+          Copy-Item "installation/Instalar-Iris.ps1" -Destination "dist/Genesis/Instalar-Iris.ps1"
+          Copy-Item "installation/Instalar-Iris.cmd" -Destination "dist/Genesis/Instalar-Iris.cmd"
+
       - name: Verify actual EXE startup and create screenshots without data
         shell: pwsh
         run: |
@@ -86,6 +93,12 @@ jobs:
           $check = Start-Process -FilePath $exe -ArgumentList @("--server", "--check-config") -Wait -PassThru
           if ($check.ExitCode -ne 0) { throw "EXE configuration check failed: $($check.ExitCode)" }
           $env:QT_QPA_PLATFORM = "offscreen"
+          # Launch the actual mascot-only executable without starting the runtime.
+          $standalone = Start-Process -FilePath $exe -ArgumentList @("--mascot-only", "--offscreen", "--auto-close-ms", "700") -Wait -PassThru
+          if ($standalone.ExitCode -ne 0) { throw "Mascot-only EXE failed: $($standalone.ExitCode)" }
+          # Validate installer prerequisites WITHOUT installing, registering startup or launching.
+          & "dist/Genesis/Instalar-Iris.ps1" -ValidateOnly
+          if ($LASTEXITCODE -ne 0) { throw "Installer dry-run failed" }
           $preview = Start-Process -FilePath $exe -ArgumentList @("--capture-ui", "build/ui-previews") -Wait -PassThru
           if ($preview.ExitCode -ne 0) {
             Write-Output "EXE preview failed with exit code $($preview.ExitCode)"
@@ -94,7 +107,7 @@ jobs:
             throw "EXE screenshot failed: $($preview.ExitCode)"
           }
           $screens = Get-ChildItem "build/ui-previews/*.png"
-          if ($screens.Count -ne 7) { throw "Expected 7 real UI screens, found $($screens.Count)" }
+          if ($screens.Count -ne 10) { throw "Expected 10 real UI screens, found $($screens.Count)" }
           $screens | ForEach-Object { Write-Output ("Screenshot: {0}, bytes={1}" -f $_.Name, $_.Length) }
           $files = Get-ChildItem "dist/Genesis" -Recurse -File
           $total = ($files | Measure-Object Length -Sum).Sum

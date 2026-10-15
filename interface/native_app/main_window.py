@@ -1004,7 +1004,7 @@ class JarvisMainWindow(QMainWindow):
             self._mascot_restore_pending = False
             import os
             if os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen":
-                if self._mascot_settings.value("iris_mascot/visible", False, type=bool):
+                if self._mascot_settings.value("iris_mascot/visible", True, type=bool):
                     QTimer.singleShot(0, lambda: self.mascot_toggle_button.setChecked(True))
 
     def closeEvent(self, event) -> None:

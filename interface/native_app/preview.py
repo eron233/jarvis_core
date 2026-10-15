@@ -108,6 +108,31 @@ def capture_previews(output: Path) -> int:
         mascot.close()
         window.close()
         return 5
+    # Amostras reais de diferentes presets renderizadas pela mesma cena Qt.
+    mascot.lab.close()
+    app.processEvents()
+    mascot.set_visual_age("nova")
+    mascot.set_scale(.56)
+    mascot.show()
+    app.processEvents()
+    if not mascot.grab().save(str(output / "08_iris_mini.png")):
+        mascot.close()
+        window.close()
+        return 6
+    mascot.set_visual_age("madura")
+    mascot.set_scale(1.0)
+    app.processEvents()
+    if not mascot.grab().save(str(output / "09_iris_madura.png")):
+        mascot.close()
+        window.close()
+        return 7
+    mascot.set_visual_age("padrao")
+    mascot.set_scale(1.45)
+    app.processEvents()
+    if not mascot.grab().save(str(output / "10_iris_grande.png")):
+        mascot.close()
+        window.close()
+        return 8
     mascot.close()
     window.close()
     app.processEvents()

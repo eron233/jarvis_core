@@ -179,3 +179,10 @@ Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato ve
 - Dentro do laboratório, três abas do próprio Gênesis movíveis. Abas de outros aplicativos não são manipuladas (limite técnico de integração).
 - Validação: testes/test_iris_interactions.py, screenshot Qt/Windows e pacote Windows; benchmarks e movimentação física com escala de DPI ainda precisam ser avaliados. Voz não alterada.
 - UX adicional: Shift+arrastar para agarrar diretamente uma borda próxima, tooltip transitório de resultado e status de feedback na janela principal do Gênesis.
+
+## 2026-10-15: Íris chibi, escalas e instalação iniciada pelo usuário (dev)
+- Antes: rosto fotográfico colado em corpo 2D fixo, sem estilos, escala fixa e mascote oculto até ser solicitado; pacote Windows apenas portátil.
+- Agora: corpo desenhado com expressões, olhos/pupilas móveis, piscadas, cabelo oscilante, proporções chibi e 3 aparências gráficas (nova/padrão/madura) sem alteração de identidade; escalas 56/100/145% e livre 40–215%, redimensionando toque e âncora da mão.
+- Instalação Windows local por Instalar-Iris.cmd (ação voluntária), inicia mascote após finalizar; modo Genesis.exe --mascot-only independente do runtime; abrir mascote automaticamente junto ao Gênesis na primeira execução; iniciar com Windows opcional e revogável via registro HKCU.
+- Segurança: baixar arquivo não o executa, sem registro de inicialização automática sem consentimento, sem privilégios de administrador, sem acesso a microfone.
+- Testes: tests/test_iris_visual.py; 10 capturas de tela reais; smoke do exe e dry-run do instalador no CI Windows. Pendente QA de uso real e aprimoramento dos assets artísticos; voz por último.

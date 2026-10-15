@@ -10,13 +10,14 @@ from __future__ import annotations
 import os
 from PySide6.QtCore import QEasingCurve, QEvent, QPoint, QPropertyAnimation, QSettings, Qt, QTimer, Signal
 from PySide6.QtGui import QCursor
-from PySide6.QtWidgets import QApplication, QMenu, QWidget, QVBoxLayout, QToolTip
+from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QWidget, QVBoxLayout, QToolTip
 
 from interface.native_app.iris_desktop import (
     clamp_to_screens, nearest_edge_position, next_monitor_position,
 )
 from interface.native_app.iris_lab import IrisLabWindow
-from interface.native_app.iris_puppet import IrisPuppet
+from interface.native_app.iris_puppet import IrisPuppet, SIZE_PRESETS, STYLES, valid_scale
+from interface.native_app.iris_startup import startup_supported, is_startup_enabled, set_startup_enabled, StartupError
 from interface.native_app.iris_window_bridge import DesktopWindowBridge, WindowEdge
 
 
@@ -45,6 +46,17 @@ class IrisMascotWindow(QWidget):
 
         self.puppet = IrisPuppet()
         self.avatar = self.puppet  # compatibilidade de chamadas existentes
+        visual = self.settings.value("iris_mascot/style", "nova")
+        if visual not in STYLES:
+            visual = "nova"
+        self.puppet.set_visual_age(visual)
+        try:
+            initial_scale = valid_scale(float(
+                self.settings.value("iris_mascot/scale", SIZE_PRESETS["mini"])
+            ))
+        except (TypeError, ValueError):
+            initial_scale = SIZE_PRESETS["mini"]
+        self.puppet.set_scale(initial_scale)
         self.setFixedSize(self.puppet.size())
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -69,6 +81,36 @@ class IrisMascotWindow(QWidget):
         self.move_to(initial, animated=False)
         if self._strolling:
             self._stroll_timer.start()
+
+    def set_visual_age(self, style):
+        """Altera apenas o estilo de desenho, sem mudar a identidade da Íris."""
+        self.puppet.set_visual_age(style)
+        self.settings.setValue("iris_mascot/style", style)
+
+    def set_scale(self, scale):
+        """Escala personagem e janela, mantendo-as dentro da área visível."""
+        factor = valid_scale(scale)
+        self.puppet.set_scale(factor)
+        self.setFixedSize(self.puppet.size())
+        self.settings.setValue("iris_mascot/scale", factor)
+        self.move_to((self.x(), self.y()), animated=False)
+        self.save_position()
+
+    def select_custom_size(self):
+        percent = round(self.puppet.scale_factor * 100)
+        chosen, ok = QInputDialog.getInt(self, "Tamanho da Íris",
+            "Escala da personagem (%)", percent, 40, 215, 5)
+        if ok:
+            self.set_scale(chosen / 100.)
+
+    def set_launch_at_login(self, enabled):
+        try:
+            set_startup_enabled(bool(enabled))
+        except StartupError as error:
+            self._inform(str(error))
+            return False
+        self._inform("Iniciar com Windows: " + ("ativado" if enabled else "desativado"))
+        return True
 
     def _screen_rects(self):
         return [(r.x(), r.y(), r.width(), r.height())
@@ -134,7 +176,8 @@ class IrisMascotWindow(QWidget):
 
     def _hand_global_position(self):
         hx, hy = IrisPuppet.HAND_ANCHOR
-        return self.x() + hx, self.y() + hy
+        factor = self.puppet.scale_factor
+        return self.x() + round(hx * factor), self.y() + round(hy * factor)
 
     def _inform(self, message: str) -> None:
         self.interactionResult.emit(message)
@@ -161,7 +204,7 @@ class IrisMascotWindow(QWidget):
             return False
         self.release_window()
         self.move_to((max(target.x, min(self.x(), target.x + target.width - self.width())),
-                      target.y - 220), animated=False)
+                      target.y - round(220 * self.puppet.scale_factor)), animated=False)
         self.puppet.set_pose("sit")
         self._inform("Íris sentou na borda de: " + target.title)
         return True
@@ -221,6 +264,22 @@ class IrisMascotWindow(QWidget):
         menu = QMenu(self)
         menu.addAction("Agarrar borda de janela próxima", self.select_window_edge)
         menu.addAction("Soltar borda", self.release_window)
+        size_menu = menu.addMenu("Tamanho da Íris")
+        for name, factor in (("Mini", SIZE_PRESETS["mini"]),
+                             ("Normal", SIZE_PRESETS["normal"]),
+                             ("Grande", SIZE_PRESETS["grande"])):
+            option = size_menu.addAction(name)
+            option.setCheckable(True)
+            option.setChecked(abs(self.puppet.scale_factor - factor) < .001)
+            option.triggered.connect(lambda _, n=factor: self.set_scale(n))
+        size_menu.addAction("Personalizar...", self.select_custom_size)
+        style_menu = menu.addMenu("Estilo da Íris")
+        for name, style in (("Mais fofinha", "nova"), ("Clássica", "padrao"),
+                             ("Mais elegante", "madura")):
+            option = style_menu.addAction(name)
+            option.setCheckable(True)
+            option.setChecked(self.puppet.visual_age == style)
+            option.triggered.connect(lambda _, n=style: self.set_visual_age(n))
         menu.addAction("Sentar em janela próxima", self.sit_on_nearest_window)
         menu.addSeparator()
         menu.addAction("Andar para outra tela", self.go_to_next_monitor)
@@ -231,6 +290,11 @@ class IrisMascotWindow(QWidget):
         stroll.toggled.connect(self.set_stroll)
         menu.addSeparator()
         menu.addAction("Entrar no laboratório", lambda: self.open_lab())
+        if startup_supported():
+            autostart = menu.addAction("Iniciar com o Windows")
+            autostart.setCheckable(True)
+            autostart.setChecked(is_startup_enabled())
+            autostart.toggled.connect(self.set_launch_at_login)
         menu.addAction("Esconder Íris", self.hide_by_user)
         menu.exec(location)
 

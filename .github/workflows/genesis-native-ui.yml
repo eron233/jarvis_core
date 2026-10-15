@@ -31,7 +31,7 @@ jobs:
         run: |
           python -m interface.native_app.preview "build/ui-windows-native"
           if ($LASTEXITCODE -ne 0) { throw "Qt Windows font/screenshot test failed" }
-          if ((Get-ChildItem "build/ui-windows-native/*.png").Count -ne 7) {
+          if ((Get-ChildItem "build/ui-windows-native/*.png").Count -ne 10) {
             throw "UI capture incomplete"
           }
       - name: Publish native-Windows screenshots
