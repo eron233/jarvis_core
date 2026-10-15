@@ -108,13 +108,18 @@ class IrisTaskBroker:
         self.mesh.authority.require(instance_id, instance_token, "device.local")
         safe = validate_operation(operation, payload)
         surface = "compute.infer" if operation == "inference.chat" else "compute.light"
-        route = self.mesh.route(instance_id, instance_token, surface=surface)
-        if route["status"] != "routed" or route.get("execution_kind") != "native_agent":
-            return {"status": "unavailable", "submitted": False}
-        if not any(
-            device["node_id"] == route.get("node_id") and device["mode"] == "integrated"
+        # Um servidor recem-iniciado recupera os dispositivos cadastrados
+        # como OFFLINE ate o primeiro heartbeat. Recusar uma tarefa nesse
+        # momento cria um deadlock: o worker nao consegue receber trabalho.
+        # Permitir fila limitada para um agente integrado PAREADO, mesmo
+        # temporariamente offline; nunca para visitantes ou aparelhos IoT.
+        eligible = any(
+            device["mode"] == "integrated"
+            and device["execution_kind"] == "native_agent"
+            and surface in device["surfaces"]
             for device in self.mesh.devices(instance_id, instance_token)
-        ):
+        )
+        if not eligible:
             return {"status": "unavailable", "submitted": False}
         with self._lock:
             self._purge()
