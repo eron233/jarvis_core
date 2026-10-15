@@ -70,6 +70,7 @@ def capture_previews(output: Path) -> int:
     output.mkdir(parents=True, exist_ok=True)
     for key, filename in (
         ("chat", "01_inicio.png"),
+        ("chat", "05_iris.png"),
         ("tarefas", "02_tarefas.png"),
         ("memoria", "03_memoria.png"),
         ("seguranca", "04_seguranca.png"),
