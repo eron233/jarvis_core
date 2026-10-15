@@ -79,9 +79,10 @@ def create_local_iris_stack(
     source_id = env.get("IRIS_SOURCE_ID", "")
     if not isinstance(source_id, str) or not source_id.startswith("iris-source-"):
         raise ValueError("IRIS_SOURCE_ID persistente nao configurado.")
-    directory = Path(data_dir).resolve()
-    if directory.exists() and directory.is_symlink():
+    requested = Path(data_dir).expanduser()
+    if requested.is_symlink():
         raise ValueError("Diretorio nao pode ser symlink.")
+    directory = requested.resolve()
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     if os.name != "nt":
         perms = stat.S_IMODE(directory.stat().st_mode)
@@ -97,6 +98,12 @@ def create_local_iris_stack(
         directory / "state.sqlite3", authority, root_key=keys[2],
     )
     try:
+        if os.name != "nt":
+            # SQLite nao e cifrado em metadados, ainda que valores sejam AEAD.
+            for filename in ("state.sqlite3", "state.sqlite3-wal", "state.sqlite3-shm"):
+                target = directory / filename
+                if target.exists():
+                    target.chmod(0o600)
         broker = PersistentIrisTaskBroker(
             mesh, directory / "tasks.iris", storage_key=keys[3],
         )
