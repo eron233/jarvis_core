@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QWidget, QVBoxL
 from interface.native_app.iris_desktop import (
     clamp_to_screens, nearest_edge_position, next_monitor_position,
 )
-from interface.native_app.iris_lab import IrisLabWindow
+from interface.native_app.iris_lab import IrisLabWindow, IrisPortalDoor
 from interface.native_app.iris_puppet import IrisPuppet, SIZE_PRESETS, STYLES, valid_scale
 from interface.native_app.iris_startup import startup_supported, is_startup_enabled, set_startup_enabled, StartupError
 from interface.native_app.iris_window_bridge import DesktopWindowBridge, WindowEdge
@@ -43,6 +43,9 @@ class IrisMascotWindow(QWidget):
         self._gripped_window: WindowEdge | None = None
         self._strolling = bool(self.settings.value("iris_mascot/stroll", False, type=bool))
         self.lab = None
+        self._seat_target: WindowEdge | None = None
+        self._seat_offset_x = 0
+        self._portal_pending = False
 
         self.puppet = IrisPuppet()
         self.avatar = self.puppet  # compatibilidade de chamadas existentes
@@ -62,6 +65,12 @@ class IrisMascotWindow(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.addWidget(self.puppet)
         self.puppet.installEventFilter(self)
+        # Uma porta de verdade, com folhas móveis, ocupa o plano do mascote
+        # apenas durante a travessia; não cobre o desktop no resto do tempo.
+        self.door = IrisPortalDoor(self)
+        self.door.hide()
+        self.door.entered.connect(self._enter_lab)
+        self._layout_portal()
 
         self._animation = QPropertyAnimation(self, b"pos", self)
         self._animation.setEasingCurve(QEasingCurve.InOutCubic)
@@ -70,6 +79,9 @@ class IrisMascotWindow(QWidget):
         self._stroll_timer.setInterval(28000)
         self._stroll_timer.timeout.connect(self.go_to_next_monitor)
         self._stroll_timer.setSingleShot(False)
+        self._seat_timer = QTimer(self)
+        self._seat_timer.setInterval(250)
+        self._seat_timer.timeout.connect(self._maintain_seat)
 
         saved_x = self.settings.value("iris_mascot/x", None)
         saved_y = self.settings.value("iris_mascot/y", None)
@@ -92,9 +104,21 @@ class IrisMascotWindow(QWidget):
         factor = valid_scale(scale)
         self.puppet.set_scale(factor)
         self.setFixedSize(self.puppet.size())
+        self._layout_portal()
         self.settings.setValue("iris_mascot/scale", factor)
         self.move_to((self.x(), self.y()), animated=False)
         self.save_position()
+        if self._seat_target is not None:
+            self._maintain_seat()
+
+    def _layout_portal(self):
+        if not hasattr(self, "door"):
+            return
+        self.door.setGeometry(
+            round(self.width() * .08), round(self.height() * .12),
+            max(122, round(self.width() * .84)),
+            max(100, round(self.height() * .81)),
+        )
 
     def _build_size_slider(self, parent):
         """Controle de escala livre diretamente no menu de contexto."""
@@ -163,23 +187,27 @@ class IrisMascotWindow(QWidget):
     def go_to_next_monitor(self):
         if self._gripped_window is not None or self.lab is not None and self.lab.isVisible():
             return
+        self._leave_seat()
         target = next_monitor_position((self.x(), self.y()),
                     (self.width(), self.height()), self._screen_rects())
         self.move_to(target)
 
     def dock_at_edge(self):
+        self._leave_seat()
         self.move_to(nearest_edge_position(
             (self.x(), self.y()), (self.width(), self.height()), self._screen_rects()))
 
     def set_stroll(self, enabled):
         self._strolling = bool(enabled)
         self.settings.setValue("iris_mascot/stroll", self._strolling)
-        if enabled and self._gripped_window is None and not (self.lab and self.lab.isVisible()):
+        if enabled and self._gripped_window is None and self._seat_target is None and not (self.lab and self.lab.isVisible()):
             self._stroll_timer.start()
         else:
             self._stroll_timer.stop()
 
     def hide_by_user(self):
+        self._cancel_portal()
+        self._leave_seat()
         self.release_window()
         self._stroll_timer.stop()
         self.settings.setValue("iris_mascot/visible", False)
@@ -201,6 +229,7 @@ class IrisMascotWindow(QWidget):
         if target is None:
             self._inform("Nenhuma borda compatível perto da mão da Íris.")
             return False
+        self._leave_seat()
         self._gripped_window = target
         self._stroll_timer.stop()
         self._animation.stop()
@@ -214,12 +243,44 @@ class IrisMascotWindow(QWidget):
         if target is None:
             self._inform("Nenhuma borda compatível para sentar.")
             return False
+        self._leave_seat()
         self.release_window()
-        self.move_to((max(target.x, min(self.x(), target.x + target.width - self.width())),
-                      target.y - round(220 * self.puppet.scale_factor)), animated=False)
+        seated_x = max(target.x, min(self.x(), target.x + target.width - self.width()))
+        self._seat_offset_x = seated_x - target.x
+        self._seat_target = target
+        self._stroll_timer.stop()
+        self.move_to((seated_x, target.y - round(220 * self.puppet.scale_factor)),
+                     animated=False)
         self.puppet.set_pose("sit")
+        self._seat_timer.start()
         self._inform("Íris sentou na borda de: " + target.title)
         return True
+
+    def _leave_seat(self):
+        self._seat_timer.stop()
+        if self._seat_target is not None:
+            self._seat_target = None
+            if self.puppet.pose == "sit":
+                self.puppet.set_pose("idle")
+
+    def _maintain_seat(self):
+        """Segue a janela sentada sem afetá-la e desce quando ela é fechada."""
+        if self._seat_target is None:
+            self._seat_timer.stop()
+            return
+        target = self.bridge.current_edge(self._seat_target.hwnd)
+        if target is None or target.width < self.width() // 2:
+            self._leave_seat()
+            return
+        self._seat_target = target
+        dest = (max(target.x, min(target.x + self._seat_offset_x,
+                                   target.x + target.width - self.width())),
+                target.y - round(220 * self.puppet.scale_factor))
+        safe = clamp_to_screens(dest, (self.width(), self.height()), self._screen_rects())
+        if (self.x(), self.y()) != safe:
+            self.move_to(safe, animated=False)
+        if self.puppet.pose != "sit":
+            self.puppet.set_pose("sit")
 
     def move_gripped_window(self, dx: int, dy: int) -> bool:
         """Window dragging only while a grip was explicitly acquired."""
@@ -242,23 +303,35 @@ class IrisMascotWindow(QWidget):
             self._stroll_timer.start()
 
     def open_lab(self, instant=False):
+        if self._portal_pending:
+            return
         if self.lab is not None and self.lab.isVisible():
             self.lab.activateWindow()
             return
+        self._leave_seat()
         self.release_window()
         self._stroll_timer.stop()
+        self._portal_pending = True
         self.puppet.set_pose("portal")
-        if instant or self._reduced_motion:
-            self._enter_lab()
-        else:
-            QTimer.singleShot(650, self._enter_lab)
+        self._layout_portal()
+        self.door.reset()
+        self.door.show()
+        self.door.raise_()
+        self.door.enter(instant=instant or self._reduced_motion)
+
+    def _cancel_portal(self):
+        self._portal_pending = False
+        self.door.reset()
+        self.door.hide()
 
     def _enter_lab(self):
-        if self._closing:
+        if self._closing or not self._portal_pending:
             return
+        self._cancel_portal()
         if self.lab is None:
             self.lab = IrisLabWindow()
             self.lab.leftLab.connect(self._return_from_lab)
+        self.lab.set_avatar_style(self.puppet.visual_age)
         self.lab.show()
         self.lab.raise_()
         self.hide()
@@ -324,6 +397,7 @@ class IrisMascotWindow(QWidget):
                     self._open_menu(event.globalPosition().toPoint())
                     return True
                 if event.button() == Qt.LeftButton:
+                    self._leave_seat()
                     self._animation.stop()
                     if (event.modifiers() & Qt.ShiftModifier) and self._gripped_window is None:
                         self.select_window_edge()
@@ -353,6 +427,8 @@ class IrisMascotWindow(QWidget):
 
     def closeEvent(self, event):
         self._closing = True
+        self._cancel_portal()
+        self._leave_seat()
         self._stroll_timer.stop()
         self._animation.stop()
         self.puppet.motion_timer.stop()

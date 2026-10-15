@@ -69,3 +69,10 @@ Se desejar inicializar a cada login, ative **Iniciar com o Windows** pelo menu d
 O instalador atua somente no diretório LOCALAPPDATA/Programs/GenesisIris, sem pedir acesso administrativo. O binário portátil continua utilizável sem instalação. O caminho de inicialização é Genesis.exe --mascot-only. A janela principal normal continua disponível ao abrir Genesis.exe sem esse parâmetro. Primeiro lançamento normal mostra o mascote por padrão, salvo se o usuário o tiver escondido.
 
 Validação em Windows: os workflows executam a interface real, o novo modo independente e uma checagem segura do instalador sem alterações no computador do runner. O executável permanece **não assinado** (o SmartScreen pode pedir confirmação). A execução no computador final e integração com janelas de terceiros dependem de testes físicos.
+
+## Portal e presença contínua
+A Íris agora **abre uma porta com folhas móveis** no próprio overlay antes de entrar no laboratório. O efeito pode ser interrompido ao esconder/fechar a personagem, evitando que abra uma sala depois de cancelado. Uma Íris articulada e animada aparece dentro da sala; o preset visual acompanha a identidade escolhida no desktop.
+
+**Sentar sobre janelas:** ao escolher a opção de sentar, a Íris acompanha automaticamente a movimentação posterior daquela janela normal do Windows enquanto continuar existindo; ao fechá-la, volta ao estado ocioso. Arrastá-la manualmente interrompe esse vínculo. A Íris não desloca a janela sem um gesto explícito de agarrar e puxar.
+
+A voz continua fora deste incremento.

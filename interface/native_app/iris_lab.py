@@ -9,6 +9,8 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, Property, QPropertyAnimation, QEasingCurve, Signal, QRectF, QTimer
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QPixmap
+from interface.native_app.iris_puppet import IrisPuppet
+
 from PySide6.QtWidgets import (
     QDialog, QFrame, QGraphicsItem, QGraphicsScene, QGraphicsView, QLabel,
     QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget,
@@ -171,6 +173,15 @@ class IrisLabWindow(QDialog):
         self.lighting_overlay.setZValue(-10)
         self.lighting_overlay.setAcceptedMouseButtons(Qt.NoButton)
 
+        # A Íris não desaparece ao atravessar o portal: ela continua viva
+        # dentro do próprio ambiente Qt, com a mesma paleta e articulações.
+        self.lab_actor = IrisPuppet()
+        self.lab_actor.set_scale(.56)
+        self.lab_actor_proxy = self.scene.addWidget(self.lab_actor)
+        self.lab_actor_proxy.setPos(665, 298)
+        self.lab_actor_proxy.setZValue(2)
+        self.lab_actor_proxy.setAcceptedMouseButtons(Qt.NoButton)
+
         # Objetos móveis pertencem exclusivamente ao laboratório de Íris.
         self.cards = []
         self.card_origins = []
@@ -253,10 +264,21 @@ class IrisLabWindow(QDialog):
         self.lighting_overlay.setBrush(QBrush(QColor(9, 21, 42, opacity)))
         self.lighting_button.setText("Luzes: noturna" if self._lights_dimmed else "Luzes: quente")
 
+    def set_avatar_style(self, style: str):
+        """A aparência escolhida no desktop acompanha a Íris ao estúdio."""
+        self.lab_actor.set_visual_age(style)
+
     def reset_cards(self):
         for card, (x, y) in zip(self.cards, self.card_origins):
             card.setPos(x, y)
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self.lab_actor._reduced_motion and not self.lab_actor.motion_timer.isActive():
+            self.lab_actor.motion_timer.start()
+
     def closeEvent(self, event):
+        self.lab_actor.motion_timer.stop()
+        self.lab_actor.hand_animation.stop()
         self.leftLab.emit()
         super().closeEvent(event)

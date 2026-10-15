@@ -126,6 +126,100 @@ class IrisDesktopQtTests(unittest.TestCase):
         self.assertTrue(all(card.flags() & QGraphicsItem.ItemIsMovable for card in lab.cards))
         lab.close()
 
+
+    def test_portal_is_actually_shown_and_completes_animation(self):
+        from PySide6.QtTest import QTest
+        mascot = IrisMascotWindow(settings=FakeSettings())
+        mascot.show()
+        self.app.processEvents()
+        mascot.open_lab()
+        self.assertTrue(mascot.door.isVisible())
+        self.assertTrue(mascot._portal_pending)
+        QTest.qWait(750)
+        self.assertFalse(mascot._portal_pending)
+        self.assertFalse(mascot.door.isVisible())
+        self.assertIsNotNone(mascot.lab)
+        self.assertTrue(mascot.lab.isVisible())
+        self.assertTrue(mascot.lab.lab_actor_proxy.isVisible())
+        mascot.lab.close()
+        mascot.close()
+
+    def test_portal_can_be_cancelled_before_entry(self):
+        from PySide6.QtTest import QTest
+        mascot = IrisMascotWindow(settings=FakeSettings())
+        mascot.show()
+        mascot.open_lab()
+        mascot.hide_by_user()
+        QTest.qWait(700)
+        self.assertFalse(mascot._portal_pending)
+        self.assertIsNone(mascot.lab)
+        mascot.close()
+
+    def test_studio_iris_keeps_chosen_identity(self):
+        mascot = IrisMascotWindow(settings=FakeSettings())
+        mascot.set_visual_age("madura")
+        mascot.show()
+        mascot.open_lab(instant=True)
+        self.app.processEvents()
+        self.assertEqual(mascot.lab.lab_actor.visual_age, "madura")
+        self.assertEqual(mascot.lab.lab_actor_proxy.zValue(), 2)
+        mascot.lab.close()
+        mascot.open_lab(instant=True)
+        self.app.processEvents()
+        self.assertTrue(mascot.lab.lab_actor.motion_timer.isActive())
+        mascot.lab.close()
+        mascot.close()
+
+    def test_seated_iris_follows_window_without_moving_it(self):
+        from interface.native_app.iris_window_bridge import WindowEdge
+        class Bridge:
+            def __init__(self):
+                self.target = WindowEdge(99, "Editor", 100, 400, 600, 320)
+                self.moves = 0
+            def find_edge(self, point, max_distance=96):
+                return self.target
+            def current_edge(self, hwnd):
+                return self.target
+            def move(self, target, dx, dy):
+                self.moves += 1
+                return True
+        bridge = Bridge()
+        mascot = IrisMascotWindow(settings=FakeSettings(), bridge=bridge)
+        mascot.show()
+        self.assertTrue(mascot.sit_on_nearest_window())
+        self.assertTrue(mascot._seat_timer.isActive())
+        self.assertEqual(mascot.puppet.pose, "sit")
+        initial_y = mascot.y()
+        bridge.target = WindowEdge(99, "Editor", 160, 440, 600, 320)
+        mascot._maintain_seat()
+        self.assertGreater(mascot.y(), initial_y)
+        self.assertEqual(mascot.puppet.pose, "sit")
+        self.assertEqual(bridge.moves, 0)
+        bridge.target = None
+        mascot._maintain_seat()
+        self.assertFalse(mascot._seat_timer.isActive())
+        self.assertEqual(mascot.puppet.pose, "idle")
+        mascot.close()
+
+    def test_user_drag_stops_seat_tracking(self):
+        from PySide6.QtCore import Qt, QPoint
+        from PySide6.QtTest import QTest
+        from interface.native_app.iris_window_bridge import WindowEdge
+        class Bridge:
+            target = WindowEdge(88, "Editor", 100, 400, 600, 350)
+            def find_edge(self, point, max_distance=96):
+                return self.target
+            def current_edge(self, hwnd):
+                return self.target
+        mascot = IrisMascotWindow(settings=FakeSettings(), bridge=Bridge())
+        mascot.show()
+        self.assertTrue(mascot.sit_on_nearest_window())
+        QTest.mousePress(mascot.puppet, Qt.LeftButton, Qt.NoModifier, QPoint(50, 70))
+        self.assertIsNone(mascot._seat_target)
+        self.assertFalse(mascot._seat_timer.isActive())
+        QTest.mouseRelease(mascot.puppet, Qt.LeftButton, Qt.NoModifier, QPoint(50, 70))
+        mascot.close()
+
     def test_mascot_enters_lab_and_returns(self):
         win = IrisMascotWindow(settings=FakeSettings())
         win.show()

@@ -193,3 +193,9 @@ Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato ve
 - Falha encontrada na revisão do ZIP: a checagem de configuração no CI criava uma chave/token compartilhado em dist/Genesis/data/ e um relatório em dist/Genesis/reports/.
 - Correção: remover data/, reports/ e logs/ do pacote antes da publicação e reprovar o release caso restem. Credenciais são criadas individualmente na máquina de destino.
 - Validação: artefato ZIP do CI deve ser inspecionado após cada build; binário continua testado antes da limpeza. Pacotes anteriores devem ser descartados.
+
+## 2026-10-15: Íris passa a habitar o laboratório e acompanhar janelas
+- Problema anterior: portal só desenhava um anel e aguardava por tempo fixo, a Íris sumia no laboratório e a pose de sentar não acompanhava uma janela movida.
+- Solução: portal com duas folhas animadas usando IrisPortalDoor, estado cancelável (fechar/ocultar antes da animação interrompe a transição), personagem 2D animada presente no laboratório com o mesmo estilo escolhido no desktop, pose sentada segue a janela via handle enquanto ela existe e sai da pose quando a janela fecha. Arrasto manual cancela o acompanhamento. Nenhum movimento automático da janela externa.
+- Arquivos: interface/native_app/iris_mascot.py, iris_lab.py e tests/test_iris_desktop.py.
+- Validação: CI Windows/Qt e suíte geral. Pendente verificação visual e experiência em máquina física, sem alterar voz.
