@@ -97,6 +97,25 @@ class IrisInstanceAuthority:
             current = self._records.get(current.parent_id) if current.parent_id else None
         return record
 
+    def is_active_internal(self, instance_id: str) -> bool:
+        """Verifica a validade de uma identidade para o coordenador local.
+
+        Nao autentica uma requisicao. NUNCA expor diretamente pela API.
+        """
+        with self._lock:
+            current = self._records.get(instance_id)
+            visited: set[str] = set()
+            if current is None:
+                return False
+            while current is not None:
+                if current.instance_id in visited or current.instance_id in self._revoked:
+                    return False
+                visited.add(current.instance_id)
+                if current.expires_at is not None and self._clock() >= current.expires_at:
+                    return False
+                current = self._records.get(current.parent_id) if current.parent_id else None
+            return True
+
     def _owner(self, owner_token: str) -> IrisInstance:
         return self._authenticated(self.OWNER_ID, owner_token)
 
