@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 import hmac
+import math
 import re
 import secrets
 import threading
@@ -69,6 +70,15 @@ class MeshDevice:
     revoked: bool = False
 
 
+@dataclass
+class NodeHealth:
+    samples: int
+    cpu_percent: float
+    memory_available_mb: int
+    battery_percent: float | None
+    latency_ms: float
+
+
 class IrisDeviceMesh:
     """Cadastro + selecao de nos: transporte e instalacao ficam fora deste core.
 
@@ -87,6 +97,7 @@ class IrisDeviceMesh:
         self._lock = threading.RLock()
         self._offers: dict[str, DeviceOffer] = {}
         self._devices: dict[str, MeshDevice] = {}
+        self._health: dict[str, NodeHealth] = {}
 
     @staticmethod
     def _digest(value: str) -> str:
@@ -213,6 +224,88 @@ class IrisDeviceMesh:
                 raise PermissionError("No desconhecido, revogado ou expirado.")
             device.last_seen_at = self.clock()
 
+    def report_health(
+        self, node_id: str, node_token: str, *,
+        cpu_percent: float, memory_available_mb: int,
+        battery_percent: float | None, latency_ms: float,
+    ) -> dict[str, object]:
+        """Aprende limites operacionais por amostras declaradas pelo agente local.
+
+        Nunca recolhe tela, microfone, arquivos, identificadores de pessoas ou
+        processos em execucao. Os numeros sao auto-relatados, nao benchmark.
+        """
+        def valid_pct(value: object) -> bool:
+            return (
+                type(value) in (int, float) and math.isfinite(value)
+                and 0 <= value <= 100
+            )
+
+        if not valid_pct(cpu_percent):
+            raise ValueError("Uso de CPU invalido.")
+        if type(memory_available_mb) is not int or not 0 <= memory_available_mb <= 1000000:
+            raise ValueError("Memoria disponivel invalida.")
+        if battery_percent is not None and not valid_pct(battery_percent):
+            raise ValueError("Porcentagem de bateria invalida.")
+        if (type(latency_ms) not in (int, float)
+            or not math.isfinite(latency_ms) or not 0 <= latency_ms <= 60000):
+            raise ValueError("Latencia invalida.")
+        with self._lock:
+            self.heartbeat(node_id, node_token)
+            old = self._health.get(node_id)
+            if old is None:
+                profile = NodeHealth(
+                    samples=1, cpu_percent=float(cpu_percent),
+                    memory_available_mb=memory_available_mb,
+                    battery_percent=(float(battery_percent)
+                                     if battery_percent is not None else None),
+                    latency_ms=float(latency_ms),
+                )
+            else:
+                profile = NodeHealth(
+                    samples=min(10000, old.samples + 1),
+                    cpu_percent=round(old.cpu_percent * .7 + float(cpu_percent) * .3, 2),
+                    memory_available_mb=memory_available_mb,
+                    battery_percent=(float(battery_percent)
+                                     if battery_percent is not None else None),
+                    latency_ms=round(old.latency_ms * .7 + float(latency_ms) * .3, 2),
+                )
+            self._health[node_id] = profile
+            return {"accepted": True, "samples": profile.samples}
+
+    def resource_profiles(
+        self, instance_id: str, instance_token: str,
+    ) -> list[dict[str, object]]:
+        """Somente metricas basicas das maquinas da propria instancia."""
+        with self._lock:
+            self.authority.require(instance_id, instance_token, "device.local")
+            return [
+                {
+                    "node_id": d.node_id,
+                    "cpu_percent": p.cpu_percent,
+                    "memory_available_mb": p.memory_available_mb,
+                    "battery_percent": p.battery_percent,
+                    "latency_ms": p.latency_ms,
+                    "samples": p.samples,
+                }
+                for d in self._devices.values()
+                if d.instance_id == instance_id and not d.revoked
+                and self._is_alive(d)
+                for p in [self._health.get(d.node_id)]
+                if p is not None
+            ]
+
+    def _eligible_compute(self, device: MeshDevice, surface: str) -> bool:
+        if not surface.startswith("compute."):
+            return True
+        profile = self._health.get(device.node_id)
+        if profile is None:
+            return True
+        return not (
+            profile.cpu_percent >= 93
+            or profile.memory_available_mb < 128
+            or (profile.battery_percent is not None and profile.battery_percent < 8)
+        )
+
     def disconnect(
         self, instance_id: str, instance_token: str, *, node_id: str,
     ) -> dict[str, bool]:
@@ -223,6 +316,7 @@ class IrisDeviceMesh:
             if not node or node.instance_id != instance_id:
                 raise PermissionError("Dispositivo pertence a outra instancia.")
             node.revoked = True
+            self._health.pop(node_id, None)
             return {"disconnected": True, "local_cleanup_required": True}
 
     def _public_node(self, device: MeshDevice) -> dict[str, object]:
@@ -257,11 +351,13 @@ class IrisDeviceMesh:
             eligible = [
                 d for d in self._devices.values()
                 if d.instance_id == instance_id and surface in d.surfaces
-                and self._is_alive(d)
+                and self._is_alive(d) and self._eligible_compute(d, surface)
             ]
             eligible.sort(key=lambda d: (
                 d.execution_kind != "native_agent",
                 d.mode != "integrated",
+                self._health[d.node_id].cpu_percent if d.node_id in self._health else 50.0,
+                self._health[d.node_id].latency_ms if d.node_id in self._health else 50.0,
                 d.node_id,
             ))
             if not eligible:
