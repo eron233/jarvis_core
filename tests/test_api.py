@@ -281,6 +281,43 @@ class JarvisApiTests(unittest.TestCase):
             401,
         )
 
+        report = client.post(
+            "/api/iris/dispositivo/estado",
+            headers={
+                "X-Iris-Node-Id": device["node_id"],
+                "X-Iris-Node-Token": device["node_token"],
+            },
+            json={
+                "cpu_percent": 30, "memory_available_mb": 2048,
+                "battery_percent": None, "latency_ms": 15,
+            },
+        )
+        self.assertEqual(report.status_code, 200)
+        self.assertTrue(report.json()["accepted"])
+        self.assertEqual(
+            client.get("/api/iris/perfis-tecnicos", headers=bob_headers).json()["profiles"],
+            [],
+        )
+        profiles = client.get("/api/iris/perfis-tecnicos", headers=alice_headers)
+        self.assertEqual(profiles.status_code, 200)
+        self.assertEqual(len(profiles.json()["profiles"]), 1)
+        self.assertEqual(
+            client.post(
+                "/api/iris/dispositivo/estado",
+                headers={
+                    "X-Iris-Node-Id": device["node_id"],
+                    "X-Iris-Node-Token": device["node_token"],
+                },
+                json={
+                    "cpu_percent": 500,
+                    "memory_available_mb": 2048,
+                    "battery_percent": None,
+                    "latency_ms": 15,
+                },
+            ).status_code,
+            422,
+        )
+
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
         """Confirma que o healthcheck simples responde com a API ativa."""
 
