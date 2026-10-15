@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 420" role="img" aria-labelledby="title">
+<title>Íris, androide de cabelos prateados e olhos azuis luminosos</title>
+<defs>
+<radialGradient id="bg"><stop stop-color="#234055"/><stop offset="1" stop-color="#07111d"/></radialGradient>
+<linearGradient id="steel" x2="1" y2="1"><stop stop-color="#dbe5ed"/><stop offset=".45" stop-color="#8196a8"/><stop offset=".9" stop-color="#dae8ee"/></linearGradient>
+<linearGradient id="silver" x2=".8" y2="1"><stop stop-color="#fffaff"/><stop offset=".45" stop-color="#abbdd0"/><stop offset="1" stop-color="#eff4fc"/></linearGradient>
+<radialGradient id="skin" cx=".48" cy=".32" r=".9"><stop stop-color="#f8e0d6"/><stop offset="1" stop-color="#be90a3"/></radialGradient>
+<radialGradient id="eyes"><stop stop-color="#e2fcff"/><stop offset=".4" stop-color="#39bcf4"/><stop offset="1" stop-color="#0a395c"/></radialGradient>
+</defs>
+<rect width="420" height="420" rx="18" fill="url(#bg)"/>
+<circle cx="210" cy="186" r="158" fill="none" stroke="#7dd8f5" opacity=".2" stroke-dasharray="3 11"/>
+<circle cx="210" cy="186" r="132" fill="none" stroke="#84dafa" opacity=".12"/>
+<path d="M72 420 Q90 337 161 332 H255 Q341 343 354 420Z" fill="#1d3545"/>
+<path d="M119 420 Q111 346 168 339 L211 382 L254 337 Q312 352 319 420Z" fill="url(#steel)" stroke="#8db0c2" stroke-width="2"/>
+<path d="M165 341 L194 380 L210 414 L229 381 L251 340" fill="#0b2232" stroke="#55b8d8"/>
+<circle cx="211" cy="390" r="8" fill="#8ae9ff" opacity=".9"/>
+<path d="M98 205 Q75 97 156 61 Q207 35 244 65 Q317 65 326 167 Q346 264 297 350 Q248 320 218 316 Q161 340 118 352 Q86 291 98 205Z" fill="url(#silver)"/>
+<path d="M169 276 L165 332 Q189 356 217 365 Q243 351 247 328 L246 275" fill="url(#skin)"/>
+<path d="M130 168 Q142 93 213 84 Q288 96 304 174 L290 262 Q274 318 211 330 Q151 318 132 265Z" fill="url(#skin)"/>
+<path d="M109 206 Q104 134 141 90 Q195 30 264 76 Q319 107 312 191 Q280 131 239 124 Q208 159 153 163 Q130 173 109 206Z" fill="url(#silver)"/>
+<path d="M118 191 Q99 273 145 349 L170 333 Q135 279 148 189" fill="#dbe4f0"/>
+<path d="M303 179 Q331 279 285 350 L259 337 Q298 258 285 182" fill="#dae1ed"/>
+<path d="M152 218 Q174 205 198 216 M226 216 Q247 204 269 217" stroke="#77566a" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path d="M150 229 Q173 246 198 227 M224 227 Q247 246 272 229" fill="#ecf6ff" stroke="#615d77" stroke-width="2.4"/>
+<ellipse cx="176" cy="229" rx="11" ry="12" fill="url(#eyes)"/><ellipse cx="247" cy="229" rx="11" ry="12" fill="url(#eyes)"/>
+<circle cx="172" cy="225" r="3" fill="white"/><circle cx="243" cy="225" r="3" fill="white"/>
+<path d="M209 247 Q205 267 215 269" fill="none" stroke="#c38c9e" stroke-width="2"/>
+<path d="M191 286 Q212 280 232 286 Q212 298 193 289Z" fill="#b46c83"/>
+<path d="M115 160 Q147 55 244 73 M186 156 Q231 105 290 112" stroke="#f7f7ff" stroke-width="8" fill="none" opacity=".7"/>
+<circle cx="104" cy="312" r="6" fill="#90ecff"/><circle cx="314" cy="312" r="6" fill="#90ecff"/>
+</svg>
