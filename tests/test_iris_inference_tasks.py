@@ -168,6 +168,19 @@ class IrisInferenceTasksTests(unittest.TestCase):
             inferred["node_id"], inferred["node_token"],
         )["status"], "leased")
 
+    def test_malha_reiniciada_enfileira_antes_de_heartbeat(self):
+        node = self.pair(self.user)
+        self.now += 91  # O estado restaurado considera o agente offline.
+        devices = self.mesh.devices(self.user["instance_id"], self.user["token"])
+        self.assertFalse(devices[0]["connected"])
+        job = self.submit(self.user, "Voltei do desligamento")
+        self.assertTrue(job["submitted"])
+        ticket = self.broker.claim(node["node_id"], node["node_token"])
+        self.assertEqual(ticket["job_id"], job["job_id"])
+        self.assertTrue(self.mesh.devices(
+            self.user["instance_id"], self.user["token"],
+        )[0]["connected"])
+
     def test_expiracao_da_lease_reentrega_a_segundo_no(self):
         a = self.pair(self.user)
         b = self.pair(self.user)
