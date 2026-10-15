@@ -7,6 +7,7 @@ import unittest
 from interface.native_app.iris_desktop import (
     clamp_to_screens, next_monitor_position, nearest_edge_position,
 )
+from interface.native_app.iris_ambient import IdlePolicy, silhouette_rectangles
 
 
 class DesktopGeometryTests(unittest.TestCase):
@@ -34,6 +35,26 @@ class DesktopGeometryTests(unittest.TestCase):
         screens = [(0, 0, 1024, 768)]
         target = nearest_edge_position((900, 250), (180, 220), screens)
         self.assertEqual(target[0], 838)
+
+class AmbientPolicyTests(unittest.TestCase):
+    def test_idle_is_monotonic_and_opt_in_to_busy_context(self):
+        policy = IdlePolicy(inactive_after_seconds=300, now=1000)
+        self.assertFalse(policy.should_sleep(now=1299))
+        self.assertTrue(policy.should_sleep(now=1300))
+        self.assertFalse(policy.should_sleep(now=2300, busy=True))
+        policy.wake(now=2200)
+        self.assertFalse(policy.should_sleep(now=2499))
+        self.assertTrue(policy.should_sleep(now=2500))
+
+    def test_hit_region_geometry_scales_without_covering_all_screen(self):
+        small = silhouette_rectangles(.56)
+        big = silhouette_rectangles(1.45)
+        self.assertEqual(len(small), len(big))
+        self.assertLess(small[0][2], big[0][2])
+        self.assertTrue(all(w >= 1 and h >= 1 for x,y,w,h in small))
+        with self.assertRaises(ValueError):
+            silhouette_rectangles(0)
+
 
 try:
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -218,6 +239,56 @@ class IrisDesktopQtTests(unittest.TestCase):
         self.assertIsNone(mascot._seat_target)
         self.assertFalse(mascot._seat_timer.isActive())
         QTest.mouseRelease(mascot.puppet, Qt.LeftButton, Qt.NoModifier, QPoint(50, 70))
+        mascot.close()
+
+    def test_overlay_has_real_nonrectangular_mouse_mask(self):
+        from PySide6.QtCore import QPoint
+        mascot = IrisMascotWindow(settings=FakeSettings())
+        mascot.show()
+        self.app.processEvents()
+        region = mascot.mask()
+        self.assertFalse(region.isEmpty())
+        self.assertFalse(region.contains(QPoint(0, 0)))
+        self.assertTrue(region.contains(QPoint(round(119*.56), round(99*.56))))
+        mascot.set_scale(1.45)
+        larger = mascot.mask()
+        self.assertTrue(larger.contains(QPoint(round(119*1.45), round(99*1.45))))
+        self.assertFalse(larger.contains(QPoint(0, 0)))
+        mascot.open_lab(instant=False)
+        self.assertTrue(mascot.mask().isEmpty())
+        mascot.hide_by_user()
+        self.assertFalse(mascot.mask().isEmpty())
+        mascot.close()
+
+    def test_sleep_wakes_on_user_activity_and_suspends_timer(self):
+        mascot = IrisMascotWindow(settings=FakeSettings())
+        mascot.show()
+        self.app.processEvents()
+        mascot._idle_policy.last_activity -= 310
+        mascot._check_idle()
+        self.assertEqual(mascot.puppet.pose, "sleep")
+        self.assertFalse(mascot.puppet.motion_timer.isActive())
+        mascot._mark_activity()
+        self.assertEqual(mascot.puppet.pose, "idle")
+        self.assertTrue(mascot.puppet.motion_timer.isActive())
+        mascot.set_auto_rest(False)
+        mascot._idle_policy.last_activity -= 310
+        mascot._check_idle()
+        self.assertEqual(mascot.puppet.pose, "idle")
+        mascot.hide()
+        self.assertFalse(mascot._ambient_timer.isActive())
+        self.assertFalse(mascot.puppet.motion_timer.isActive())
+        mascot.close()
+
+    def test_screen_layout_change_returns_mascot_to_visible_area(self):
+        mascot = IrisMascotWindow(settings=FakeSettings())
+        mascot._screen_rects = lambda: [(0, 0, 320, 400)]
+        mascot.move(2000, -1100)
+        mascot._revalidate_position()
+        self.assertGreaterEqual(mascot.x(), 0)
+        self.assertGreaterEqual(mascot.y(), 0)
+        self.assertLessEqual(mascot.x(), 320-mascot.width())
+        self.assertLessEqual(mascot.y(), 400-mascot.height())
         mascot.close()
 
     def test_mascot_enters_lab_and_returns(self):

@@ -8,14 +8,15 @@ universal e não são manipuladas por força nem por injeção de teclas.
 from __future__ import annotations
 
 import os
-from PySide6.QtCore import QEasingCurve, QEvent, QPoint, QPropertyAnimation, QSettings, Qt, QTimer, Signal
-from PySide6.QtGui import QCursor
+from PySide6.QtCore import QEasingCurve, QAbstractAnimation, QEvent, QPoint, QPropertyAnimation, QSettings, Qt, QTimer, Signal
+from PySide6.QtGui import QCursor, QRegion
 from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QWidget, QVBoxLayout, QToolTip, QSlider, QWidgetAction
 
 from interface.native_app.iris_desktop import (
     clamp_to_screens, nearest_edge_position, next_monitor_position,
 )
 from interface.native_app.iris_lab import IrisLabWindow, IrisPortalDoor
+from interface.native_app.iris_ambient import IdlePolicy, silhouette_rectangles
 from interface.native_app.iris_puppet import IrisPuppet, SIZE_PRESETS, STYLES, valid_scale
 from interface.native_app.iris_startup import startup_supported, is_startup_enabled, set_startup_enabled, StartupError
 from interface.native_app.iris_window_bridge import DesktopWindowBridge, WindowEdge
@@ -42,6 +43,9 @@ class IrisMascotWindow(QWidget):
         self._last_pointer = None
         self._gripped_window: WindowEdge | None = None
         self._strolling = bool(self.settings.value("iris_mascot/stroll", False, type=bool))
+        self._rest_enabled = bool(self.settings.value("iris_mascot/auto_rest", True, type=bool))
+        self._idle_policy = IdlePolicy(inactive_after_seconds=300)
+        self._screen_connections = set()
         self.lab = None
         self._seat_target: WindowEdge | None = None
         self._seat_offset_x = 0
@@ -71,6 +75,7 @@ class IrisMascotWindow(QWidget):
         self.door.hide()
         self.door.entered.connect(self._enter_lab)
         self._layout_portal()
+        self._refresh_hit_mask()
 
         self._animation = QPropertyAnimation(self, b"pos", self)
         self._animation.setEasingCurve(QEasingCurve.InOutCubic)
@@ -82,6 +87,13 @@ class IrisMascotWindow(QWidget):
         self._seat_timer = QTimer(self)
         self._seat_timer.setInterval(250)
         self._seat_timer.timeout.connect(self._maintain_seat)
+        self._ambient_timer = QTimer(self)
+        self._ambient_timer.setInterval(15000)
+        self._ambient_timer.timeout.connect(self._check_idle)
+        app = QApplication.instance()
+        app.screenAdded.connect(self._handle_screen_change)
+        app.screenRemoved.connect(self._handle_screen_change)
+        self._bind_screen_events()
 
         saved_x = self.settings.value("iris_mascot/x", None)
         saved_y = self.settings.value("iris_mascot/y", None)
@@ -105,6 +117,7 @@ class IrisMascotWindow(QWidget):
         self.puppet.set_scale(factor)
         self.setFixedSize(self.puppet.size())
         self._layout_portal()
+        self._refresh_hit_mask()
         self.settings.setValue("iris_mascot/scale", factor)
         self.move_to((self.x(), self.y()), animated=False)
         self.save_position()
@@ -119,6 +132,72 @@ class IrisMascotWindow(QWidget):
             max(122, round(self.width() * .84)),
             max(100, round(self.height() * .81)),
         )
+
+    def _refresh_hit_mask(self):
+        """Nonrectangular OS hit region: desktop clicks pass through empty corners."""
+        region = QRegion()
+        for x, y, width, height in silhouette_rectangles(self.puppet.scale_factor):
+            region = region.united(QRegion(x, y, width, height, QRegion.Ellipse))
+        self.setMask(region)
+
+    def _bind_screen_events(self):
+        for screen in QApplication.screens():
+            key = id(screen)
+            if key not in self._screen_connections:
+                screen.availableGeometryChanged.connect(self._handle_screen_change)
+                self._screen_connections.add(key)
+
+    def _handle_screen_change(self, *unused):
+        """Recover position when an external display is disconnected."""
+        if self._closing or self._drag_at is not None:
+            return
+        self._bind_screen_events()
+        self._revalidate_position()
+
+    def _revalidate_position(self):
+        if self._seat_target is not None:
+            self._maintain_seat()
+        else:
+            self.move_to((self.x(), self.y()), animated=False)
+            self.save_position()
+
+    def set_auto_rest(self, enabled):
+        self._rest_enabled = bool(enabled)
+        self.settings.setValue("iris_mascot/auto_rest", self._rest_enabled)
+        self._mark_activity()
+
+    def _mark_activity(self):
+        self._idle_policy.wake()
+        if self.puppet.pose == "sleep":
+            self.puppet.set_pose("idle")
+        if self.isVisible() and not self._reduced_motion and not self.puppet.motion_timer.isActive():
+            self.puppet.motion_timer.start()
+
+    def _check_idle(self):
+        if not self._rest_enabled or not self.isVisible():
+            return
+        busy = (self._drag_at is not None or self._gripped_window is not None
+                or self._seat_target is not None or self._portal_pending
+                or self._strolling
+                or (self.lab is not None and self.lab.isVisible())
+                or self._animation.state() != QAbstractAnimation.Stopped)
+        if self._idle_policy.should_sleep(busy=busy) and self.puppet.pose == "idle":
+            self.puppet.set_pose("sleep")
+            self.puppet.motion_timer.stop()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._ambient_timer.start()
+        if self._strolling and self._seat_target is None and not self._portal_pending:
+            self._stroll_timer.start()
+        if not self._reduced_motion and self.puppet.pose != "sleep":
+            self.puppet.motion_timer.start()
+
+    def hideEvent(self, event):
+        self._ambient_timer.stop()
+        self._stroll_timer.stop()
+        self.puppet.motion_timer.stop()
+        super().hideEvent(event)
 
     def _build_size_slider(self, parent):
         """Controle de escala livre diretamente no menu de contexto."""
@@ -303,6 +382,7 @@ class IrisMascotWindow(QWidget):
             self._stroll_timer.start()
 
     def open_lab(self, instant=False):
+        self._mark_activity()
         if self._portal_pending:
             return
         if self.lab is not None and self.lab.isVisible():
@@ -314,6 +394,7 @@ class IrisMascotWindow(QWidget):
         self._portal_pending = True
         self.puppet.set_pose("portal")
         self._layout_portal()
+        self.clearMask()
         self.door.reset()
         self.door.show()
         self.door.raise_()
@@ -323,6 +404,7 @@ class IrisMascotWindow(QWidget):
         self._portal_pending = False
         self.door.reset()
         self.door.hide()
+        self._refresh_hit_mask()
 
     def _enter_lab(self):
         if self._closing or not self._portal_pending:
@@ -340,12 +422,14 @@ class IrisMascotWindow(QWidget):
         if self._closing:
             return
         self.puppet.set_pose("idle")
+        self._mark_activity()
         self.show()
         self.raise_()
         if self._strolling:
             self._stroll_timer.start()
 
     def _open_menu(self, location):
+        self._mark_activity()
         menu = QMenu(self)
         menu.addAction("Agarrar borda de janela próxima", self.select_window_edge)
         menu.addAction("Soltar borda", self.release_window)
@@ -378,6 +462,10 @@ class IrisMascotWindow(QWidget):
         stroll.toggled.connect(self.set_stroll)
         menu.addSeparator()
         menu.addAction("Entrar no laboratório", lambda: self.open_lab())
+        rest = menu.addAction("Descansar após 5 minutos sem uso")
+        rest.setCheckable(True)
+        rest.setChecked(self._rest_enabled)
+        rest.toggled.connect(self.set_auto_rest)
         if startup_supported():
             autostart = menu.addAction("Iniciar com o Windows")
             autostart.setCheckable(True)
@@ -390,9 +478,12 @@ class IrisMascotWindow(QWidget):
         if source is self.puppet:
             kind = event.type()
             if kind == QEvent.MouseButtonDblClick and event.button() == Qt.LeftButton:
+                self._mark_activity()
                 self.open_lab()
                 return True
             if kind == QEvent.MouseButtonPress:
+                if event.button() in (Qt.RightButton, Qt.LeftButton):
+                    self._mark_activity()
                 if event.button() == Qt.RightButton:
                     self._open_menu(event.globalPosition().toPoint())
                     return True
@@ -427,6 +518,7 @@ class IrisMascotWindow(QWidget):
 
     def closeEvent(self, event):
         self._closing = True
+        self._ambient_timer.stop()
         self._cancel_portal()
         self._leave_seat()
         self._stroll_timer.stop()

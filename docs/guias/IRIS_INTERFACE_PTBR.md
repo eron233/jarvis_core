@@ -76,3 +76,10 @@ A Íris agora **abre uma porta com folhas móveis** no próprio overlay antes de
 **Sentar sobre janelas:** ao escolher a opção de sentar, a Íris acompanha automaticamente a movimentação posterior daquela janela normal do Windows enquanto continuar existindo; ao fechá-la, volta ao estado ocioso. Arrastá-la manualmente interrompe esse vínculo. A Íris não desloca a janela sem um gesto explícito de agarrar e puxar.
 
 A voz continua fora deste incremento.
+
+## V5: descanso e ergonomia
+A personagem usa uma região de interação aproximada ao contorno do corpo, evitando bloquear com o mouse as áreas vazias ao seu redor. A máscara é liberada apenas enquanto o portal está visível.
+
+Após cinco minutos de inatividade, a Íris pode fechar os olhos e interromper sua animação, retomando-a em um clique. A opção **Descansar após 5 minutos sem uso** fica no menu de contexto. Ao ocultar a Íris os timers são suspensos. Mudanças de monitor, resolução ou área útil reposicionam a personagem, sem interferir nos arrastos em andamento.
+
+Movimentação de janelas externas e comportamento em monitores reais com DPI misto precisam de homologação física. A voz permanece para a última etapa.

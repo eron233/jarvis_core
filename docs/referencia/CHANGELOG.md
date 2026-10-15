@@ -199,3 +199,10 @@ Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato ve
 - Solução: portal com duas folhas animadas usando IrisPortalDoor, estado cancelável (fechar/ocultar antes da animação interrompe a transição), personagem 2D animada presente no laboratório com o mesmo estilo escolhido no desktop, pose sentada segue a janela via handle enquanto ela existe e sai da pose quando a janela fecha. Arrasto manual cancela o acompanhamento. Nenhum movimento automático da janela externa.
 - Arquivos: interface/native_app/iris_mascot.py, iris_lab.py e tests/test_iris_desktop.py.
 - Validação: CI Windows/Qt e suíte geral. Pendente verificação visual e experiência em máquina física, sem alterar voz.
+
+## 2026-10-15: Íris V5, ergonomia do mascote
+- Regiões de clique acompanham a silhueta do desenho, não a janela retangular.
+- Descanso opcional após 5 minutos e suspensão de animação ao ocultar a personagem.
+- Reposicionamento em mudanças de monitores e da área útil.
+- Testes de geometria, estados de descanso e mudanças de monitor adicionados.
+- Pendente validação visual e testes em monitor físico com escalas diferentes. Voz não alterada.
