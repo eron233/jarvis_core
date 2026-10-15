@@ -36,6 +36,7 @@ from runtime.system_config import (
     JarvisEnvironmentConfig,
 )
 from security.access_control import AccessControl
+from security.iris_instance_policy import IrisInstanceAuthority
 
 #
 # JARVIS_API_LAYER
@@ -90,12 +91,22 @@ class SimpleWebLoginRequest(BaseModel):
     admin_password: str = Field(min_length=1)
 
 
+class IrisResidentPreferencesRequest(BaseModel):
+    corridor_visible: Optional[bool] = None
+    feedback_opt_in: Optional[bool] = None
+
+
+class IrisFeedbackSignalRequest(BaseModel):
+    code: str = Field(min_length=3, max_length=64)
+
+
 def create_app(
     runtime: InternalAgentRuntime | None = None,
     api_token: str | None = None,
     trusted_device_id: str | None = None,
     config: SystemLoopConfig | None = None,
     deployment_config: JarvisEnvironmentConfig | None = None,
+    iris_instance_authority: IrisInstanceAuthority | None = None,
 ) -> FastAPI:
     """Cria uma aplicacao FastAPI ligada ao runtime atual."""
 
@@ -123,6 +134,9 @@ def create_app(
         description="Camada minima de acesso ao nucleo operacional do JARVIS.",
     )
     app.state.runtime = runtime or InternalAgentRuntime()
+    # Desligado por padrao: nao converter automaticamente o token pessoal
+    # legado em autenticacao multiusuario. Precisa de bootstrap seguro proprio.
+    app.state.iris_instance_authority = iris_instance_authority
     app.state.system_config = config or SystemLoopConfig()
     app.state.deployment_config = effective_deployment_config
     app.state.bootstrap_state = (
@@ -209,6 +223,91 @@ def create_app(
             request_nonce=x_jarvis_nonce,
             request_timestamp=x_jarvis_timestamp,
         )
+
+    # --- Iris Original, residentes e delegadas: endpoints isolados. ---
+    # Esta autoridade nao usa o token global da API JARVIS e NAO herda
+    # o papel de dono a partir de headers declarativos ou da voz.
+    def require_iris_instance(
+        request: Request,
+        instance_id: Annotated[str | None, Header(alias="X-Iris-Instance-Id")] = None,
+        instance_token: Annotated[str | None, Header(alias="X-Iris-Instance-Token")] = None,
+    ) -> tuple[IrisInstanceAuthority, str, str]:
+        authority = request.app.state.iris_instance_authority
+        if authority is None:
+            raise HTTPException(status_code=503, detail="Instancias Iris nao habilitadas.")
+        if not instance_id or not instance_token:
+            raise HTTPException(status_code=401, detail="Credenciais Iris ausentes.")
+        try:
+            authority.capabilities(instance_id, instance_token)
+        except PermissionError:
+            raise HTTPException(status_code=401, detail="Credenciais Iris invalidas.") from None
+        return authority, instance_id, instance_token
+
+    @app.get("/api/iris/instancia")
+    def iris_instance_status(
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        return {
+            "instance_id": instance_id,
+            "capabilities": authority.capabilities(instance_id, token),
+        }
+
+    @app.get("/api/iris/quarto")
+    def iris_private_room(
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        try:
+            return authority.room(instance_id, token)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Quarto nao autorizado.") from None
+
+    @app.get("/api/iris/corredor")
+    def iris_owner_corridor(
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        if instance_id != IrisInstanceAuthority.OWNER_ID:
+            raise HTTPException(status_code=403, detail="Corredor exclusivo da Original.")
+        return {"quartos": authority.corridor(token)}
+
+    @app.post("/api/iris/preferencias")
+    def iris_resident_preferences(
+        payload: IrisResidentPreferencesRequest,
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        try:
+            authority.set_resident_preferences(
+                instance_id, token,
+                corridor_visible=payload.corridor_visible,
+                feedback_opt_in=payload.feedback_opt_in,
+            )
+        except (PermissionError, ValueError):
+            raise HTTPException(status_code=403, detail="Preferencias nao autorizadas.") from None
+        return {"salvo": True}
+
+    @app.post("/api/iris/feedback/sinal")
+    def iris_feedback_signal(
+        payload: IrisFeedbackSignalRequest,
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        try:
+            accepted = authority.report_feedback(instance_id, token, code=payload.code)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Codigo de feedback invalido.") from None
+        return {"registrado": accepted}
+
+    @app.get("/api/iris/feedback/resumo")
+    def iris_feedback_summary(
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        if instance_id != IrisInstanceAuthority.OWNER_ID:
+            raise HTTPException(status_code=403, detail="Resumo reservado a Original.")
+        return {"indicadores": authority.feedback_summary(token)}
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
