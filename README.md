@@ -74,6 +74,23 @@ O módulo `device/iris_state_replication.py` implementa um protocolo **pull de r
 
 **Limites incontornáveis nesta etapa:** não há consenso/quorum entre máquinas físicas, acesso confiável a SQLite por rede, eleição automática distribuída do núcleo de IA, sincronização offline multi-escritor, migração de inferência LLM nem pareamento real validado pela interface/SO do proprietário. Não usar SQLite compartilhado em NFS/SMB como protocolo de consenso. A continuidade demonstrada é de **dados e processos locais autorizados**, e não uma garantia de que a Íris continue raciocinando após desligar qualquer servidor. Um operador precisa configurar as chaves, a origem confiável, os clientes e o polling; nada disso é ativado automaticamente para usuários.
 
+## Núcleo cognitivo distribuído: inferência em nó autorizado (prévia de desenvolvimento)
+
+A Íris agora consegue encaminhar uma tarefa **real de conversação** (`inference.chat`) pelo mesmo broker da malha para um computador pareado com a superfície `compute.infer`. O código de `device/iris_inference_tasks.py` chama o roteador de inferência local já existente (`runtime.inference_stack.LocalInferenceRouter`, compatível com llama.cpp/Ollama). O agente `device/iris_node_worker.py` executa a inferência apenas **no computador em que foi iniciado**, com motor local explícito, e retorna a resposta ao titular da instância. A resposta **não é fabricada** quando o modelo não estiver provisionado.
+
+Para limitar exposição de dados e execução indevida: cada tarefa permite apenas mensagens de texto (`user`/`assistant`, até 8), máximo de 256 tokens gerados, sem ferramentas nem parâmetros arbitrários de modelo; `offline_mode=True` e `allow_remote_endpoints=False` são obrigatórios no nó, e `allow_external=False` é passado em cada inferência. Não há envio automático a APIs externas, acesso ao shell ou leitura do PC do vizinho. Uma instalação só pode executar inferência se tiver sido pareada e autorizada para `compute.infer`. A credencial da Íris é distinta da credencial individual de cada nó.
+
+`runtime/iris_dialogue_service.py` oferece uma conversa persistente por usuário em `IrisEncryptedStateStore`: `start` enfileira a pergunta, `finish` confirma a resposta do worker e grava o turno criptografado; `history` recupera o contexto daquele próprio cliente. O serviço reduz o histórico enviado à inferência, bloqueia turnos concorrentes na mesma sessão e mantém os dados isolados por instância. Rotas opcionais:
+
+- `POST /api/iris/dialogue/turn`: `{"conversation_id":"conversa-001","text":"Oi, Íris"}` com os cabeçalhos de autenticação da instância.
+- `GET /api/iris/dialogue/conversa-001/finish`: retorna a resposta quando o nó confirmar a execução.
+- `GET /api/iris/dialogue/conversa-001/history`: retorna histórico privado da mesma instância.
+- As rotas existentes `POST /api/iris/no/tarefa/claim` e `POST /api/iris/no/tarefa/complete` fazem o processamento autenticado pelo token **do dispositivo**, nunca pelo token da Original.
+
+`runtime/iris_distributed_bootstrap.py` reúne os stores cifrados persistentes, a malha, o broker, o replicador e o diálogo por `create_local_iris_stack(diretorio, environ=...)`, com `stack.api_options()` para integração opcional a `interface.api.app.create_app`. Ele exige `IRIS_OWNER_TOKEN` forte, quatro chaves independentes de 32 bytes em hexadecimal (`IRIS_IDENTITY_KEY_HEX`, `IRIS_MESH_KEY_HEX`, `IRIS_STATE_KEY_HEX`, `IRIS_BROKER_KEY_HEX`), `IRIS_SOURCE_ID` persistente e diretório privado. Gerencie esses valores em um cofre de segredos, nunca no Git. O bootstrap não inicia automaticamente processos, pareamento, nó executor, câmera, microfone ou modelo. Feche o store com `stack.close()`.
+
+**Limitações verificadas:** os testes unitários/HTTP de inferência usam um `FakeRouter`, não um modelo grande instalado; a aplicação só produzirá texto de IA após configurar e iniciar um modelo local real e habilitar explicitamente o stack. A conversa mantém checkpoints cifrados, mas **não migra o KV-cache do modelo, não fornece quorum entre PCs físicos e não garante failover da inferência quando nenhum nó estiver operacional**. Ainda faltam instalador/pareamento reais, homologação Windows e comunicação autônoma independente do serviço central. O resultado já é um protocolo executável e testável de conversação distribuída, não um produto SaaS ou demonstração física pronta.
+
 ## Íris no Windows
 
 A branch dev gera o executável portátil no
