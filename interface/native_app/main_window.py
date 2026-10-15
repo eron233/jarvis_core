@@ -569,9 +569,17 @@ class JarvisMainWindow(QMainWindow):
             "Olá. Sou Íris, sua assistente no Gênesis. Como posso ajudar?",
             "ÍRIS",
         )
-        self.footer_runtime.setText(f"Conectado em {self.bootstrap_result.startup_duration_seconds:.1f}s")
-        self.footer_command.setText("Pronto.")
-        self.iris_presence.set_state("idle")
+        health_confirmed = self.bootstrap_result.health_payload.get("status") == "ok"
+        if health_confirmed:
+            self.footer_runtime.setText(
+                f"Conectado em {self.bootstrap_result.startup_duration_seconds:.1f}s"
+            )
+            self.iris_presence.set_state("idle")
+            self.footer_command.setText("Pronto.")
+        else:
+            self.footer_runtime.setText("Runtime ainda não confirmado.")
+            self.iris_presence.set_state("offline")
+            self.footer_command.setText("Aguardando conexão.")
         self._set_section("chat")
 
     def _schedule_refresh(self) -> None:
