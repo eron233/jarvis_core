@@ -141,6 +141,8 @@ class IrisEncryptedStateStore:
         value: Any,
         *,
         expected_revision: int,
+        fence_node_id: str | None = None,
+        fence_epoch: int | None = None,
     ) -> dict[str, Any]:
         """Gravacao CAS: exige versao, nao sobrescreve concorrencia silenciosa."""
         self._valid_key(document_id)
@@ -159,6 +161,29 @@ class IrisEncryptedStateStore:
             self._authorize(instance_id, token)
             self._db.execute("BEGIN IMMEDIATE")
             try:
+                # A criacao de um lease para esta instancia ativa fencing
+                # permanentemente, inclusive apos reiniciar processos.
+                has_leases = self._db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='iris_writer_leases'"
+                ).fetchone() is not None
+                if has_leases:
+                    lease = self._db.execute(
+                        "SELECT node_id, epoch, lease_until FROM iris_writer_leases "
+                        "WHERE instance_id=?",
+                        (instance_id,),
+                    ).fetchone()
+                    if lease is not None:
+                        now = self._db.execute(
+                            "SELECT (julianday('now') - 2440587.5) * 86400"
+                        ).fetchone()[0]
+                        if (
+                            type(fence_epoch) is not int
+                            or not isinstance(fence_node_id, str)
+                            or lease[0] != fence_node_id
+                            or lease[1] != fence_epoch
+                            or lease[2] <= now
+                        ):
+                            raise PermissionError("Escrita sem lease e epoch valido.")
                 row = self._get_row(instance_id, document_id)
                 revision = row[0] if row else 0
                 if revision != expected_revision:
