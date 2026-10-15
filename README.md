@@ -5,6 +5,64 @@ pessoal, com identidade de androide de cabelos prateados e olhos azuis.
 O identificador interno legado JARVIS foi mantido para preservar compatibilidade
 de API, configuração e memória. Zero não é mais a identidade de interface.
 
+## Arquitetura de instâncias (incremento de segurança isolado)
+
+O código experimental em `security/iris_instance_policy.py` cria uma fronteira **separada do token legado JARVIS** para três perfis:
+
+- **Original:** capacidades exclusivas de fundação, como `corridor.list`, `trade.use`, `system.admin` e provisionamento.
+- **Residente:** conversa, seu próprio quarto, memória própria (escopo de permissão), diagnóstico e delegação limitada. **Não** recebe Trade, administração nem corredor central.
+- **Delegada:** recebe apenas um subconjunto explícito das permissões do agente que a criou, com prazo de expiração e revogação em cascata.
+
+A política é verificada no backend: menus ocultos não são proteção. As rotas opcionais `/api/iris/instancia`, `/api/iris/quarto`, `/api/iris/corredor`, `/api/iris/preferencias`, `/api/iris/feedback/sinal` e `/api/iris/feedback/resumo` exigem credencial de instância própria e **ficam indisponíveis (503) enquanto a autoridade não for injetada explicitamente no servidor**.
+
+O corredor retorna apenas metadados de instalações cuja visibilidade foi autorizada, nunca arquivos, memórias ou conversas. Sinais de melhoria só são aceitos após opt-in da residente, usando códigos técnicos predefinidos e relatórios agrupados a partir de cinco instalações distintas. Revogar o consentimento retira a contribuição do agregado em memória. A coleta de textos de conversas não existe nesse módulo.
+
+**Limitações e proibições para release:** esta etapa implementa regras e gates, **não uma plataforma SaaS pronta**. A autoridade guarda estado somente em memória; as credenciais de provisionamento ainda não passam por um onboarding independente de usuário; a memória legada, API global e demais recursos do Jarvis continuam pessoais e **não são multi-tenant**. Não distribuir o `JARVIS_TOKEN` pessoal a clientes nem conectar essas rotas a armazenamento compartilhado sem revisão de isolamento, credenciais, consentimento, revogação, persistência e testes E2E. Não há instalação em redes, controle de Bluetooth ou dispositivos externos neste incremento.
+
+## Malha de dispositivos da mesma Íris (fundação experimental)
+
+A Íris **não é replicada como uma pessoa diferente por dispositivo**: vários nós podem pertencer à **mesma identidade de instância** e fornecer presença, áudio, leitura de estado ou computação, conforme autorização e compatibilidade.
+
+**Diferença entre morar e controlar:** computadores Windows/Linux/macOS/Android podem executar um agente com o aplicativo voluntariamente instalado. iOS e televisores usam um cliente de interface quando o sistema permite. Switches, roteadores, cafeteiras, patinetes e outros equipamentos restritos normalmente **não executam nosso runtime**; nesses casos a integração depende de **um gateway/adaptador oficial ou autorizado**. Um aparelho desconhecido não será desbloqueado nem receberá software sem autorização do proprietário.
+
+`device/iris_mesh.py` implementa nesta etapa:
+- oferta de pareamento com validade de 5 minutos, aprovação local **declarada** por um cliente confiável, confirmação pelo titular da instância e credencial distinta de cada nó;
+- sessão `integrated` como padrão, `visit` apenas por seleção explícita e com tempo máximo; ao sair as credenciais são revogadas e a **limpeza no SO ainda depende do cliente local**;
+- inventário isolado por instância, heartbeat (90 s), perda de conectividade, seleção determinística de nó e indicadores de continuidade;
+- restrições de superfícies por plataforma: gateway IoT apenas leitura compatível, não execução arbitrária; menus e permissões nunca substituem a autenticação;
+- **adaptação por observação técnica**: CPU, memória livre, bateria e latência reportadas por cada cliente autenticado, usadas para escolher nós menos sobrecarregados. Os perfis são **declarativos, não benchmarks independentes**, não contêm conversa, tela, áudio nem dados de terceiros.
+
+API isolada opcional, configurada por `iris_instance_authority` + `iris_device_mesh`: `GET /api/iris/dispositivos`, `GET /api/iris/continuidade`, `GET /api/iris/roteamento?recurso=...`, `GET /api/iris/perfis-tecnicos`, `POST /api/iris/dispositivo/heartbeat` e `POST /api/iris/dispositivo/estado`. Essas rotas **não** expõem o cadastro/pareamento publicamente nem executam comandos remotos.
+
+**Ainda não é uma malha distribuída autônoma em computadores reais.** Não existe transporte seguro P2P, drivers para todos os aparelhos, execução remota, memória criptografada replicada, consenso/eleição entre processos reais, reconexão automática, onboarding comercial autenticado ou recuperação garantida sem servidor. A presença lógica continua existindo no registro quando um nó cai, mas só fica operacional se houver outro runtime compatível e o estado necessário estiver disponível. Os testes simulam perda de nós e decisões, **não provam failover real de uma IA**.
+
+A plataforma multiusuário só deve utilizar essa malha após autenticação de contas, isolamento persistente por tenant, pareamento com consentimento verificável, integração dos adaptadores certificados e homologação de segurança em ambientes reais.
+
+## Persistência cifrada e retomada de sessão (experimental)
+
+Há três componentes opcionais, separados do banco e dos endpoints globais do JARVIS antigo:
+
+- `security/iris_instance_persistence.py`: persiste identidades e **hashes de credenciais** em arquivo autenticado e cifrado por AES-256-GCM; permissões, revogações, visibilidade e opt-in sobrevivem ao reinício.
+- `device/iris_mesh_persistence.py`: registra os nós já pareados e seus hashes de tokens em arquivo cifrado. Após reiniciar, **todos aparecem offline** até que cada aparelho envie um novo heartbeat autenticado. O modo visita não é estendido após a expiração.
+- `memory_system/iris_state_store.py`: estado JSON cifrado com AES-256-GCM, SQLite WAL transacional, chave separada por instância via HKDF, controle de versão CAS, erros `409` para escritas concorrentes e backup SQLite consistente. A API opcional `/api/iris/memoria/{document_id}` usa exclusivamente autenticação de instância, nunca a credencial global JARVIS. A escrita aceita até 64 KiB por documento e exige `expected_revision`.
+
+Cada componente precisa de **segredos aleatórios próprios de 32 bytes** vindos de um serviço seguro externo ao Git, com backup e procedimento de recuperação. Os arquivos e backups devem permanecer privados; perder as chaves significa perder acesso ao estado cifrado. Os stores de identidade e malha são apropriados apenas a **um processo escritor por arquivo** neste estágio; o futuro serviço multiusuário precisa de banco central com transações, revogação em múltiplos workers e autenticação dos instaladores.
+
+Os testes exercitam um reinício completo dos três stores em processo de teste, com reautenticação de aparelho e continuidade da memória da mesma Íris. Isso **não equivale** a failover transparente entre computadores: os dispositivos ainda não trocam dados diretamente por rede, o servidor da API não configura os componentes por padrão e modelos locais não são migrados. Os arquivos cifrados possibilitam recuperação no mesmo volume ou por backup transportado de forma segura, não disponibilidade garantida independente de servidor.
+
+## Trabalho distribuído entre PCs autorizados (protocolo funcional restrito)
+
+Além do inventário de aparelhos, há um **broker de tarefas** para que dois computadores pareados executem trabalho simultaneamente para a mesma Íris:
+
+- `device/iris_task_broker.py`: fila por instância, lease temporária de 45 segundos, rejeição de acesso entre residentes, reentrega após lease perdida, limites de tamanho e número de jobs. Nenhum comando arbitrário é aceito.
+- `device/iris_node_worker.py`: cliente de processamento iniciado voluntariamente pelo proprietário, que faz `POST /api/iris/no/tarefa/claim` e `POST /api/iris/no/tarefa/complete` e só sabe executar `text.word_count`, `math.sum` e `hash.sha256`. Não acessa SO, arquivos, Bluetooth, jogos nem instala programas. Requer HTTPS fora do localhost e bloqueia redirects para não encaminhar tokens.
+- `device/iris_task_persistence.py`: broker opcional com snapshots AES-256-GCM, para recuperar filas e reexecutar leases abandonadas após reinício de um coordenador. **Sem exatamente uma execução (at-least-once)**: qualquer tarefa futura com efeitos externos exigirá idempotência e tratamento específico. Continua single-process.
+- Rotas opcionais `/api/iris/tarefas`, `/api/iris/tarefas/{job_id}`, `/api/iris/no/tarefa/claim` e `/api/iris/no/tarefa/complete`; somente o dono da instância envia/consulta seus trabalhos, somente o nó nativo pareado integrado recolhe/conclui. Os retornos dos nós são **não verificados**, não prova de que um modelo real tenha executado.
+
+O processo da Íris deve receber explicitamente objetos `IrisInstanceAuthority`, `IrisDeviceMesh`, `IrisTaskBroker` e os stores opcionais em `create_app()`. A inicialização padrão do Jarvis permanece sem essas rotas ativas: **não** habilitar o serviço para clientes comerciais ou pela internet antes de onboarding, TLS real, identidade das instalações, isolamento por tenant e auditoria de segurança. Credenciais nunca devem ir para Git, logs ou linhas de comando compartilhadas.
+
+Isso já valida **computação repartida de tarefas fechadas**, inclusive pelo contrato HTTP no TestClient, mas **não** significa que os modelos cognitivos, memórias de sessão ou decisões da Íris sejam migrados entre computadores. Não há execução de comandos genéricos, failover offline P2P ou operação de aparelhos IoT neste protocolo.
+
 ## Íris no Windows
 
 A branch dev gera o executável portátil no

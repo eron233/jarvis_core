@@ -24,6 +24,11 @@ from runtime.cognitive_evolution import CognitiveEvolutionTracker
 from runtime.internal_agent_runtime import InternalAgentRuntime
 from runtime.system_config import JarvisEnvironmentConfig
 from security.access_control import AccessControl
+from security.iris_instance_policy import IrisInstanceAuthority
+from device.iris_mesh import IrisDeviceMesh
+from memory_system.iris_state_store import IrisEncryptedStateStore
+from device.iris_task_broker import IrisTaskBroker
+from device.iris_node_worker import IrisNodeWorker
 
 
 def make_api_artifact_path(name: str, suffix: str) -> Path:
@@ -121,6 +126,385 @@ class JarvisApiTests(unittest.TestCase):
         runtime.access_control = AccessControl.from_plaintext("senha-admin-segura-2026")
         app = create_app(runtime=runtime, deployment_config=config)
         return TestClient(app)
+
+    def test_iris_indisponivel_antes_do_bootstrap_explicito(self) -> None:
+        client, _ = self.build_client("iris_disabled")
+        resp = client.get("/api/iris/instancia", headers={
+            "X-Iris-Instance-Id": "iris-original",
+            "X-Iris-Instance-Token": "token-qualquer",
+        })
+        self.assertEqual(resp.status_code, 503)
+
+    def test_iris_residente_nao_tem_acesso_ao_corredor_nem_trade(self) -> None:
+        client, _ = self.build_client("iris_isolation")
+        authority = IrisInstanceAuthority("owner-secret-seguro-para-teste-" + "x" * 30)
+        client.app.state.iris_instance_authority = authority
+        alice = authority.create_resident(
+            "owner-secret-seguro-para-teste-" + "x" * 30,
+            tenant_id="cliente-alice", display_name="Iris Alice", user_consented=True,
+        )
+        bob = authority.create_resident(
+            "owner-secret-seguro-para-teste-" + "x" * 30,
+            tenant_id="cliente-bob", display_name="Iris Bob", user_consented=True,
+        )
+        alice_headers = {
+            "X-Iris-Instance-Id": alice["instance_id"],
+            "X-Iris-Instance-Token": alice["token"],
+        }
+        owner_headers = {
+            "X-Iris-Instance-Id": IrisInstanceAuthority.OWNER_ID,
+            "X-Iris-Instance-Token": "owner-secret-seguro-para-teste-" + "x" * 30,
+        }
+        me = client.get("/api/iris/instancia", headers=alice_headers)
+        self.assertEqual(me.status_code, 200)
+        self.assertNotIn("trade.use", me.json()["capabilities"])
+        self.assertEqual(client.get("/api/iris/quarto", headers=alice_headers).status_code, 200)
+        self.assertEqual(client.get("/api/iris/corredor", headers=alice_headers).status_code, 403)
+        self.assertEqual(client.get("/api/iris/feedback/resumo", headers=alice_headers).status_code, 403)
+        other_token = dict(alice_headers, **{"X-Iris-Instance-Token": bob["token"]})
+        self.assertEqual(client.get("/api/iris/quarto", headers=other_token).status_code, 401)
+        authority.set_resident_preferences(
+            alice["instance_id"], alice["token"], corridor_visible=True,
+        )
+        corridor = client.get("/api/iris/corredor", headers=owner_headers)
+        self.assertEqual(corridor.status_code, 200)
+        self.assertEqual(corridor.json()["quartos"][0]["instance_id"], alice["instance_id"])
+        self.assertNotIn("token", corridor.json()["quartos"][0])
+
+    def test_iris_feedback_exige_opt_in_e_codigos_fechados(self) -> None:
+        client, _ = self.build_client("iris_feedback")
+        secret = "owner-secret-seguro-para-teste-" + "x" * 30
+        authority = IrisInstanceAuthority(secret)
+        client.app.state.iris_instance_authority = authority
+        resident = authority.create_resident(
+            secret, tenant_id="cliente-avisos", display_name="Iris", user_consented=True,
+        )
+        headers = {
+            "X-Iris-Instance-Id": resident["instance_id"],
+            "X-Iris-Instance-Token": resident["token"],
+        }
+        denied = client.post("/api/iris/feedback/sinal", headers=headers, json={"code": "slow_response"})
+        self.assertEqual(denied.status_code, 200)
+        self.assertFalse(denied.json()["registrado"])
+        malformed = client.post("/api/iris/feedback/sinal", headers=headers, json={"code": "fala pessoal do cliente"})
+        self.assertEqual(malformed.status_code, 422)
+        allowed = client.post("/api/iris/preferencias", headers=headers, json={"feedback_opt_in": True})
+        self.assertEqual(allowed.status_code, 200)
+        recorded = client.post("/api/iris/feedback/sinal", headers=headers, json={"code": "slow_response"})
+        self.assertTrue(recorded.json()["registrado"])
+        client.post("/api/iris/preferencias", headers=headers, json={"feedback_opt_in": False})
+        self.assertEqual(authority.feedback_summary(secret), {})
+
+    def test_iris_mesh_rotas_exigem_malha_injetada(self) -> None:
+        client, _ = self.build_client("iris_mesh_unconfigured")
+        secret = "segredo-seguro-para-mesh-" + "a" * 32
+        authority = IrisInstanceAuthority(secret)
+        client.app.state.iris_instance_authority = authority
+        owner_headers = {
+            "X-Iris-Instance-Id": IrisInstanceAuthority.OWNER_ID,
+            "X-Iris-Instance-Token": secret,
+        }
+        self.assertEqual(
+            client.get("/api/iris/dispositivos", headers=owner_headers).status_code,
+            503,
+        )
+        self.assertEqual(
+            client.post("/api/iris/dispositivo/heartbeat").status_code,
+            503,
+        )
+
+    def test_iris_mesh_api_multidispositivo_e_escopo_por_cliente(self) -> None:
+        client, _ = self.build_client("iris_mesh_multi")
+        secret = "segredo-seguro-para-mesh-" + "a" * 32
+        authority = IrisInstanceAuthority(secret)
+        mesh = IrisDeviceMesh(authority)
+        client.app.state.iris_instance_authority = authority
+        client.app.state.iris_device_mesh = mesh
+        alice = authority.create_resident(
+            secret, tenant_id="tenant-alice", display_name="Iris Alice",
+            user_consented=True,
+        )
+        bob = authority.create_resident(
+            secret, tenant_id="tenant-bob", display_name="Iris Bob",
+            user_consented=True,
+        )
+        offer = mesh.offer_device(
+            device_name="PC da Alice", device_type="windows",
+            surfaces={"presence.display", "compute.light"},
+            locally_approved=True,
+        )
+        device = mesh.approve_offer(
+            alice["instance_id"], alice["token"],
+            offer_id=offer["offer_id"], verification_code=offer["verification_code"],
+        )
+        alice_headers = {
+            "X-Iris-Instance-Id": alice["instance_id"],
+            "X-Iris-Instance-Token": alice["token"],
+        }
+        bob_headers = {
+            "X-Iris-Instance-Id": bob["instance_id"],
+            "X-Iris-Instance-Token": bob["token"],
+        }
+        self.assertEqual(
+            len(client.get("/api/iris/dispositivos", headers=alice_headers).json()["devices"]),
+            1,
+        )
+        self.assertEqual(
+            client.get("/api/iris/dispositivos", headers=bob_headers).json()["devices"],
+            [],
+        )
+        self.assertEqual(
+            client.get("/api/iris/continuidade", headers=alice_headers).json()["active_nodes"],
+            1,
+        )
+        routed = client.get(
+            "/api/iris/roteamento", params={"recurso": "presence.display"},
+            headers=alice_headers,
+        )
+        self.assertEqual(routed.status_code, 200)
+        self.assertEqual(routed.json()["node_id"], device["node_id"])
+        self.assertFalse(routed.json()["executed"])
+        self.assertEqual(
+            client.get("/api/iris/roteamento", params={"recurso": "system.hack"},
+                       headers=alice_headers).status_code,
+            422,
+        )
+        self.assertEqual(
+            client.post("/api/iris/dispositivo/heartbeat", headers={
+                "X-Iris-Node-Id": device["node_id"],
+                "X-Iris-Node-Token": device["node_token"],
+            }).status_code,
+            200,
+        )
+        self.assertEqual(
+            client.post("/api/iris/dispositivo/heartbeat", headers={
+                "X-Iris-Node-Id": device["node_id"],
+                "X-Iris-Node-Token": bob["token"],
+            }).status_code,
+            401,
+        )
+
+        report = client.post(
+            "/api/iris/dispositivo/estado",
+            headers={
+                "X-Iris-Node-Id": device["node_id"],
+                "X-Iris-Node-Token": device["node_token"],
+            },
+            json={
+                "cpu_percent": 30, "memory_available_mb": 2048,
+                "battery_percent": None, "latency_ms": 15,
+            },
+        )
+        self.assertEqual(report.status_code, 200)
+        self.assertTrue(report.json()["accepted"])
+        self.assertEqual(
+            client.get("/api/iris/perfis-tecnicos", headers=bob_headers).json()["profiles"],
+            [],
+        )
+        profiles = client.get("/api/iris/perfis-tecnicos", headers=alice_headers)
+        self.assertEqual(profiles.status_code, 200)
+        self.assertEqual(len(profiles.json()["profiles"]), 1)
+        self.assertEqual(
+            client.post(
+                "/api/iris/dispositivo/estado",
+                headers={
+                    "X-Iris-Node-Id": device["node_id"],
+                    "X-Iris-Node-Token": device["node_token"],
+                },
+                json={
+                    "cpu_percent": 500,
+                    "memory_available_mb": 2048,
+                    "battery_percent": None,
+                    "latency_ms": 15,
+                },
+            ).status_code,
+            422,
+        )
+
+    def test_iris_estado_persistente_cria_le_e_separa_clientes(self) -> None:
+        import secrets
+        import tempfile
+        client, _ = self.build_client("iris_state_secure")
+        secret = "chave-iris-da-original-teste-" + "q" * 32
+        authority = IrisInstanceAuthority(secret)
+        client.app.state.iris_instance_authority = authority
+        alice = authority.create_resident(
+            secret, tenant_id="residente-alice", display_name="Alice", user_consented=True,
+        )
+        bob = authority.create_resident(
+            secret, tenant_id="residente-bob", display_name="Bob", user_consented=True,
+        )
+        def headers(item):
+            return {"X-Iris-Instance-Id": item["instance_id"],
+                    "X-Iris-Instance-Token": item["token"]}
+        self.assertEqual(
+            client.get("/api/iris/memoria/teste", headers=headers(alice)).status_code, 503,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            store = IrisEncryptedStateStore(
+                Path(directory) / "segredo.sqlite3", authority,
+                root_key=secrets.token_bytes(32),
+            )
+            client.app.state.iris_state_store = store
+            try:
+                self.assertEqual(
+                    client.get("/api/iris/memoria/teste", headers=headers(alice)).json()["revision"], 0,
+                )
+                alice_write = client.put(
+                    "/api/iris/memoria/teste", headers=headers(alice),
+                    json={"expected_revision": 0, "value": {"estado": "privado-alice"}},
+                )
+                self.assertEqual(alice_write.status_code, 200)
+                self.assertEqual(alice_write.json()["revision"], 1)
+                bob_read = client.get("/api/iris/memoria/teste", headers=headers(bob))
+                self.assertEqual(bob_read.status_code, 200)
+                self.assertFalse(bob_read.json()["found"])
+                self.assertEqual(
+                    client.get("/api/iris/memoria/teste", headers=headers(alice)).json()["value"],
+                    {"estado": "privado-alice"},
+                )
+                clash = client.put(
+                    "/api/iris/memoria/teste", headers=headers(alice),
+                    json={"expected_revision": 0, "value": {"estado": "esmagar"}},
+                )
+                self.assertEqual(clash.status_code, 409)
+                self.assertEqual(
+                    client.get("/api/iris/memoria/documentos", headers=headers(alice)).json()["documents"],
+                    [{"document_id": "teste", "revision": 1}],
+                )
+                self.assertEqual(
+                    client.get("/api/iris/memoria/documentos", headers=headers(bob)).json()["documents"],
+                    [],
+                )
+                forged = dict(headers(alice), **{"X-Iris-Instance-Token": bob["token"]})
+                self.assertEqual(
+                    client.get("/api/iris/memoria/teste", headers=forged).status_code, 401,
+                )
+                authority.revoke(IrisInstanceAuthority.OWNER_ID, secret, alice["instance_id"])
+                self.assertEqual(
+                    client.get("/api/iris/memoria/teste", headers=headers(alice)).status_code, 401,
+                )
+            finally:
+                store.close()
+
+    def test_iris_broker_http_computacao_por_no_autorizado(self) -> None:
+        import secrets
+        client, _ = self.build_client("iris_broker_http")
+        secret = secrets.token_urlsafe(32)
+        authority = IrisInstanceAuthority(secret)
+        mesh = IrisDeviceMesh(authority)
+        broker = IrisTaskBroker(mesh)
+        client.app.state.iris_instance_authority = authority
+        client.app.state.iris_device_mesh = mesh
+        client.app.state.iris_task_broker = broker
+        person = authority.create_resident(
+            secret, tenant_id="cliente-calculo",
+            display_name="Íris", user_consented=True,
+        )
+        offer = mesh.offer_device(
+            device_name="Notebook", device_type="windows",
+            surfaces={"compute.light"}, locally_approved=True,
+        )
+        node = mesh.approve_offer(
+            person["instance_id"], person["token"],
+            offer_id=offer["offer_id"],
+            verification_code=offer["verification_code"],
+        )
+        resident_headers = {
+            "X-Iris-Instance-Id": person["instance_id"],
+            "X-Iris-Instance-Token": person["token"],
+        }
+        node_headers = {
+            "X-Iris-Node-Id": node["node_id"],
+            "X-Iris-Node-Token": node["node_token"],
+        }
+        job = client.post("/api/iris/tarefas", headers=resident_headers, json={
+            "operation": "math.sum", "payload": {"values": [1, 2, 3]},
+        })
+        self.assertEqual(job.status_code, 200)
+        self.assertEqual(job.json()["status"], "queued")
+        claim = client.post("/api/iris/no/tarefa/claim", headers=node_headers)
+        self.assertEqual(claim.status_code, 200)
+        self.assertEqual(claim.json()["status"], "leased")
+        ticket = claim.json()
+        done = client.post("/api/iris/no/tarefa/complete", headers=node_headers, json={
+            "job_id": ticket["job_id"],
+            "lease_token": ticket["lease_token"],
+            "result": {"sum": 6.0},
+        })
+        self.assertEqual(done.status_code, 200)
+        self.assertFalse(done.json()["verified"])
+        details = client.get(
+            "/api/iris/tarefas/" + ticket["job_id"],
+            headers=resident_headers,
+        )
+        self.assertEqual(details.json()["result"], {"sum": 6.0})
+        repeated = client.post("/api/iris/no/tarefa/complete", headers=node_headers, json={
+            "job_id": ticket["job_id"],
+            "lease_token": ticket["lease_token"],
+            "result": {"sum": 6.0},
+        })
+        self.assertEqual(repeated.status_code, 403)
+        reject = client.post("/api/iris/tarefas", headers=resident_headers, json={
+            "operation": "shell.exec", "payload": {"command": "whoami"},
+        })
+        self.assertEqual(reject.status_code, 422)
+        self.assertEqual(client.post(
+            "/api/iris/no/tarefa/claim",
+            headers={"X-Iris-Node-Id": node["node_id"],
+                     "X-Iris-Node-Token": person["token"]},
+        ).status_code, 403)
+
+    def test_iris_worker_cliente_real_com_protocolo_http_sem_socket_externo(self):
+        import secrets
+        client, _ = self.build_client("iris_worker_local")
+        secret = secrets.token_urlsafe(32)
+        authority = IrisInstanceAuthority(secret)
+        mesh = IrisDeviceMesh(authority)
+        client.app.state.iris_instance_authority = authority
+        client.app.state.iris_device_mesh = mesh
+        client.app.state.iris_task_broker = IrisTaskBroker(mesh)
+        person = authority.create_resident(
+            secret, tenant_id="cliente-worker",
+            display_name="Íris do PC", user_consented=True,
+        )
+        offer = mesh.offer_device(
+            device_name="PC", device_type="windows",
+            surfaces={"compute.light"}, locally_approved=True,
+        )
+        node = mesh.approve_offer(
+            person["instance_id"], person["token"],
+            offer_id=offer["offer_id"],
+            verification_code=offer["verification_code"],
+        )
+        class LocalTestClientWorker(IrisNodeWorker):
+            def _post(self, path, payload=None):
+                response = client.post(path, json=payload or {}, headers={
+                    "X-Iris-Node-Id": self.node_id,
+                    "X-Iris-Node-Token": self._node_token,
+                })
+                if response.status_code != 200:
+                    raise RuntimeError(response.text)
+                return response.json()
+
+        worker = LocalTestClientWorker(
+            "http://localhost", node["node_id"], node["node_token"],
+        )
+        headers = {
+            "X-Iris-Instance-Id": person["instance_id"],
+            "X-Iris-Instance-Token": person["token"],
+        }
+        task = client.post("/api/iris/tarefas", headers=headers, json={
+            "operation": "hash.sha256", "payload": {"text": "Iris"},
+        }).json()
+        done = worker.run_once()
+        self.assertEqual(done["status"], "completed")
+        self.assertEqual(done["job_id"], task["job_id"])
+        self.assertEqual(
+            client.get("/api/iris/tarefas/" + task["job_id"], headers=headers).json()["result"]["sha256"],
+            __import__("hashlib").sha256("Iris".encode()).hexdigest(),
+        )
+        self.assertEqual(worker.run_once()["status"], "idle")
 
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
         """Confirma que o healthcheck simples responde com a API ativa."""

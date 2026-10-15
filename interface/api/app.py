@@ -36,6 +36,10 @@ from runtime.system_config import (
     JarvisEnvironmentConfig,
 )
 from security.access_control import AccessControl
+from security.iris_instance_policy import IrisInstanceAuthority
+from device.iris_mesh import IrisDeviceMesh
+from memory_system.iris_state_store import IrisEncryptedStateStore, StateConflictError, StateCorruptionError
+from device.iris_task_broker import IrisTaskBroker
 
 #
 # JARVIS_API_LAYER
@@ -90,12 +94,48 @@ class SimpleWebLoginRequest(BaseModel):
     admin_password: str = Field(min_length=1)
 
 
+class IrisResidentPreferencesRequest(BaseModel):
+    corridor_visible: Optional[bool] = None
+    feedback_opt_in: Optional[bool] = None
+
+
+class IrisFeedbackSignalRequest(BaseModel):
+    code: str = Field(min_length=3, max_length=64)
+
+
+class IrisNodeHealthRequest(BaseModel):
+    cpu_percent: float = Field(ge=0, le=100, allow_inf_nan=False)
+    memory_available_mb: int = Field(ge=0, le=1000000)
+    battery_percent: Optional[float] = Field(default=None, ge=0, le=100, allow_inf_nan=False)
+    latency_ms: float = Field(ge=0, le=60000, allow_inf_nan=False)
+
+
+class IrisStateWriteRequest(BaseModel):
+    expected_revision: int = Field(ge=0)
+    value: Any
+
+
+class IrisJobSubmissionRequest(BaseModel):
+    operation: str = Field(min_length=3, max_length=64)
+    payload: Dict[str, Any]
+
+
+class IrisJobCompletionRequest(BaseModel):
+    job_id: str = Field(min_length=10, max_length=100)
+    lease_token: str = Field(min_length=20, max_length=100)
+    result: Any
+
+
 def create_app(
     runtime: InternalAgentRuntime | None = None,
     api_token: str | None = None,
     trusted_device_id: str | None = None,
     config: SystemLoopConfig | None = None,
     deployment_config: JarvisEnvironmentConfig | None = None,
+    iris_instance_authority: IrisInstanceAuthority | None = None,
+    iris_device_mesh: IrisDeviceMesh | None = None,
+    iris_state_store: IrisEncryptedStateStore | None = None,
+    iris_task_broker: IrisTaskBroker | None = None,
 ) -> FastAPI:
     """Cria uma aplicacao FastAPI ligada ao runtime atual."""
 
@@ -123,6 +163,24 @@ def create_app(
         description="Camada minima de acesso ao nucleo operacional do JARVIS.",
     )
     app.state.runtime = runtime or InternalAgentRuntime()
+    # Desligado por padrao: nao converter automaticamente o token pessoal
+    # legado em autenticacao multiusuario. Precisa de bootstrap seguro proprio.
+    if iris_device_mesh is not None and (
+        iris_instance_authority is None or iris_device_mesh.authority is not iris_instance_authority
+    ):
+        raise ValueError("A malha Iris deve usar exatamente a mesma autoridade de instancias.")
+    if iris_state_store is not None and (
+        iris_instance_authority is None or iris_state_store.authority is not iris_instance_authority
+    ):
+        raise ValueError("O estado Iris deve usar exatamente a mesma autoridade de instancias.")
+    if iris_task_broker is not None and (
+        iris_device_mesh is None or iris_task_broker.mesh is not iris_device_mesh
+    ):
+        raise ValueError("O broker Iris deve usar a mesma malha e autoridade.")
+    app.state.iris_instance_authority = iris_instance_authority
+    app.state.iris_device_mesh = iris_device_mesh
+    app.state.iris_state_store = iris_state_store
+    app.state.iris_task_broker = iris_task_broker
     app.state.system_config = config or SystemLoopConfig()
     app.state.deployment_config = effective_deployment_config
     app.state.bootstrap_state = (
@@ -209,6 +267,316 @@ def create_app(
             request_nonce=x_jarvis_nonce,
             request_timestamp=x_jarvis_timestamp,
         )
+
+    # --- Iris Original, residentes e delegadas: endpoints isolados. ---
+    # Esta autoridade nao usa o token global da API JARVIS e NAO herda
+    # o papel de dono a partir de headers declarativos ou da voz.
+    def require_iris_instance(
+        request: Request,
+        instance_id: Annotated[str | None, Header(alias="X-Iris-Instance-Id")] = None,
+        instance_token: Annotated[str | None, Header(alias="X-Iris-Instance-Token")] = None,
+    ) -> tuple[IrisInstanceAuthority, str, str]:
+        authority = request.app.state.iris_instance_authority
+        if authority is None:
+            raise HTTPException(status_code=503, detail="Instancias Iris nao habilitadas.")
+        if not instance_id or not instance_token:
+            raise HTTPException(status_code=401, detail="Credenciais Iris ausentes.")
+        try:
+            authority.capabilities(instance_id, instance_token)
+        except PermissionError:
+            raise HTTPException(status_code=401, detail="Credenciais Iris invalidas.") from None
+        return authority, instance_id, instance_token
+
+    @app.get("/api/iris/instancia")
+    def iris_instance_status(
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        return {
+            "instance_id": instance_id,
+            "capabilities": authority.capabilities(instance_id, token),
+        }
+
+    @app.get("/api/iris/quarto")
+    def iris_private_room(
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        try:
+            return authority.room(instance_id, token)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Quarto nao autorizado.") from None
+
+    @app.get("/api/iris/corredor")
+    def iris_owner_corridor(
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        if instance_id != IrisInstanceAuthority.OWNER_ID:
+            raise HTTPException(status_code=403, detail="Corredor exclusivo da Original.")
+        return {"quartos": authority.corridor(token)}
+
+    @app.post("/api/iris/preferencias")
+    def iris_resident_preferences(
+        payload: IrisResidentPreferencesRequest,
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        try:
+            authority.set_resident_preferences(
+                instance_id, token,
+                corridor_visible=payload.corridor_visible,
+                feedback_opt_in=payload.feedback_opt_in,
+            )
+        except (PermissionError, ValueError):
+            raise HTTPException(status_code=403, detail="Preferencias nao autorizadas.") from None
+        return {"salvo": True}
+
+    @app.post("/api/iris/feedback/sinal")
+    def iris_feedback_signal(
+        payload: IrisFeedbackSignalRequest,
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        try:
+            accepted = authority.report_feedback(instance_id, token, code=payload.code)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Codigo de feedback invalido.") from None
+        return {"registrado": accepted}
+
+    @app.get("/api/iris/feedback/resumo")
+    def iris_feedback_summary(
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        authority, instance_id, token = identity
+        if instance_id != IrisInstanceAuthority.OWNER_ID:
+            raise HTTPException(status_code=403, detail="Resumo reservado a Original.")
+        return {"indicadores": authority.feedback_summary(token)}
+
+    # O gateway so divulga metadados da propria Iris. Pareamento/remocao
+    # nao sao expostos nesta fase: exigem dois lados e provas reais de posse.
+    def require_iris_mesh(
+        request: Request,
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> tuple[IrisDeviceMesh, str, str]:
+        mesh = request.app.state.iris_device_mesh
+        if mesh is None:
+            raise HTTPException(status_code=503, detail="Malha Iris nao configurada.")
+        _, instance_id, token = identity
+        return mesh, instance_id, token
+
+    @app.get("/api/iris/dispositivos")
+    def iris_devices(
+        context: tuple[IrisDeviceMesh, str, str] = Depends(require_iris_mesh),
+    ) -> Dict[str, Any]:
+        mesh, instance_id, token = context
+        try:
+            return {"devices": mesh.devices(instance_id, token)}
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Dispositivos nao autorizados.") from None
+
+    @app.get("/api/iris/continuidade")
+    def iris_continuity(
+        context: tuple[IrisDeviceMesh, str, str] = Depends(require_iris_mesh),
+    ) -> Dict[str, Any]:
+        mesh, instance_id, token = context
+        try:
+            return mesh.continuity(instance_id, token)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Consulta de continuidade negada.") from None
+
+    @app.get("/api/iris/roteamento")
+    def iris_device_route(
+        recurso: str = Query(min_length=3, max_length=64),
+        context: tuple[IrisDeviceMesh, str, str] = Depends(require_iris_mesh),
+    ) -> Dict[str, Any]:
+        mesh, instance_id, token = context
+        try:
+            return mesh.route(instance_id, token, surface=recurso)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Recurso nao reconhecido.") from None
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Roteamento nao autorizado.") from None
+
+    @app.get("/api/iris/perfis-tecnicos")
+    def iris_device_profiles(
+        context: tuple[IrisDeviceMesh, str, str] = Depends(require_iris_mesh),
+    ) -> Dict[str, Any]:
+        mesh, instance_id, token = context
+        try:
+            return {"profiles": mesh.resource_profiles(instance_id, token)}
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Perfis nao autorizados.") from None
+
+    @app.post("/api/iris/dispositivo/estado")
+    def iris_device_resource_report(
+        payload: IrisNodeHealthRequest,
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        mesh = request.app.state.iris_device_mesh
+        if mesh is None:
+            raise HTTPException(status_code=503, detail="Malha Iris nao configurada.")
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            return mesh.report_health(
+                node_id, node_token,
+                cpu_percent=payload.cpu_percent,
+                memory_available_mb=payload.memory_available_mb,
+                battery_percent=payload.battery_percent,
+                latency_ms=payload.latency_ms,
+            )
+        except PermissionError:
+            raise HTTPException(status_code=401, detail="Credencial de no invalida.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Amostra de dispositivo invalida.") from None
+
+    @app.post("/api/iris/dispositivo/heartbeat")
+    def iris_device_heartbeat(
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        mesh = request.app.state.iris_device_mesh
+        if mesh is None:
+            raise HTTPException(status_code=503, detail="Malha Iris nao configurada.")
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            mesh.heartbeat(node_id, node_token)
+        except PermissionError:
+            raise HTTPException(status_code=401, detail="Credencial de no invalida.") from None
+        return {"lease_renewed": True}
+
+    # Armazenamento cifrado de documentos por instancia. Nenhuma rota compartilha
+    # memoria entre usuarios, nem com o corredor da Original.
+    def require_iris_state(
+        request: Request,
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> tuple[IrisEncryptedStateStore, str, str]:
+        store = request.app.state.iris_state_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Estado persistente Iris nao configurado.")
+        _, instance_id, token = identity
+        return store, instance_id, token
+
+    @app.get("/api/iris/memoria/documentos")
+    def iris_state_document_list(
+        ctx: tuple[IrisEncryptedStateStore, str, str] = Depends(require_iris_state),
+    ) -> Dict[str, Any]:
+        store, instance_id, token = ctx
+        try:
+            return {"documents": store.document_revisions(instance_id, token)}
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Memoria indisponivel.") from None
+
+    @app.get("/api/iris/memoria/{document_id}")
+    def iris_state_read(
+        document_id: str,
+        ctx: tuple[IrisEncryptedStateStore, str, str] = Depends(require_iris_state),
+    ) -> Dict[str, Any]:
+        store, instance_id, token = ctx
+        try:
+            return store.get(instance_id, token, document_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="ID invalido.") from None
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Memoria indisponivel.") from None
+        except StateCorruptionError:
+            raise HTTPException(status_code=503, detail="Estado cifrado com falha de integridade.") from None
+
+    @app.put("/api/iris/memoria/{document_id}")
+    def iris_state_write(
+        document_id: str,
+        payload: IrisStateWriteRequest,
+        ctx: tuple[IrisEncryptedStateStore, str, str] = Depends(require_iris_state),
+    ) -> Dict[str, Any]:
+        store, instance_id, token = ctx
+        try:
+            return store.put(
+                instance_id, token, document_id, payload.value,
+                expected_revision=payload.expected_revision,
+            )
+        except StateConflictError:
+            raise HTTPException(status_code=409, detail="Versao de documento desatualizada.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Documento invalido ou excede limite.") from None
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Gravacao nao autorizada.") from None
+
+    # Fila de tarefas fechada: sem shell, comandos do SO ou scripts arbitrarios.
+    def require_iris_broker(
+        request: Request,
+    ) -> IrisTaskBroker:
+        broker = request.app.state.iris_task_broker
+        if broker is None:
+            raise HTTPException(status_code=503, detail="Broker de tarefas Iris nao habilitado.")
+        return broker
+
+    @app.post("/api/iris/tarefas")
+    def iris_submit_job(
+        payload: IrisJobSubmissionRequest,
+        broker: IrisTaskBroker = Depends(require_iris_broker),
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        _, instance_id, token = identity
+        try:
+            return broker.submit(
+                instance_id, token, operation=payload.operation, payload=payload.payload,
+            )
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Tarefa nao autorizada.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Operacao ou payload invalido.") from None
+
+    @app.get("/api/iris/tarefas/{job_id}")
+    def iris_inspect_job(
+        job_id: str,
+        broker: IrisTaskBroker = Depends(require_iris_broker),
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> Dict[str, Any]:
+        _, instance_id, token = identity
+        try:
+            return broker.inspect(instance_id, token, job_id=job_id)
+        except PermissionError:
+            raise HTTPException(status_code=404, detail="Tarefa inexistente.") from None
+
+    @app.post("/api/iris/no/tarefa/claim")
+    def iris_claim_job(
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        broker = require_iris_broker(request)
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            return broker.claim(node_id, node_token)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="No sem permissao de computacao.") from None
+
+    @app.post("/api/iris/no/tarefa/complete")
+    def iris_complete_job(
+        payload: IrisJobCompletionRequest,
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        broker = require_iris_broker(request)
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            return broker.complete(
+                node_id, node_token,
+                job_id=payload.job_id, lease_token=payload.lease_token,
+                result=payload.result,
+            )
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Entrega nao autorizada.") from None
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Resultado invalido.") from None
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
