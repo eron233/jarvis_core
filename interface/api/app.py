@@ -37,6 +37,7 @@ from runtime.system_config import (
 )
 from security.access_control import AccessControl
 from security.iris_instance_policy import IrisInstanceAuthority
+from device.iris_mesh import IrisDeviceMesh
 
 #
 # JARVIS_API_LAYER
@@ -107,6 +108,7 @@ def create_app(
     config: SystemLoopConfig | None = None,
     deployment_config: JarvisEnvironmentConfig | None = None,
     iris_instance_authority: IrisInstanceAuthority | None = None,
+    iris_device_mesh: IrisDeviceMesh | None = None,
 ) -> FastAPI:
     """Cria uma aplicacao FastAPI ligada ao runtime atual."""
 
@@ -136,7 +138,12 @@ def create_app(
     app.state.runtime = runtime or InternalAgentRuntime()
     # Desligado por padrao: nao converter automaticamente o token pessoal
     # legado em autenticacao multiusuario. Precisa de bootstrap seguro proprio.
+    if iris_device_mesh is not None and (
+        iris_instance_authority is None or iris_device_mesh.authority is not iris_instance_authority
+    ):
+        raise ValueError("A malha Iris deve usar exatamente a mesma autoridade de instancias.")
     app.state.iris_instance_authority = iris_instance_authority
+    app.state.iris_device_mesh = iris_device_mesh
     app.state.system_config = config or SystemLoopConfig()
     app.state.deployment_config = effective_deployment_config
     app.state.bootstrap_state = (
@@ -308,6 +315,68 @@ def create_app(
         if instance_id != IrisInstanceAuthority.OWNER_ID:
             raise HTTPException(status_code=403, detail="Resumo reservado a Original.")
         return {"indicadores": authority.feedback_summary(token)}
+
+    # O gateway so divulga metadados da propria Iris. Pareamento/remocao
+    # nao sao expostos nesta fase: exigem dois lados e provas reais de posse.
+    def require_iris_mesh(
+        request: Request,
+        identity: tuple[IrisInstanceAuthority, str, str] = Depends(require_iris_instance),
+    ) -> tuple[IrisDeviceMesh, str, str]:
+        mesh = request.app.state.iris_device_mesh
+        if mesh is None:
+            raise HTTPException(status_code=503, detail="Malha Iris nao configurada.")
+        _, instance_id, token = identity
+        return mesh, instance_id, token
+
+    @app.get("/api/iris/dispositivos")
+    def iris_devices(
+        context: tuple[IrisDeviceMesh, str, str] = Depends(require_iris_mesh),
+    ) -> Dict[str, Any]:
+        mesh, instance_id, token = context
+        try:
+            return {"devices": mesh.devices(instance_id, token)}
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Dispositivos nao autorizados.") from None
+
+    @app.get("/api/iris/continuidade")
+    def iris_continuity(
+        context: tuple[IrisDeviceMesh, str, str] = Depends(require_iris_mesh),
+    ) -> Dict[str, Any]:
+        mesh, instance_id, token = context
+        try:
+            return mesh.continuity(instance_id, token)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Consulta de continuidade negada.") from None
+
+    @app.get("/api/iris/roteamento")
+    def iris_device_route(
+        recurso: str = Query(min_length=3, max_length=64),
+        context: tuple[IrisDeviceMesh, str, str] = Depends(require_iris_mesh),
+    ) -> Dict[str, Any]:
+        mesh, instance_id, token = context
+        try:
+            return mesh.route(instance_id, token, surface=recurso)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Recurso nao reconhecido.") from None
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Roteamento nao autorizado.") from None
+
+    @app.post("/api/iris/dispositivo/heartbeat")
+    def iris_device_heartbeat(
+        request: Request,
+        node_id: Annotated[str | None, Header(alias="X-Iris-Node-Id")] = None,
+        node_token: Annotated[str | None, Header(alias="X-Iris-Node-Token")] = None,
+    ) -> Dict[str, Any]:
+        mesh = request.app.state.iris_device_mesh
+        if mesh is None:
+            raise HTTPException(status_code=503, detail="Malha Iris nao configurada.")
+        if not node_id or not node_token:
+            raise HTTPException(status_code=401, detail="Credencial de no ausente.")
+        try:
+            mesh.heartbeat(node_id, node_token)
+        except PermissionError:
+            raise HTTPException(status_code=401, detail="Credencial de no invalida.") from None
+        return {"lease_renewed": True}
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
