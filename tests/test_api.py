@@ -26,6 +26,7 @@ from runtime.system_config import JarvisEnvironmentConfig
 from security.access_control import AccessControl
 from security.iris_instance_policy import IrisInstanceAuthority
 from device.iris_mesh import IrisDeviceMesh
+from memory_system.iris_state_store import IrisEncryptedStateStore
 
 
 def make_api_artifact_path(name: str, suffix: str) -> Path:
@@ -317,6 +318,72 @@ class JarvisApiTests(unittest.TestCase):
             ).status_code,
             422,
         )
+
+    def test_iris_estado_persistente_cria_le_e_separa_clientes(self) -> None:
+        import secrets
+        import tempfile
+        client, _ = self.build_client("iris_state_secure")
+        secret = "chave-iris-da-original-teste-" + "q" * 32
+        authority = IrisInstanceAuthority(secret)
+        client.app.state.iris_instance_authority = authority
+        alice = authority.create_resident(
+            secret, tenant_id="residente-alice", display_name="Alice", user_consented=True,
+        )
+        bob = authority.create_resident(
+            secret, tenant_id="residente-bob", display_name="Bob", user_consented=True,
+        )
+        def headers(item):
+            return {"X-Iris-Instance-Id": item["instance_id"],
+                    "X-Iris-Instance-Token": item["token"]}
+        self.assertEqual(
+            client.get("/api/iris/memoria/teste", headers=headers(alice)).status_code, 503,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            store = IrisEncryptedStateStore(
+                Path(directory) / "segredo.sqlite3", authority,
+                root_key=secrets.token_bytes(32),
+            )
+            client.app.state.iris_state_store = store
+            try:
+                self.assertEqual(
+                    client.get("/api/iris/memoria/teste", headers=headers(alice)).json()["revision"], 0,
+                )
+                alice_write = client.put(
+                    "/api/iris/memoria/teste", headers=headers(alice),
+                    json={"expected_revision": 0, "value": {"estado": "privado-alice"}},
+                )
+                self.assertEqual(alice_write.status_code, 200)
+                self.assertEqual(alice_write.json()["revision"], 1)
+                bob_read = client.get("/api/iris/memoria/teste", headers=headers(bob))
+                self.assertEqual(bob_read.status_code, 200)
+                self.assertFalse(bob_read.json()["found"])
+                self.assertEqual(
+                    client.get("/api/iris/memoria/teste", headers=headers(alice)).json()["value"],
+                    {"estado": "privado-alice"},
+                )
+                clash = client.put(
+                    "/api/iris/memoria/teste", headers=headers(alice),
+                    json={"expected_revision": 0, "value": {"estado": "esmagar"}},
+                )
+                self.assertEqual(clash.status_code, 409)
+                self.assertEqual(
+                    client.get("/api/iris/memoria/documentos", headers=headers(alice)).json()["documents"],
+                    [{"document_id": "teste", "revision": 1}],
+                )
+                self.assertEqual(
+                    client.get("/api/iris/memoria/documentos", headers=headers(bob)).json()["documents"],
+                    [],
+                )
+                forged = dict(headers(alice), **{"X-Iris-Instance-Token": bob["token"]})
+                self.assertEqual(
+                    client.get("/api/iris/memoria/teste", headers=forged).status_code, 401,
+                )
+                authority.revoke(IrisInstanceAuthority.OWNER_ID, secret, alice["instance_id"])
+                self.assertEqual(
+                    client.get("/api/iris/memoria/teste", headers=headers(alice)).status_code, 401,
+                )
+            finally:
+                store.close()
 
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
         """Confirma que o healthcheck simples responde com a API ativa."""
