@@ -98,7 +98,7 @@ jobs:
           if ($standalone.ExitCode -ne 0) { throw "Mascot-only EXE failed: $($standalone.ExitCode)" }
           # Validate installer prerequisites WITHOUT installing, registering startup or launching.
           & "dist/Genesis/Instalar-Iris.ps1" -ValidateOnly
-          if ($LASTEXITCODE -ne 0) { throw "Installer dry-run failed" }
+          if (-not $?) { throw "Installer dry-run failed" }
           $preview = Start-Process -FilePath $exe -ArgumentList @("--capture-ui", "build/ui-previews") -Wait -PassThru
           if ($preview.ExitCode -ne 0) {
             Write-Output "EXE preview failed with exit code $($preview.ExitCode)"
