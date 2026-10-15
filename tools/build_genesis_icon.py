@@ -9,9 +9,9 @@ from PySide6.QtWidgets import QApplication
 from PIL import Image
 
 root = Path(__file__).resolve().parents[1]
-renderer = QSvgRenderer(str(root / "interface/native_app/assets/genesis_zero.svg"))
+renderer = QSvgRenderer(str(root / "interface/native_app/assets/iris_mark.svg"))
 if not renderer.isValid():
-    raise SystemExit("Logo Genesis SVG invalida")
+    raise SystemExit("Logo Iris SVG inválida")
 app = QApplication.instance() or QApplication(["genesis-icon"])
 image = QImage(256, 256, QImage.Format_ARGB32)
 image.fill(Qt.transparent)

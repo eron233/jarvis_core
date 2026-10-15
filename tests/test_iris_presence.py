@@ -21,8 +21,9 @@ class IrisStateTests(unittest.TestCase):
             self.assertTrue(label and detail and color.startswith("#"))
 
     def test_svg_is_valid_xml(self):
-        path = Path(__file__).resolve().parents[1] / "interface/native_app/assets/iris_portrait.svg"
-        self.assertEqual(ET.parse(path).getroot().tag, "{http://www.w3.org/2000/svg}svg")
+        for name in ("iris_portrait.svg", "iris_mark.svg"):
+            path = Path(__file__).resolve().parents[1] / "interface/native_app/assets" / name
+            self.assertEqual(ET.parse(path).getroot().tag, "{http://www.w3.org/2000/svg}svg")
 
 
 try:

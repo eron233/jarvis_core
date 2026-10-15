@@ -272,7 +272,7 @@ class JarvisMainWindow(QMainWindow):
         branding = QHBoxLayout()
         branding.setSpacing(10)
         logo = QLabel()
-        svg_path = Path(__file__).resolve().parent / "assets" / "iris_portrait.svg"
+        svg_path = Path(__file__).resolve().parent / "assets" / "iris_mark.svg"
         if svg_path.is_file():
             renderer = QSvgRenderer(str(svg_path))
             if renderer.isValid():

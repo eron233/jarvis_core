@@ -9,7 +9,7 @@ if exist "%ROOT%Genesis.exe" (
   start "" "%ROOT%Genesis.exe"
   exit /b 0
 )
-echo GÊNESIS / ZERO
+echo GÊNESIS / ÍRIS
 echo O executavel ainda nao foi extraido aqui. Tentando a versao Python...
 if not exist "%ROOT%genesis_launcher.py" (
   echo ERRO: arquivos do programa nao encontrados.

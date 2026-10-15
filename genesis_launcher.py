@@ -1,4 +1,4 @@
-"""Ponto de entrada portatil do Gênesis / ZERO (Windows).
+"""Ponto de entrada portatil do Gênesis / Íris (Windows).
 
 O mesmo executavel inicia GUI e servidor local; nao requer Python instalado
 no computador final. Opcao de captura existe apenas para homologacao visual.
