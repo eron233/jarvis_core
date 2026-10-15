@@ -20,3 +20,14 @@ Produto: Gênesis. Nome/persona do assistente visual: Íris. O backend mantém i
 
 ## Próximo lote
 Captura de áudio real, wake phrase Íris (com fallback de compatibilidade), respostas TTS pt-BR configuráveis, modo mascote móvel, benchmark CPU/GPU e acessibilidade.
+
+## Mascote flutuante, versão inicial
+- Ativar/desativar usando **Mostrar mascote Íris** na barra lateral do Gênesis.
+- Arrastar a personagem pelo desktop; posição é persistida nas configurações do usuário.
+- Botão direito no mascote: mudar de monitor, fixar na borda, passeio automático ou abrir o laboratório visual.
+- Clicar duas vezes no retrato (ou usar **Laboratório**) abre uma porta animada e uma sala própria.
+- No laboratório, segure e arraste os três cartões internos. **Voltar ao desktop** devolve a Íris.
+- Quando o mascote for oculto, pode ser reaberto pela janela principal. Não existe click-through irrecuperável.
+- Respeita IRIS_REDUCED_MOTION=1 para não executar animação de deslocamento.
+- Efeitos visuais nunca afirmam executar testes, observar abas ou controlar outros aplicativos.
+- A voz, captura de microfone e sincronização labial continuam reservadas para a última etapa.

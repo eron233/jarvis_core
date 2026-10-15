@@ -81,6 +81,34 @@ def capture_previews(output: Path) -> int:
         if image.isNull() or not image.save(str(output / filename)):
             window.close()
             return 3
+    # Registro de janelas Qt reais, sem conexão ou arquivos do usuário.
+    from interface.native_app.iris_mascot import IrisMascotWindow
+
+    class PreviewSettings:
+        def __init__(self):
+            self.data = {}
+        def value(self, key, default=None, type=None):
+            return self.data.get(key, default)
+        def setValue(self, key, value):
+            self.data[key] = value
+
+    mascot = IrisMascotWindow(settings=PreviewSettings())
+    mascot.show()
+    app.processEvents()
+    photo = mascot.grab()
+    if photo.isNull() or not photo.save(str(output / "06_mascote.png")):
+        mascot.close()
+        window.close()
+        return 4
+
+    mascot.open_lab(instant=True)
+    app.processEvents()
+    scene = mascot.lab.grab()
+    if scene.isNull() or not scene.save(str(output / "07_laboratorio.png")):
+        mascot.close()
+        window.close()
+        return 5
+    mascot.close()
     window.close()
     app.processEvents()
     return 0

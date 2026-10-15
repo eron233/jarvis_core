@@ -158,3 +158,10 @@ Todas as mudancas relevantes deste repositorio devem ser documentadas neste arqu
 
 ## 2026-10-14: Íris, interface nativa (dev)
 Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato vetorial, estados ligados ao runtime, diagnóstico carregado sob demanda e fallback de avatar. Testes: tests/test_iris_presence.py e screenshot Qt/Windows. Pendente validação física, voz e métricas. Código preserva API/memória do JARVIS.
+
+## 2026-10-14: Íris, mascote flutuante e laboratório (dev)
+- Anterior: a Íris aparecia somente dentro do painel Gênesis.
+- Alteração: janela independente sem moldura, arrastável, sempre à frente e persistência local de posição; travessia entre monitores de coordenadas negativas, encaixe nas bordas e passeio opcional.
+- Experiência: portal animado de entrada para laboratório visual, três cartões internos que podem ser agarrados e reposicionados pelo usuário. O mascote retorna ao desktop ao fechar o laboratório.
+- Segurança: a Íris controla somente suas janelas e cartões. Não move abas de navegadores nem manipula aplicativos externos.
+- Validação: tests/test_iris_desktop.py, sete capturas reais de Qt e workflows Windows de construção/execução. A voz permanece intocada, para a etapa final.
