@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from PySide6.QtCore import QEasingCurve, QEvent, QPoint, QPropertyAnimation, QSettings, Qt, QTimer, Signal
 from PySide6.QtGui import QCursor
-from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QWidget, QVBoxLayout, QToolTip
+from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QWidget, QVBoxLayout, QToolTip, QSlider, QWidgetAction
 
 from interface.native_app.iris_desktop import (
     clamp_to_screens, nearest_edge_position, next_monitor_position,
@@ -95,6 +95,17 @@ class IrisMascotWindow(QWidget):
         self.settings.setValue("iris_mascot/scale", factor)
         self.move_to((self.x(), self.y()), animated=False)
         self.save_position()
+
+    def _build_size_slider(self, parent):
+        """Controle de escala livre diretamente no menu de contexto."""
+        slider = QSlider(Qt.Horizontal, parent)
+        slider.setRange(40, 215)
+        slider.setSingleStep(5)
+        slider.setPageStep(10)
+        slider.setValue(round(self.puppet.scale_factor * 100))
+        slider.setToolTip("Escala da Íris: 40 a 215 por cento")
+        slider.valueChanged.connect(lambda value: self.set_scale(value / 100.))
+        return slider
 
     def select_custom_size(self):
         percent = round(self.puppet.scale_factor * 100)
@@ -273,7 +284,10 @@ class IrisMascotWindow(QWidget):
             option.setCheckable(True)
             option.setChecked(abs(self.puppet.scale_factor - factor) < .001)
             option.triggered.connect(lambda _, n=factor: self.set_scale(n))
-        size_menu.addAction("Personalizar...", self.select_custom_size)
+        slider_action = QWidgetAction(size_menu)
+        slider_action.setDefaultWidget(self._build_size_slider(size_menu))
+        size_menu.addAction(slider_action)
+        size_menu.addAction("Informar porcentagem...", self.select_custom_size)
         style_menu = menu.addMenu("Estilo da Íris")
         for name, style in (("Mais fofinha", "nova"), ("Clássica", "padrao"),
                              ("Mais elegante", "madura")):

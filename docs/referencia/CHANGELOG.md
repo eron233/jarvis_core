@@ -186,3 +186,5 @@ Antes: Zero e painel cognitivo sempre ativo. Agora: identidade Íris, retrato ve
 - Instalação Windows local por Instalar-Iris.cmd (ação voluntária), inicia mascote após finalizar; modo Genesis.exe --mascot-only independente do runtime; abrir mascote automaticamente junto ao Gênesis na primeira execução; iniciar com Windows opcional e revogável via registro HKCU.
 - Segurança: baixar arquivo não o executa, sem registro de inicialização automática sem consentimento, sem privilégios de administrador, sem acesso a microfone.
 - Testes: tests/test_iris_visual.py; 10 capturas de tela reais; smoke do exe e dry-run do instalador no CI Windows. Pendente QA de uso real e aprimoramento dos assets artísticos; voz por último.
+
+- Ajuste visual livre refinado: slider diretamente no menu de tamanho e teste de redimensionamento imediato, além dos presets e da caixa numérica.

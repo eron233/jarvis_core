@@ -39,7 +39,7 @@ do usuário. Aplicativos elevados e abas de terceiros não são controlados
 universalmente.
 
 Pelo menu de contexto, alterne **mini, normal, grande ou escala personalizada**
-(40% a 215%), além de aparências desenhadas **mais fofinha, clássica e elegante**.
+(40% a 215%, ajustável por controle deslizante), além de aparências desenhadas **mais fofinha, clássica e elegante**.
 São variações gráficas, não alteração real de idade. As escolhas são preservadas
 entre execuções, e o modo de movimentação reduzida está disponível por
 IRIS_REDUCED_MOTION=1.

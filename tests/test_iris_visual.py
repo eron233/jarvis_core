@@ -105,6 +105,14 @@ class IrisVisualTests(unittest.TestCase):
         self.assertEqual(settings.data["iris_mascot/scale"], 1.89)
         mascot.close()
 
+    def test_scale_slider_updates_character_live(self):
+        mascot = IrisMascotWindow(settings=MemorySettings())
+        slider = mascot._build_size_slider(mascot)
+        slider.setValue(172)
+        self.assertAlmostEqual(mascot.puppet.scale_factor, 1.72)
+        self.assertEqual(mascot.size(), mascot.puppet.size())
+        mascot.close()
+
     def test_saved_preferences_survive_restart(self):
         settings = MemorySettings()
         mascot = IrisMascotWindow(settings=settings)
