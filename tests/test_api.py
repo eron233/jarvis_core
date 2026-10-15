@@ -27,6 +27,8 @@ from security.access_control import AccessControl
 from security.iris_instance_policy import IrisInstanceAuthority
 from device.iris_mesh import IrisDeviceMesh
 from memory_system.iris_state_store import IrisEncryptedStateStore
+from device.iris_task_broker import IrisTaskBroker
+from device.iris_node_worker import IrisNodeWorker
 
 
 def make_api_artifact_path(name: str, suffix: str) -> Path:
@@ -384,6 +386,125 @@ class JarvisApiTests(unittest.TestCase):
                 )
             finally:
                 store.close()
+
+    def test_iris_broker_http_computacao_por_no_autorizado(self) -> None:
+        import secrets
+        client, _ = self.build_client("iris_broker_http")
+        secret = secrets.token_urlsafe(32)
+        authority = IrisInstanceAuthority(secret)
+        mesh = IrisDeviceMesh(authority)
+        broker = IrisTaskBroker(mesh)
+        client.app.state.iris_instance_authority = authority
+        client.app.state.iris_device_mesh = mesh
+        client.app.state.iris_task_broker = broker
+        person = authority.create_resident(
+            secret, tenant_id="cliente-calculo",
+            display_name="Íris", user_consented=True,
+        )
+        offer = mesh.offer_device(
+            device_name="Notebook", device_type="windows",
+            surfaces={"compute.light"}, locally_approved=True,
+        )
+        node = mesh.approve_offer(
+            person["instance_id"], person["token"],
+            offer_id=offer["offer_id"],
+            verification_code=offer["verification_code"],
+        )
+        resident_headers = {
+            "X-Iris-Instance-Id": person["instance_id"],
+            "X-Iris-Instance-Token": person["token"],
+        }
+        node_headers = {
+            "X-Iris-Node-Id": node["node_id"],
+            "X-Iris-Node-Token": node["node_token"],
+        }
+        job = client.post("/api/iris/tarefas", headers=resident_headers, json={
+            "operation": "math.sum", "payload": {"values": [1, 2, 3]},
+        })
+        self.assertEqual(job.status_code, 200)
+        self.assertEqual(job.json()["status"], "queued")
+        claim = client.post("/api/iris/no/tarefa/claim", headers=node_headers)
+        self.assertEqual(claim.status_code, 200)
+        self.assertEqual(claim.json()["status"], "leased")
+        ticket = claim.json()
+        done = client.post("/api/iris/no/tarefa/complete", headers=node_headers, json={
+            "job_id": ticket["job_id"],
+            "lease_token": ticket["lease_token"],
+            "result": {"sum": 6.0},
+        })
+        self.assertEqual(done.status_code, 200)
+        self.assertFalse(done.json()["verified"])
+        details = client.get(
+            "/api/iris/tarefas/" + ticket["job_id"],
+            headers=resident_headers,
+        )
+        self.assertEqual(details.json()["result"], {"sum": 6.0})
+        repeated = client.post("/api/iris/no/tarefa/complete", headers=node_headers, json={
+            "job_id": ticket["job_id"],
+            "lease_token": ticket["lease_token"],
+            "result": {"sum": 6.0},
+        })
+        self.assertEqual(repeated.status_code, 403)
+        reject = client.post("/api/iris/tarefas", headers=resident_headers, json={
+            "operation": "shell.exec", "payload": {"command": "whoami"},
+        })
+        self.assertEqual(reject.status_code, 422)
+        self.assertEqual(client.post(
+            "/api/iris/no/tarefa/claim",
+            headers={"X-Iris-Node-Id": node["node_id"],
+                     "X-Iris-Node-Token": person["token"]},
+        ).status_code, 403)
+
+    def test_iris_worker_cliente_real_com_protocolo_http_sem_socket_externo(self):
+        import secrets
+        client, _ = self.build_client("iris_worker_local")
+        secret = secrets.token_urlsafe(32)
+        authority = IrisInstanceAuthority(secret)
+        mesh = IrisDeviceMesh(authority)
+        client.app.state.iris_instance_authority = authority
+        client.app.state.iris_device_mesh = mesh
+        client.app.state.iris_task_broker = IrisTaskBroker(mesh)
+        person = authority.create_resident(
+            secret, tenant_id="cliente-worker",
+            display_name="Íris do PC", user_consented=True,
+        )
+        offer = mesh.offer_device(
+            device_name="PC", device_type="windows",
+            surfaces={"compute.light"}, locally_approved=True,
+        )
+        node = mesh.approve_offer(
+            person["instance_id"], person["token"],
+            offer_id=offer["offer_id"],
+            verification_code=offer["verification_code"],
+        )
+        class LocalTestClientWorker(IrisNodeWorker):
+            def _post(self, path, payload=None):
+                response = client.post(path, json=payload or {}, headers={
+                    "X-Iris-Node-Id": self.node_id,
+                    "X-Iris-Node-Token": self._node_token,
+                })
+                if response.status_code != 200:
+                    raise RuntimeError(response.text)
+                return response.json()
+
+        worker = LocalTestClientWorker(
+            "http://localhost", node["node_id"], node["node_token"],
+        )
+        headers = {
+            "X-Iris-Instance-Id": person["instance_id"],
+            "X-Iris-Instance-Token": person["token"],
+        }
+        task = client.post("/api/iris/tarefas", headers=headers, json={
+            "operation": "hash.sha256", "payload": {"text": "Iris"},
+        }).json()
+        done = worker.run_once()
+        self.assertEqual(done["status"], "completed")
+        self.assertEqual(done["job_id"], task["job_id"])
+        self.assertEqual(
+            client.get("/api/iris/tarefas/" + task["job_id"], headers=headers).json()["result"]["sha256"],
+            __import__("hashlib").sha256("Iris".encode()).hexdigest(),
+        )
+        self.assertEqual(worker.run_once()["status"], "idle")
 
     def test_api_inicializa_e_responde_healthcheck(self) -> None:
         """Confirma que o healthcheck simples responde com a API ativa."""
