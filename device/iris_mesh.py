@@ -388,7 +388,8 @@ class IrisDeviceMesh:
                 "active_nodes": len(alive),
                 "coordinator_candidate": runners[0].node_id if runners else None,
                 "alternate_nodes": max(0, len(runners) - 1),
-                "control_plane_running": bool(runners),
+                "coordinator_candidate_available": bool(runners),
+                "control_plane_running": False,  # Sem transporte/runtime federado implantado.
                 "durable_state_replication": False,
                 "guaranteed_failover": False,
             }
