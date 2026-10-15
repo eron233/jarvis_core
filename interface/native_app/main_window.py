@@ -37,6 +37,7 @@ from interface.native_app.brain_widget import (
     format_brain_summary,
 )
 from interface.native_app.config import NativeAppConfig
+from interface.native_app.iris_presence import IrisPresenceWidget
 from interface.native_app.runtime_bootstrap import RuntimeBootstrapResult
 
 
@@ -214,7 +215,7 @@ class JarvisMainWindow(QMainWindow):
         self._current_section = "chat"
         self._authenticated_local_session = False
 
-        self.setWindowTitle("Gênesis | Zero")
+        self.setWindowTitle("Gênesis | Íris")
         self.resize(1440, 860)
         self.setMinimumSize(1080, 690)
         self._build_ui()
@@ -271,7 +272,7 @@ class JarvisMainWindow(QMainWindow):
         branding = QHBoxLayout()
         branding.setSpacing(10)
         logo = QLabel()
-        svg_path = Path(__file__).resolve().parent / "assets" / "genesis_zero.svg"
+        svg_path = Path(__file__).resolve().parent / "assets" / "iris_portrait.svg"
         if svg_path.is_file():
             renderer = QSvgRenderer(str(svg_path))
             if renderer.isValid():
@@ -286,7 +287,7 @@ class JarvisMainWindow(QMainWindow):
         brand_stack.setSpacing(0)
         brand = QLabel("GÊNESIS")
         brand.setObjectName("BrandTitle")
-        subtitle = QLabel("Z E R O")
+        subtitle = QLabel("Í R I S")
         subtitle.setObjectName("BrandSubtitle")
         brand_stack.addWidget(brand)
         brand_stack.addWidget(subtitle)
@@ -334,7 +335,7 @@ class JarvisMainWindow(QMainWindow):
         hero_layout = QVBoxLayout(hero)
         hero_layout.setContentsMargins(18, 16, 18, 16)
         hero_layout.setSpacing(8)
-        hero_title = QLabel("ZERO  /  ESPAÇO DE TRABALHO")
+        hero_title = QLabel("ÍRIS  /  ESPAÇO DE TRABALHO")
         hero_title.setObjectName("SectionTitle")
         hero_text = QLabel(
             "Converse, organize ideias e execute tarefas supervisionadas."
@@ -415,63 +416,90 @@ class JarvisMainWindow(QMainWindow):
         return panel
 
     def _build_brain_panel(self) -> QWidget:
-        """Monta brain panel para o fluxo atual."""
+        """Presença da Íris; diagnóstico cognitivo opcional e sob demanda."""
         panel = QFrame()
         panel.setObjectName("BrainPanel")
-        panel.setMinimumWidth(360)
-        panel.setMaximumWidth(460)
-
+        panel.setMinimumWidth(292)
+        panel.setMaximumWidth(410)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(18, 20, 18, 18)
-        layout.setSpacing(14)
+        layout.setContentsMargins(14, 18, 14, 14)
+        layout.setSpacing(10)
 
-        title = QLabel("Cerebro")
+        self.iris_presence = IrisPresenceWidget()
+        layout.addWidget(self.iris_presence)
+
+        self.brain_diagnostics_toggle = QPushButton("Mostrar diagnóstico técnico")
+        self.brain_diagnostics_toggle.setObjectName("GhostButton")
+        self.brain_diagnostics_toggle.setCheckable(True)
+        layout.addWidget(self.brain_diagnostics_toggle)
+
+        self.brain_diagnostics = QFrame()
+        self.brain_diagnostics.setObjectName("DetailContainer")
+        diagnostics = QVBoxLayout(self.brain_diagnostics)
+        diagnostics.setSpacing(7)
+
+        title = QLabel("Cérebro / diagnóstico")
         title.setObjectName("SectionTitle")
-        subtitle = QLabel("Estado cognitivo do runtime.")
-        subtitle.setObjectName("SectionBody")
-        subtitle.setWordWrap(True)
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
+        diagnostics.addWidget(title)
 
-        brain_toolbar = QHBoxLayout()
-        brain_toolbar.setSpacing(8)
+        controls = QHBoxLayout()
         self.brain_level = QComboBox()
         self.brain_level.addItems(["recente", "semanal", "mensal", "historica"])
         self.brain_level.setCurrentText("semanal")
-        self.refresh_brain_button = QPushButton("Atualizar cerebro")
+        self.refresh_brain_button = QPushButton("Atualizar")
         self.refresh_brain_button.setObjectName("GhostButton")
-        brain_toolbar.addWidget(self.brain_level, 1)
-        brain_toolbar.addWidget(self.refresh_brain_button)
-        layout.addLayout(brain_toolbar)
+        controls.addWidget(self.brain_level, 1)
+        controls.addWidget(self.refresh_brain_button)
+        diagnostics.addLayout(controls)
 
-        self.brain_widget = NativeBrainWidget()
-        layout.addWidget(self.brain_widget, 1)
-
+        self.brain_widget = None
+        self._brain_canvas_position = diagnostics.count()
+        self._brain_diagnostics_layout = diagnostics
         self.brain_runtime_label = QLabel("Runtime conectando")
-        self.brain_runtime_label.setObjectName("SidebarChip")
         self.brain_cycle_label = QLabel("Ciclos --")
-        self.brain_cycle_label.setObjectName("SidebarChip")
         self.brain_auth_label = QLabel("Acesso aguardando")
-        self.brain_auth_label.setObjectName("SidebarChip")
-        layout.addWidget(self.brain_runtime_label)
-        layout.addWidget(self.brain_cycle_label)
-        layout.addWidget(self.brain_auth_label)
+        for label in (self.brain_runtime_label, self.brain_cycle_label, self.brain_auth_label):
+            label.setObjectName("SidebarChip")
+            diagnostics.addWidget(label)
 
         self.brain_summary_view = QPlainTextEdit()
         self.brain_summary_view.setReadOnly(True)
         self.brain_summary_view.setObjectName("PayloadView")
         self.brain_summary_view.setMaximumBlockCount(200)
-        self.brain_summary_view.setFont(QFont("Consolas", 10))
-        layout.addWidget(self.brain_summary_view, 0)
+        self.brain_summary_view.setMaximumHeight(85)
+        diagnostics.addWidget(self.brain_summary_view)
 
         self.brain_analysis_view = QPlainTextEdit()
         self.brain_analysis_view.setReadOnly(True)
         self.brain_analysis_view.setObjectName("PayloadView")
         self.brain_analysis_view.setMaximumBlockCount(200)
-        self.brain_analysis_view.setFont(QFont("Consolas", 10))
-        layout.addWidget(self.brain_analysis_view, 0)
+        self.brain_analysis_view.setMaximumHeight(85)
+        diagnostics.addWidget(self.brain_analysis_view)
 
+        layout.addWidget(self.brain_diagnostics, 1)
+        self.brain_diagnostics.hide()
+        layout.addStretch(1)
         return panel
+
+    def _toggle_brain_diagnostics(self, enabled: bool) -> None:
+        """O visualizador pesado só é construído quando solicitado."""
+        self.brain_diagnostics.setVisible(enabled)
+        self.brain_diagnostics_toggle.setText(
+            "Ocultar diagnóstico técnico" if enabled else "Mostrar diagnóstico técnico"
+        )
+        if enabled and self.brain_widget is None:
+            self.brain_widget = NativeBrainWidget()
+            self.brain_widget.setMinimumHeight(170)
+            self._brain_diagnostics_layout.insertWidget(
+                self._brain_canvas_position, self.brain_widget, 1
+            )
+        if enabled:
+            if self._latest_brain_bundle and self.brain_widget is not None:
+                self.brain_widget.set_payload(
+                    self._latest_brain_bundle.get("evolution", {}),
+                    self._latest_brain_bundle.get("analysis", {}),
+                )
+            self.refresh_brain_bundle(force=True)
 
     def _connect_signals(self) -> None:
         """Conecta signals deste componente."""
@@ -479,6 +507,7 @@ class JarvisMainWindow(QMainWindow):
         self.sidebar_refresh_button.clicked.connect(self.refresh_everything)
         self.refresh_brain_button.clicked.connect(self.refresh_brain_bundle)
         self.brain_level.currentTextChanged.connect(lambda _value: self.refresh_brain_bundle(force=True))
+        self.brain_diagnostics_toggle.toggled.connect(self._toggle_brain_diagnostics)
         self.send_button.clicked.connect(self.send_command)
         self.command_input.returnPressed.connect(self.send_command)
 
@@ -535,11 +564,12 @@ class JarvisMainWindow(QMainWindow):
         """Aplica bootstrap state ao estado atual."""
         self.chat_timeline.add_message(
             "assistant",
-            "Olá. Sou Zero, seu assistente no Gênesis. Aguardando seu comando.",
-            "ZERO",
+            "Olá. Sou Íris, sua assistente no Gênesis. Como posso ajudar?",
+            "ÍRIS",
         )
         self.footer_runtime.setText(f"Conectado em {self.bootstrap_result.startup_duration_seconds:.1f}s")
         self.footer_command.setText("Pronto.")
+        self.iris_presence.set_state("idle")
         self._set_section("chat")
 
     def _schedule_refresh(self) -> None:
@@ -602,6 +632,8 @@ class JarvisMainWindow(QMainWindow):
 
     def refresh_brain_bundle(self, force: bool = False) -> None:
         """Atualiza o pacote de dados do cerebro visual."""
+        if not force and not self.brain_diagnostics.isVisible():
+            return
         level = self.brain_level.currentText()
         job_name = f"brain_bundle:{level}"
         if not force and job_name in self._active_jobs:
@@ -626,6 +658,7 @@ class JarvisMainWindow(QMainWindow):
         self.command_input.clear()
         self._set_command_busy(True)
         self.footer_command.setText("Processando...")
+        self.iris_presence.set_state("working")
 
         self._run_background(
             "send_command",
@@ -643,6 +676,8 @@ class JarvisMainWindow(QMainWindow):
         """Executa a rotina interna de on bundle ready."""
         self._authenticated_local_session = True
         self._latest_bundle = bundle
+        if self.iris_presence.state == "offline":
+            self.iris_presence.set_state("idle")
         self._render_current_section()
         self._render_runtime_summary()
         self.footer_refresh.setText(f"Ultimo refresh {datetime.now().strftime('%H:%M:%S')}")
@@ -652,7 +687,8 @@ class JarvisMainWindow(QMainWindow):
         self._latest_brain_bundle = bundle
         evolution = bundle.get("evolution", {})
         analysis = bundle.get("analysis", {})
-        self.brain_widget.set_payload(evolution, analysis)
+        if self.brain_widget is not None:
+            self.brain_widget.set_payload(evolution, analysis)
         self.brain_summary_view.setPlainText(format_brain_summary(evolution))
         self.brain_analysis_view.setPlainText(format_brain_analysis(analysis))
 
@@ -663,9 +699,10 @@ class JarvisMainWindow(QMainWindow):
         self.chat_timeline.add_message(
             "assistant",
             self._format_command_response(payload),
-            "ZERO",
+            "ÍRIS",
         )
         self.footer_command.setText("Resposta recebida.")
+        self.iris_presence.set_state("idle", "Resposta concluída.")
         self._render_current_section()
         self.refresh_everything()
 
@@ -707,12 +744,15 @@ class JarvisMainWindow(QMainWindow):
 
         if job_name == "send_command":
             friendly_message = self._friendly_command_error(message)
-            self.chat_timeline.add_message("assistant", friendly_message, "ZERO")
+            self.chat_timeline.add_message("assistant", friendly_message, "ÍRIS")
             self.footer_command.setText(friendly_message)
+            self.iris_presence.set_state("error", "Comando não concluído.")
             return
 
         self.footer_refresh.setText("Atualizacao temporariamente indisponivel.")
         self.footer_runtime.setText("Conexao instavel com o runtime.")
+        if self._looks_like_auth_error(message):
+            self.iris_presence.set_state("offline")
         self._render_runtime_summary()
 
     def _render_runtime_summary(self) -> None:
@@ -761,7 +801,7 @@ class JarvisMainWindow(QMainWindow):
 
         if section == "chat":
             payload = self._last_command_payload or {
-                "mensagem": "Use a conversa com Zero para interagir com o Gênesis.",
+                "mensagem": "Converse com Íris para interagir com o Gênesis.",
                 "sugestoes": [
                     "status do sistema",
                     "mostrar objetivos",
