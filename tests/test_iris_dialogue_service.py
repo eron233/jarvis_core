@@ -39,10 +39,7 @@ class IrisDialogueServiceTests(unittest.TestCase):
         self.key = secrets.token_bytes(32)
         self.secret = secrets.token_urlsafe(32)
         self.auth = IrisInstanceAuthority(self.secret)
-        self.alice = self.auth.create_resident(
-            self.secret, tenant_id="conta-alice", display_name="Iris Alice",
-            user_consented=True,
-        )
+        self.alice = {"instance_id": self.auth.OWNER_ID, "token": self.secret}
         self.bob = self.auth.create_resident(
             self.secret, tenant_id="conta-bob", display_name="Iris Bob",
             user_consented=True,
