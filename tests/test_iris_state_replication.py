@@ -161,34 +161,33 @@ class IrisStateReplicationTests(unittest.TestCase):
                 self.alice["instance_id"], self.bob["token"], "historia",
             )
 
-    def test_instancia_revogada_impede_exportacao_e_aplicacao(self):
+    def test_no_revogado_impede_novas_exportacoes(self):
         self.seed()
         snapshot = self.source.document(
             self.node["node_id"], self.node["node_token"], "historia",
         )
-        self.auth.revoke(IrisInstanceAuthority.OWNER_ID, self.secret,
-                         self.alice["instance_id"])
+        self.mesh.disconnect(
+            self.alice["instance_id"], self.alice["token"],
+            node_id=self.node["node_id"],
+        )
         with self.assertRaises(PermissionError):
             self.source.manifest(self.node["node_id"], self.node["node_token"])
-        with self.assertRaises(PermissionError):
-            self.sink.apply(snapshot)
-
-    def test_patinete_smarttv_ou_visita_nao_replica(self):
-        visitor = self.pair(self.bob, mode="visit",
-                            surfaces={"memory.sync"})
+        # Dados ja entregues antes da revogacao nao podem ser recolhidos.
+        self.assertEqual(self.sink.apply(snapshot)["status"], "applied")
+    def test_patinete_smarttv_residente_ou_visita_nao_replica(self):
+        visitor = self.pair(self.alice, mode="visit", surfaces={"memory.sync"})
         with self.assertRaises(PermissionError):
             self.source.manifest(visitor["node_id"], visitor["node_token"])
         with self.assertRaises(PermissionError):
-            self.mesh.offer_device(
-                device_name="Patinete", device_type="scooter",
-                surfaces={"memory.sync"}, locally_approved=True,
-            )
-        with self.assertRaises(PermissionError):
-            self.mesh.offer_device(
-                device_name="TV", device_type="smart_tv",
-                surfaces={"memory.sync"}, locally_approved=True,
-            )
-
+            self.pair(self.bob, surfaces={"memory.sync"})
+        for device_type in ("scooter", "smart_tv"):
+            with self.assertRaises(PermissionError):
+                self.mesh.offer_device(
+                    device_name="Aparelho",
+                    device_type=device_type,
+                    surfaces={"memory.sync"},
+                    locally_approved=True,
+                )
     def test_rejeita_payload_alterado_token_errado_e_fonte_forjada(self):
         self.seed()
         encrypted = self.source.document(
