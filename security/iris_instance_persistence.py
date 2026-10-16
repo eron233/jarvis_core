@@ -143,7 +143,9 @@ class PersistentIrisInstanceAuthority(IrisInstanceAuthority):
                         raise ValueError("Delegada ultrapassou suas capacidades.")
                     normalized = existing - legacy_device
                     if not normalized:
-                        raise ValueError("Delegada sem capacidades remanescentes.")
+                        # Delegacao antiga que tinha somente replicacao nao
+                        # pode manter nenhuma permissao. Revogar ao migrar.
+                        revoked.append(row["instance_id"])
                 if normalized != existing:
                     self._migration_required = True
                 row = dict(row)
