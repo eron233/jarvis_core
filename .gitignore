@@ -57,8 +57,6 @@ logs/*
 !logs/.gitkeep
 reports/*
 !reports/.gitkeep
-!reports/relatorios_txt/
-!reports/relatorios_txt/**
 executive_planner/task_queue_store.json
 memory_system/semantic_memory_store.json
 intent_layer/goals.json
