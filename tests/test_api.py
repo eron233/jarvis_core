@@ -527,6 +527,18 @@ class JarvisApiTests(unittest.TestCase):
         })
         self.assertEqual(job.status_code, 200)
         self.assertEqual(job.json()["status"], "queued")
+        commercial = authority.create_resident(
+            secret, tenant_id="tenant-comercial-sem-malha",
+            display_name="Iris comercial", user_consented=True,
+        )
+        denied = client.post("/api/iris/tarefas", headers={
+            "X-Iris-Instance-Id": commercial["instance_id"],
+            "X-Iris-Instance-Token": commercial["token"],
+        }, json={"operation": "math.sum", "payload": {"values": [1, 2, 3]}})
+        self.assertEqual(denied.status_code, 403)
+        self.assertTrue(authority.require(
+            commercial["instance_id"], commercial["token"], "chat.use",
+        ))
         claim = client.post("/api/iris/no/tarefa/claim", headers=node_headers)
         self.assertEqual(claim.status_code, 200)
         self.assertEqual(claim.json()["status"], "leased")
