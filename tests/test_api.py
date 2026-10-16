@@ -152,10 +152,7 @@ class JarvisApiTests(unittest.TestCase):
         authority = IrisInstanceAuthority(secret)
         mesh = IrisDeviceMesh(authority)
         broker = IrisTaskBroker(mesh)
-        alice = authority.create_resident(
-            secret, tenant_id="cliente-alice", display_name="Iris Alice",
-            user_consented=True,
-        )
+        alice = {"instance_id": authority.OWNER_ID, "token": secret}
         bob = authority.create_resident(
             secret, tenant_id="cliente-bob", display_name="Iris Bob",
             user_consented=True,
@@ -333,10 +330,7 @@ class JarvisApiTests(unittest.TestCase):
         mesh = IrisDeviceMesh(authority)
         client.app.state.iris_instance_authority = authority
         client.app.state.iris_device_mesh = mesh
-        alice = authority.create_resident(
-            secret, tenant_id="tenant-alice", display_name="Iris Alice",
-            user_consented=True,
-        )
+        alice = {"instance_id": authority.OWNER_ID, "token": secret}
         bob = authority.create_resident(
             secret, tenant_id="tenant-bob", display_name="Iris Bob",
             user_consented=True,
@@ -363,8 +357,8 @@ class JarvisApiTests(unittest.TestCase):
             1,
         )
         self.assertEqual(
-            client.get("/api/iris/dispositivos", headers=bob_headers).json()["devices"],
-            [],
+            client.get("/api/iris/dispositivos", headers=bob_headers).status_code,
+            403,
         )
         self.assertEqual(
             client.get("/api/iris/continuidade", headers=alice_headers).json()["active_nodes"],
@@ -411,8 +405,8 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(report.status_code, 200)
         self.assertTrue(report.json()["accepted"])
         self.assertEqual(
-            client.get("/api/iris/perfis-tecnicos", headers=bob_headers).json()["profiles"],
-            [],
+            client.get("/api/iris/perfis-tecnicos", headers=bob_headers).status_code,
+            403,
         )
         profiles = client.get("/api/iris/perfis-tecnicos", headers=alice_headers)
         self.assertEqual(profiles.status_code, 200)
@@ -510,10 +504,7 @@ class JarvisApiTests(unittest.TestCase):
         client.app.state.iris_instance_authority = authority
         client.app.state.iris_device_mesh = mesh
         client.app.state.iris_task_broker = broker
-        person = authority.create_resident(
-            secret, tenant_id="cliente-calculo",
-            display_name="Íris", user_consented=True,
-        )
+        person = {"instance_id": authority.OWNER_ID, "token": secret}
         offer = mesh.offer_device(
             device_name="Notebook", device_type="windows",
             surfaces={"compute.light"}, locally_approved=True,
@@ -577,10 +568,7 @@ class JarvisApiTests(unittest.TestCase):
         client.app.state.iris_instance_authority = authority
         client.app.state.iris_device_mesh = mesh
         client.app.state.iris_task_broker = IrisTaskBroker(mesh)
-        person = authority.create_resident(
-            secret, tenant_id="cliente-worker",
-            display_name="Íris do PC", user_consented=True,
-        )
+        person = {"instance_id": authority.OWNER_ID, "token": secret}
         offer = mesh.offer_device(
             device_name="PC", device_type="windows",
             surfaces={"compute.light"}, locally_approved=True,
@@ -637,10 +625,7 @@ class JarvisApiTests(unittest.TestCase):
                 Path(folder) / "target.db", auth, root_key=secrets.token_bytes(32),
             )
             try:
-                alice = auth.create_resident(
-                    secret, tenant_id="cliente-alice", display_name="Iris Alice",
-                    user_consented=True,
-                )
+                alice = {"instance_id": auth.OWNER_ID, "token": secret}
                 bob = auth.create_resident(
                     secret, tenant_id="cliente-bob", display_name="Iris Bob",
                     user_consented=True,
