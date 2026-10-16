@@ -52,10 +52,7 @@ class IrisInferenceTasksTests(unittest.TestCase):
         )
         self.mesh = IrisDeviceMesh(self.auth, clock=lambda: self.now)
         self.broker = IrisTaskBroker(self.mesh, clock=lambda: self.now)
-        self.user = self.auth.create_resident(
-            self.owner_token, tenant_id="cliente-a", display_name="Íris A",
-            user_consented=True,
-        )
+        self.user = {"instance_id": self.auth.OWNER_ID, "token": self.owner_token}
         self.other = self.auth.create_resident(
             self.owner_token, tenant_id="cliente-b", display_name="Íris B",
             user_consented=True,
