@@ -607,7 +607,6 @@ class JarvisMainWindow(QMainWindow):
         self.brain_timer.start(self.config.brain_refresh_interval_ms)
 
     def _fill_quick_command(self, text: str) -> None:
-        """Executa a rotina interna de fill quick command."""
         self.command_input.setText(text)
         self.command_input.setFocus(Qt.ShortcutFocusReason)
 
@@ -695,7 +694,6 @@ class JarvisMainWindow(QMainWindow):
         )
 
     def _on_bundle_ready(self, bundle: dict[str, Any]) -> None:
-        """Executa a rotina interna de on bundle ready."""
         self._authenticated_local_session = True
         self._latest_bundle = bundle
         if self.iris_presence.state == "offline":
@@ -705,7 +703,6 @@ class JarvisMainWindow(QMainWindow):
         self.footer_refresh.setText(f"Ultimo refresh {datetime.now().strftime('%H:%M:%S')}")
 
     def _on_brain_bundle_ready(self, bundle: dict[str, Any]) -> None:
-        """Executa a rotina interna de on brain bundle ready."""
         self._latest_brain_bundle = bundle
         evolution = bundle.get("evolution", {})
         analysis = bundle.get("analysis", {})
@@ -715,7 +712,6 @@ class JarvisMainWindow(QMainWindow):
         self.brain_analysis_view.setPlainText(format_brain_analysis(analysis))
 
     def _on_command_ready(self, payload: dict[str, Any]) -> None:
-        """Executa a rotina interna de on command ready."""
         self._authenticated_local_session = True
         self._last_command_payload = payload
         self.chat_timeline.add_message(
@@ -759,7 +755,6 @@ class JarvisMainWindow(QMainWindow):
         return "Nao consegui processar esse comando agora."
 
     def _on_background_error(self, job_name: str, traceback_text: str) -> None:
-        """Executa a rotina interna de on background error."""
         message = self._extract_error_message(traceback_text)
         if self._looks_like_auth_error(message):
             self._authenticated_local_session = False
@@ -952,14 +947,12 @@ class JarvisMainWindow(QMainWindow):
         self._running_futures[job_name] = future
 
         def _finish_job() -> None:
-            """Executa a rotina interna de finish job."""
             self._active_jobs.discard(job_name)
             self._running_futures.pop(job_name, None)
             if on_finished is not None:
                 on_finished()
 
         def _poll_future() -> None:
-            """Executa a rotina interna de poll future."""
             current_future = self._running_futures.get(job_name)
             if current_future is None:
                 return
