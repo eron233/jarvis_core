@@ -28,6 +28,41 @@ class PersistentIrisIdentityTests(unittest.TestCase):
             clock=lambda: self.now,
         )
 
+    def test_migracao_legacy_remove_integracao_de_residente_e_delegada(self):
+        from dataclasses import replace
+        auth = self.make()
+        alice = auth.create_resident(
+            self.secret, tenant_id="cliente-antigo",
+            display_name="Iris antiga", user_consented=True,
+        )
+        child = auth.delegate(
+            alice["instance_id"], alice["token"], capabilities={"chat.use"},
+        )
+        # Simula um snapshot cifrado produzido pela versao antiga.
+        with auth._lock:
+            for record_id in (alice["instance_id"], child["instance_id"]):
+                old = auth._records[record_id]
+                auth._records[record_id] = replace(
+                    old, capabilities=old.capabilities | frozenset({"device.local"}),
+                )
+            auth._save()
+        restored = self.make()
+        self.assertNotIn("device.local", restored.capabilities(
+            alice["instance_id"], alice["token"],
+        ))
+        self.assertNotIn("device.local", restored.capabilities(
+            child["instance_id"], child["token"],
+        ))
+        with self.assertRaises(PermissionError):
+            restored.require(
+                alice["instance_id"], alice["token"], "device.local",
+            )
+        # Sanitizacao fica persistida imediatamente e nao renasce no restart.
+        restarted = self.make()
+        self.assertEqual(restarted.capabilities(
+            child["instance_id"], child["token"],
+        ), ["chat.use"])
+
     def test_snapshot_inicial_ja_existe_e_nao_contem_token(self):
         auth = self.make()
         self.assertTrue(self.path.exists())
