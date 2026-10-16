@@ -63,6 +63,35 @@ class PersistentIrisIdentityTests(unittest.TestCase):
             child["instance_id"], child["token"],
         ), ["chat.use"])
 
+    def test_delegada_legada_so_com_device_local_e_revogada_ao_reabrir(self):
+        from dataclasses import replace
+        original = self.make()
+        resident = original.create_resident(
+            self.secret, tenant_id="cliente-antigo-2",
+            display_name="Cliente antigo", user_consented=True,
+        )
+        child = original.delegate(
+            resident["instance_id"], resident["token"],
+            capabilities={"chat.use"},
+        )
+        with original._lock:
+            record = original._records[child["instance_id"]]
+            original._records[child["instance_id"]] = replace(
+                record, capabilities=frozenset({"device.local"}),
+            )
+            original._save()
+        recovered = self.make()
+        with self.assertRaises(PermissionError):
+            recovered.require(child["instance_id"], child["token"], "chat.use")
+        with self.assertRaises(PermissionError):
+            recovered.require(child["instance_id"], child["token"], "device.local")
+        self.assertTrue(recovered.require(
+            resident["instance_id"], resident["token"], "chat.use",
+        ))
+        again = self.make()
+        with self.assertRaises(PermissionError):
+            again.capabilities(child["instance_id"], child["token"])
+
     def test_snapshot_inicial_ja_existe_e_nao_contem_token(self):
         auth = self.make()
         self.assertTrue(self.path.exists())
