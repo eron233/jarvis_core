@@ -17,10 +17,7 @@ class IrisTaskBrokerTests(unittest.TestCase):
         self.mesh = IrisDeviceMesh(self.auth, clock=lambda: self.now)
         self.broker = IrisTaskBroker(self.mesh, clock=lambda: self.now)
         self.owner = IrisInstanceAuthority.OWNER_ID
-        self.a = self.auth.create_resident(
-            self.secret, tenant_id="conta-alice",
-            display_name="Íris Alice", user_consented=True,
-        )
+        self.a = {"instance_id": self.auth.OWNER_ID, "token": self.secret}
         self.b = self.auth.create_resident(
             self.secret, tenant_id="conta-bob",
             display_name="Íris Bob", user_consented=True,
