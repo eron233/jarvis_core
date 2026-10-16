@@ -22,10 +22,7 @@ class IrisStateReplicationTests(unittest.TestCase):
         self.now = 2_000_000_000.0
         self.auth = IrisInstanceAuthority(self.secret, clock=lambda: self.now)
         self.mesh = IrisDeviceMesh(self.auth, clock=lambda: self.now)
-        self.alice = self.auth.create_resident(
-            self.secret, tenant_id="cliente-alice",
-            display_name="Iris Alice", user_consented=True,
-        )
+        self.alice = {"instance_id": self.auth.OWNER_ID, "token": self.secret}
         self.bob = self.auth.create_resident(
             self.secret, tenant_id="cliente-bob",
             display_name="Iris Bob", user_consented=True,
