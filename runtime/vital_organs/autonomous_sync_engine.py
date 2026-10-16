@@ -339,7 +339,6 @@ class AutonomousSyncEngine:
             time.sleep(self.config.sync_interval_seconds)
 
     def _reserve_lock(self) -> Dict[str, Any]:
-        """Executa a rotina interna de reserve lock."""
         snapshot = self._read_locks()
         now = self._utc_now()
         active_locks = []
@@ -384,7 +383,6 @@ class AutonomousSyncEngine:
         return {"granted": True, "message": "Lock reservado com sucesso."}
 
     def _release_lock(self) -> None:
-        """Executa a rotina interna de release lock."""
         snapshot = self._read_locks()
         remaining = [
             lock
@@ -460,7 +458,6 @@ class AutonomousSyncEngine:
         return files
 
     def _classify_changed_files(self, files: Iterable[str]) -> tuple[List[str], List[str]]:
-        """Executa a rotina interna de classify changed files."""
         allowed_prefixes = self._allowed_prefixes()
         allowed: List[str] = []
         blocked: List[str] = []
@@ -477,7 +474,6 @@ class AutonomousSyncEngine:
         return allowed, blocked
 
     def _allowed_prefixes(self) -> List[str]:
-        """Executa a rotina interna de allowed prefixes."""
         if self.config.sync_area == "global":
             return [""]
         return [
@@ -487,7 +483,6 @@ class AutonomousSyncEngine:
             "docs/referencia/ARCHITECTURE.md",
             "docs/referencia/CHANGELOG.md",
             "docs/planos/NEXT_STEPS.md",
-            "reports/relatorios_txt/reports/relatorios_txt/SYSTEM_MATURITY_REPORT_PTBR.txt",
             "docs/referencia/system_capabilities_index.md",
             "coordination/TASK_LOCKS.json",
         ]
@@ -498,7 +493,6 @@ class AutonomousSyncEngine:
         return f"autonomous-sync({self.config.device_name}/{self.config.sync_area}): checkpoint {timestamp}"
 
     def _current_commit(self) -> str | None:
-        """Executa a rotina interna de current commit."""
         result = self._run(["git", "rev-parse", "HEAD"], tolerate_failure=True)
         if not result.ok:
             return None
@@ -523,14 +517,12 @@ class AutonomousSyncEngine:
         return age > self.config.lock_timeout_seconds
 
     def _run(self, command: Sequence[str], tolerate_failure: bool = False) -> CommandResult:
-        """Executa a rotina interna de run."""
         result = self.command_runner(command)
         if not tolerate_failure:
             self._append_log(action="command", result=f"{' '.join(command)} -> {result.returncode}")
         return result
 
     def _default_command_runner(self, command: Sequence[str]) -> CommandResult:
-        """Executa a rotina interna de default command runner."""
         completed = subprocess.run(
             list(command),
             cwd=self.project_root,
@@ -547,7 +539,6 @@ class AutonomousSyncEngine:
         )
 
     def _command_action(self, action_id: str, result: CommandResult) -> Dict[str, Any]:
-        """Executa a rotina interna de command action."""
         return {
             "action_id": action_id,
             "returncode": result.returncode,
@@ -566,7 +557,6 @@ class AutonomousSyncEngine:
         findings: List[Dict[str, Any]] | None = None,
         metadata: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
-        """Executa a rotina interna de report."""
         return {
             "organ_id": "autonomous_sync_engine",
             "status": status,
