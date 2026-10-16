@@ -18,10 +18,7 @@ class PersistentIrisBrokerTests(unittest.TestCase):
         self.clock_now = 2_000_000_000.0
         self.auth = IrisInstanceAuthority(self.secret, clock=lambda: self.clock_now)
         self.mesh = IrisDeviceMesh(self.auth, clock=lambda: self.clock_now)
-        self.user = self.auth.create_resident(
-            self.secret, tenant_id="cliente-001",
-            display_name="Íris cliente", user_consented=True,
-        )
+        self.user = {"instance_id": self.auth.OWNER_ID, "token": self.secret}
         offer = self.mesh.offer_device(
             device_name="Notebook", device_type="windows",
             surfaces={"compute.light"}, locally_approved=True,
