@@ -166,6 +166,8 @@ class IrisReplicaSink:
         if not _SOURCE_PATTERN.fullmatch(source_id):
             raise ValueError("Identificador de origem invalido.")
         _derive_key(node_id, node_token)
+        if instance_id != store.authority.OWNER_ID:
+            raise PermissionError("Replicacao exclusiva da Iris Original.")
         if not store.authority.is_active_internal(instance_id):
             raise PermissionError("Identidade destinataria inativa.")
         self.store, self.node_id, self.node_token = store, node_id, node_token

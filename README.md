@@ -9,7 +9,7 @@ de API, configuração e memória. Zero não é mais a identidade de interface.
 
 O código experimental em `security/iris_instance_policy.py` cria uma fronteira **separada do token legado JARVIS** para três perfis:
 
-- **Original:** capacidades exclusivas de fundação, como `corridor.list`, `trade.use`, `system.admin` e provisionamento.
+- **Original:** única instância com `device.local`, conexão/integração de dispositivos, replicação (`memory.sync`), execução distribuída, failover experimental, além de `corridor.list`, `trade.use`, `system.admin` e provisionamento.
 - **Residente:** conversa, seu próprio quarto, memória própria (escopo de permissão), diagnóstico e delegação limitada. **Não** recebe Trade, administração nem corredor central.
 - **Delegada:** recebe apenas um subconjunto explícito das permissões do agente que a criou, com prazo de expiração e revogação em cascata.
 
@@ -18,6 +18,12 @@ A política é verificada no backend: menus ocultos não são proteção. As rot
 O corredor retorna apenas metadados de instalações cuja visibilidade foi autorizada, nunca arquivos, memórias ou conversas. Sinais de melhoria só são aceitos após opt-in da residente, usando códigos técnicos predefinidos e relatórios agrupados a partir de cinco instalações distintas. Revogar o consentimento retira a contribuição do agregado em memória. A coleta de textos de conversas não existe nesse módulo.
 
 **Limitações e proibições para release:** esta etapa implementa regras e gates, **não uma plataforma SaaS pronta**. A autoridade guarda estado somente em memória; as credenciais de provisionamento ainda não passam por um onboarding independente de usuário; a memória legada, API global e demais recursos do Jarvis continuam pessoais e **não são multi-tenant**. Não distribuir o `JARVIS_TOKEN` pessoal a clientes nem conectar essas rotas a armazenamento compartilhado sem revisão de isolamento, credenciais, consentimento, revogação, persistência e testes E2E. Não há instalação em redes, controle de Bluetooth ou dispositivos externos neste incremento.
+
+## Exclusividade da Íris Original: dispositivos e replicação
+
+**Regra definitiva (16/10/2026): somente `iris-original` pode conectar/parear dispositivos, distribuir computação e inferência entre nós, replicar estado e executar o mecanismo de failover.** Residentes comerciais e delegadas mantêm conversa, memória e diagnósticos permitidos, mas **não** recebem `device.local` nem podem obter essa capacidade por delegação. A restrição é aplicada no backend, no token de nó e na replicação, não apenas na interface. Dispositivos legados de residentes deixam de autenticar até mesmo com tokens previamente emitidos.
+
+Snapshots cifrados antigos de residentes/delegadas são migrados retirando `device.local`; delegadas antigas com somente essa capacidade são revogadas. As memórias próprias continuam acessíveis por `memory.own`. O código de distribuição pré-existente deve permanecer compilado/configurado exclusivamente na Original ou não exposto em versões comerciais. Uma residente continua podendo usar a IA **local de seu aparelho** sem ganhar a capacidade especial de conexão e replicação.
 
 ## Malha de dispositivos da mesma Íris (fundação experimental)
 
@@ -36,7 +42,7 @@ API isolada opcional, configurada por `iris_instance_authority` + `iris_device_m
 
 **Ainda não é uma malha distribuída autônoma em computadores reais.** Não existe transporte seguro P2P, drivers para todos os aparelhos, execução remota, memória criptografada replicada, consenso/eleição entre processos reais, reconexão automática, onboarding comercial autenticado ou recuperação garantida sem servidor. A presença lógica continua existindo no registro quando um nó cai, mas só fica operacional se houver outro runtime compatível e o estado necessário estiver disponível. Os testes simulam perda de nós e decisões, **não provam failover real de uma IA**.
 
-A plataforma multiusuário só deve utilizar essa malha após autenticação de contas, isolamento persistente por tenant, pareamento com consentimento verificável, integração dos adaptadores certificados e homologação de segurança em ambientes reais.
+A malha é exclusiva da Original. Versões comerciais nunca devem ativá-la; devem executar a assistente local comum, com memória própria, sem credenciais ou endpoints distribuídos. A Original só pode integrar dispositivos com autorização verificável e homologação de segurança.
 
 ## Persistência cifrada e retomada de sessão (experimental)
 

@@ -69,10 +69,7 @@ class IrisHttpProcessReplicationTests(unittest.TestCase):
             auth = PersistentIrisInstanceAuthority(
                 owner_token, root / "identity.sealed", storage_key=identity_key,
             )
-            alice = auth.create_resident(
-                owner_token, tenant_id="cliente-alice",
-                display_name="Íris da Alice", user_consented=True,
-            )
+            alice = {"instance_id": auth.OWNER_ID, "token": owner_token}
             mesh = PersistentIrisDeviceMesh(
                 auth, root / "devices.sealed", storage_key=mesh_key,
             )

@@ -39,10 +39,7 @@ class IrisDialogueServiceTests(unittest.TestCase):
         self.key = secrets.token_bytes(32)
         self.secret = secrets.token_urlsafe(32)
         self.auth = IrisInstanceAuthority(self.secret)
-        self.alice = self.auth.create_resident(
-            self.secret, tenant_id="conta-alice", display_name="Iris Alice",
-            user_consented=True,
-        )
+        self.alice = {"instance_id": self.auth.OWNER_ID, "token": self.secret}
         self.bob = self.auth.create_resident(
             self.secret, tenant_id="conta-bob", display_name="Iris Bob",
             user_consented=True,
@@ -138,12 +135,12 @@ class IrisDialogueServiceTests(unittest.TestCase):
                 self.alice["instance_id"], self.bob["token"],
                 conversation_id="minha-conversa",
             )
-        # A Original nao recebe uma API de listagem de outros historicos.
+        # A Original acessa apenas a propria conversa, nunca a do residente.
         owner_history = self.service.history(
             IrisInstanceAuthority.OWNER_ID, self.secret,
             conversation_id="minha-conversa",
         )
-        self.assertEqual(owner_history["turns"], [])
+        self.assertEqual(len(owner_history["turns"]), 2)
 
     def test_turno_pendente_nao_aceita_sobrescrita(self):
         first = self.start()

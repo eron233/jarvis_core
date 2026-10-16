@@ -28,6 +28,70 @@ class PersistentIrisIdentityTests(unittest.TestCase):
             clock=lambda: self.now,
         )
 
+    def test_migracao_legacy_remove_integracao_de_residente_e_delegada(self):
+        from dataclasses import replace
+        auth = self.make()
+        alice = auth.create_resident(
+            self.secret, tenant_id="cliente-antigo",
+            display_name="Iris antiga", user_consented=True,
+        )
+        child = auth.delegate(
+            alice["instance_id"], alice["token"], capabilities={"chat.use"},
+        )
+        # Simula um snapshot cifrado produzido pela versao antiga.
+        with auth._lock:
+            for record_id in (alice["instance_id"], child["instance_id"]):
+                old = auth._records[record_id]
+                auth._records[record_id] = replace(
+                    old, capabilities=old.capabilities | frozenset({"device.local"}),
+                )
+            auth._save()
+        restored = self.make()
+        self.assertNotIn("device.local", restored.capabilities(
+            alice["instance_id"], alice["token"],
+        ))
+        self.assertNotIn("device.local", restored.capabilities(
+            child["instance_id"], child["token"],
+        ))
+        with self.assertRaises(PermissionError):
+            restored.require(
+                alice["instance_id"], alice["token"], "device.local",
+            )
+        # Sanitizacao fica persistida imediatamente e nao renasce no restart.
+        restarted = self.make()
+        self.assertEqual(restarted.capabilities(
+            child["instance_id"], child["token"],
+        ), ["chat.use"])
+
+    def test_delegada_legada_so_com_device_local_e_revogada_ao_reabrir(self):
+        from dataclasses import replace
+        original = self.make()
+        resident = original.create_resident(
+            self.secret, tenant_id="cliente-antigo-2",
+            display_name="Cliente antigo", user_consented=True,
+        )
+        child = original.delegate(
+            resident["instance_id"], resident["token"],
+            capabilities={"chat.use"},
+        )
+        with original._lock:
+            record = original._records[child["instance_id"]]
+            original._records[child["instance_id"]] = replace(
+                record, capabilities=frozenset({"device.local"}),
+            )
+            original._save()
+        recovered = self.make()
+        with self.assertRaises(PermissionError):
+            recovered.require(child["instance_id"], child["token"], "chat.use")
+        with self.assertRaises(PermissionError):
+            recovered.require(child["instance_id"], child["token"], "device.local")
+        self.assertTrue(recovered.require(
+            resident["instance_id"], resident["token"], "chat.use",
+        ))
+        again = self.make()
+        with self.assertRaises(PermissionError):
+            again.capabilities(child["instance_id"], child["token"])
+
     def test_snapshot_inicial_ja_existe_e_nao_contem_token(self):
         auth = self.make()
         self.assertTrue(self.path.exists())

@@ -17,10 +17,7 @@ class IrisTaskBrokerTests(unittest.TestCase):
         self.mesh = IrisDeviceMesh(self.auth, clock=lambda: self.now)
         self.broker = IrisTaskBroker(self.mesh, clock=lambda: self.now)
         self.owner = IrisInstanceAuthority.OWNER_ID
-        self.a = self.auth.create_resident(
-            self.secret, tenant_id="conta-alice",
-            display_name="Íris Alice", user_consented=True,
-        )
+        self.a = {"instance_id": self.auth.OWNER_ID, "token": self.secret}
         self.b = self.auth.create_resident(
             self.secret, tenant_id="conta-bob",
             display_name="Íris Bob", user_consented=True,
@@ -67,24 +64,23 @@ class IrisTaskBrokerTests(unittest.TestCase):
             self.a["instance_id"], self.a["token"], job_id=job1["job_id"],
         )["result"], {"sum": 6.0})
 
-    def test_isolamento_de_dois_clientes(self):
-        alice_pc = self.attach(self.a)
-        bob_pc = self.attach(self.b)
+    def test_residente_nao_recebe_jobs_da_original(self):
+        original_pc = self.attach(self.a)
+        with self.assertRaises(PermissionError):
+            self.attach(self.b)
         job = self.submit(self.a, "hash.sha256", {"text": "segredo"})
-        self.assertEqual(self.broker.claim(bob_pc["node_id"], bob_pc["node_token"])["status"], "idle")
         with self.assertRaises(PermissionError):
-            self.broker.inspect(self.b["instance_id"], self.b["token"],
-                                job_id=job["job_id"])
+            self.submit(self.b)
         with self.assertRaises(PermissionError):
-            self.broker.claim(alice_pc["node_id"], bob_pc["node_token"])
-        task = self.broker.claim(alice_pc["node_id"], alice_pc["node_token"])
-        with self.assertRaises(PermissionError):
-            self.broker.complete(
-                bob_pc["node_id"], bob_pc["node_token"],
-                job_id=job["job_id"], lease_token=task["lease_token"],
-                result={"sha256": "false"},
+            self.broker.inspect(
+                self.b["instance_id"], self.b["token"], job_id=job["job_id"],
             )
-
+        with self.assertRaises(PermissionError):
+            self.broker.claim(original_pc["node_id"], self.b["token"])
+        self.assertEqual(
+            self.broker.claim(original_pc["node_id"], original_pc["node_token"])["status"],
+            "leased",
+        )
     def test_token_de_lease_nao_e_intercambiavel_e_nao_reutiliza(self):
         pc = self.attach(self.a)
         job = self.submit(self.a)
@@ -137,15 +133,16 @@ class IrisTaskBrokerTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.broker.claim(visitor["node_id"], visitor["node_token"])
 
-    def test_revogacao_impede_computacao(self):
+    def test_revogacao_de_no_impede_computacao(self):
         pc = self.attach(self.a)
         job = self.submit(self.a)
-        self.auth.revoke(self.owner, self.secret, self.a["instance_id"])
+        self.mesh.disconnect(self.owner, self.secret, node_id=pc["node_id"])
         with self.assertRaises(PermissionError):
             self.broker.claim(pc["node_id"], pc["node_token"])
-        with self.assertRaises(PermissionError):
-            self.broker.inspect(self.a["instance_id"], self.a["token"], job_id=job["job_id"])
-
+        self.assertEqual(
+            self.broker.inspect(self.a["instance_id"], self.a["token"], job_id=job["job_id"])["status"],
+            "queued",
+        )
     def test_negacao_de_payload_arbitrario_e_valores_invalidos(self):
         pc = self.attach(self.a)
         for operation, payload in (

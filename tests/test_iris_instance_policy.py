@@ -19,6 +19,32 @@ class IrisInstancePolicyTests(unittest.TestCase):
             display_name="Iris do cliente", user_consented=True,
         )
 
+    def test_exclusividade_original_para_dispositivos_e_replicacao(self):
+        resident = self.resident()
+        owner = self.auth.OWNER_ID
+        self.assertTrue(self.auth.require(owner, self.owner_secret, "device.local"))
+        self.assertIn("device.local", self.auth.capabilities(owner, self.owner_secret))
+        self.assertNotIn("device.local", self.auth.capabilities(
+            resident["instance_id"], resident["token"],
+        ))
+        with self.assertRaises(PermissionError):
+            self.auth.require(resident["instance_id"], resident["token"], "device.local")
+        with self.assertRaises(PermissionError):
+            self.auth.delegate(
+                resident["instance_id"], resident["token"],
+                capabilities={"device.local"},
+            )
+        with self.assertRaises(PermissionError):
+            self.auth.delegate(
+                owner, self.owner_secret, capabilities={"device.local"},
+            )
+        self.assertTrue(self.auth.require(
+            resident["instance_id"], resident["token"], "chat.use",
+        ))
+        self.assertTrue(self.auth.require(
+            resident["instance_id"], resident["token"], "memory.own",
+        ))
+
     def test_senha_curta_nao_habilita_dono(self):
         with self.assertRaises(ValueError):
             IrisInstanceAuthority("admin")

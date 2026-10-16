@@ -52,10 +52,7 @@ class IrisInferenceTasksTests(unittest.TestCase):
         )
         self.mesh = IrisDeviceMesh(self.auth, clock=lambda: self.now)
         self.broker = IrisTaskBroker(self.mesh, clock=lambda: self.now)
-        self.user = self.auth.create_resident(
-            self.owner_token, tenant_id="cliente-a", display_name="Íris A",
-            user_consented=True,
-        )
+        self.user = {"instance_id": self.auth.OWNER_ID, "token": self.owner_token}
         self.other = self.auth.create_resident(
             self.owner_token, tenant_id="cliente-b", display_name="Íris B",
             user_consented=True,
@@ -129,7 +126,8 @@ class IrisInferenceTasksTests(unittest.TestCase):
     def test_nos_com_inferencia_sao_selecionados_na_mesma_iris(self):
         a = self.pair(self.user)
         b = self.pair(self.user)
-        outsider = self.pair(self.other)
+        with self.assertRaises(PermissionError):
+            self.pair(self.other)
         one = self.submit(self.user, "Primeira pergunta")
         two = self.submit(self.user, "Segunda pergunta")
         self.assertTrue(one["submitted"])
@@ -139,9 +137,11 @@ class IrisInferenceTasksTests(unittest.TestCase):
             {ticket_a["job_id"], ticket_b["job_id"]},
             {one["job_id"], two["job_id"]},
         )
-        self.assertEqual(self.broker.claim(
-            outsider["node_id"], outsider["node_token"],
-        )["status"], "idle")
+        with self.assertRaises(PermissionError):
+            self.broker.submit(
+                self.other["instance_id"], self.other["token"],
+                operation="inference.chat", payload=request("privado"),
+            )
         for node, ticket in ((a, ticket_a), (b, ticket_b)):
             result = IrisLocalInferenceExecutor(FakeRouter()).execute(ticket["payload"])
             receipt = self.broker.complete(

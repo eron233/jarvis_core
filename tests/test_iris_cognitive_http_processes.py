@@ -75,12 +75,7 @@ class IrisE2eCognitiveHttpTests(unittest.TestCase):
             }
             stack = create_local_iris_stack(root, environ=env)
             try:
-                alice = stack.authority.create_resident(
-                    env["IRIS_OWNER_TOKEN"],
-                    tenant_id="tenant-alice",
-                    display_name="Íris da Alice",
-                    user_consented=True,
-                )
+                alice = {"instance_id": stack.authority.OWNER_ID, "token": env["IRIS_OWNER_TOKEN"]}
                 offer = stack.mesh.offer_device(
                     device_name="Computador secundário",
                     device_type="linux",

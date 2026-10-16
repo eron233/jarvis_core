@@ -19,13 +19,14 @@ from typing import Callable
 _ID_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{2,63}$")
 _COMMON = frozenset({
     "chat.use", "room.own", "memory.own", "diagnostics.local",
-    "device.local", "agent.delegate",
+    "agent.delegate",
 })
 _OWNER_ONLY = frozenset({
     "corridor.list", "trade.use", "system.admin", "instances.provision",
+    "device.local",
 })
 _DELEGATABLE = frozenset({
-    "chat.use", "room.own", "memory.own", "diagnostics.local", "device.local",
+    "chat.use", "room.own", "memory.own", "diagnostics.local",
 })
 _FEEDBACK_CODES = frozenset({
     "slow_response", "unexpected_crash", "confusing_interface",
@@ -187,6 +188,11 @@ class IrisInstanceAuthority:
         """Gate para o backend, independentemente de menus e widgets."""
         with self._lock:
             actor = self._authenticated(instance_id, token)
+            # Defesa adicional: snapshots legados podem conter device.local em
+            # residentes/delegadas. Uma capacidade persistida nao substitui
+            # o papel Original nem habilita replicacao/pareamento.
+            if capability in _OWNER_ONLY and actor.role != "original":
+                raise PermissionError("Funcionalidade exclusiva da Iris Original.")
             if capability not in actor.capabilities:
                 raise PermissionError("Capacidade indisponivel nesta instancia.")
             if capability in {"room.own", "memory.own", "device.local"}:
