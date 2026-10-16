@@ -35,10 +35,7 @@ class IrisRestartRecoveryTests(unittest.TestCase):
                 return identity, mesh, state
 
             auth, mesh, state = open_node()
-            user = auth.create_resident(
-                founder_secret, tenant_id="cliente-001",
-                display_name="Íris do proprietário", user_consented=True,
-            )
+            user = {"instance_id": auth.OWNER_ID, "token": founder_secret}
             uid, token = user["instance_id"], user["token"]
             offer = mesh.offer_device(
                 device_name="Notebook", device_type="windows",
@@ -92,11 +89,13 @@ class IrisRestartRecoveryTests(unittest.TestCase):
             try:
                 self.assertEqual(state3.get(uid, token, "identidade")["revision"], 2)
                 self.assertFalse(mesh3.devices(uid, token)[0]["connected"])
-                auth3.revoke(auth3.OWNER_ID, founder_secret, uid)
+                mesh3.disconnect(uid, token, node_id=phone["node_id"])
                 with self.assertRaises(PermissionError):
                     mesh3.heartbeat(phone["node_id"], phone["node_token"])
-                with self.assertRaises(PermissionError):
-                    state3.get(uid, token, "identidade")
+                # Revogar um aparelho nao apaga a memoria da Original.
+                self.assertEqual(
+                    state3.get(uid, token, "identidade")["revision"], 2,
+                )
             finally:
                 state3.close()
 
