@@ -49,10 +49,12 @@ class PersistentIrisInstanceAuthority(IrisInstanceAuthority):
         self._storage_key = storage_key
         self._loading = True
         super().__init__(owner_token, clock=clock)
+        self._migration_required = False
         if self.storage_path.is_file():
             self._load(owner_token)
         self._loading = False
-        if not self.storage_path.is_file():
+        if not self.storage_path.is_file() or self._migration_required:
+            # Persistir imediatamente a remocao das capacidades legadas.
             self._save()
 
     def _cipher(self) -> AESGCM:
@@ -126,15 +128,26 @@ class PersistentIrisInstanceAuthority(IrisInstanceAuthority):
                 role = row["role"]
                 if role not in {"original", "resident", "delegate"}:
                     raise ValueError("Papel desconhecido.")
-                expected = _COMMON | _OWNER_ONLY if role == "original" else (
-                    _COMMON if role == "resident" else frozenset(row["capabilities"])
-                )
-                if role == "delegate" and not expected <= _DELEGATABLE:
-                    raise ValueError("Delegada ultrapassou suas capacidades.")
-                if role != "delegate" and frozenset(row["capabilities"]) != expected:
-                    raise ValueError("Capacidades divergentes da politica.")
+                existing = frozenset(row["capabilities"])
+                legacy_device = frozenset({"device.local"})
+                if role == "original":
+                    if existing != _COMMON | _OWNER_ONLY:
+                        raise ValueError("Original com capacidades invalidas.")
+                    normalized = existing
+                elif role == "resident":
+                    if existing not in (_COMMON, _COMMON | legacy_device):
+                        raise ValueError("Residente com capacidades inesperadas.")
+                    normalized = _COMMON
+                else:
+                    if not existing <= (_DELEGATABLE | legacy_device):
+                        raise ValueError("Delegada ultrapassou suas capacidades.")
+                    normalized = existing - legacy_device
+                    if not normalized:
+                        raise ValueError("Delegada sem capacidades remanescentes.")
+                if normalized != existing:
+                    self._migration_required = True
                 row = dict(row)
-                row["capabilities"] = frozenset(row["capabilities"])
+                row["capabilities"] = normalized
                 item = IrisInstance(**row)
                 if item.instance_id in restored:
                     raise ValueError("ID duplicado.")
