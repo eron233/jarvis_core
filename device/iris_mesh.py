@@ -205,6 +205,10 @@ class IrisDeviceMesh:
             return {"node_id": node_id, "node_token": node_token, "mode": offer.mode}
 
     def _is_alive(self, device: MeshDevice) -> bool:
+        # Tokens legados de residentes ainda podem estar no inventario
+        # persistente. Esses nos nao pertencem mais a nenhuma malha valida.
+        if device.instance_id != self.authority.OWNER_ID:
+            return False
         if device.revoked or (device.expires_at is not None and self.clock() >= device.expires_at):
             return False
         if not self.authority.is_active_internal(device.instance_id):
@@ -218,7 +222,7 @@ class IrisDeviceMesh:
             if (not _DEVICE_ID_RE.fullmatch(str(node_id)) or device is None
                 or not isinstance(node_token, str)
                 or not hmac.compare_digest(self._digest(node_token), device.token_digest)
-                or device.revoked or (
+                or device.revoked or device.instance_id != self.authority.OWNER_ID or (
                     device.expires_at is not None and self.clock() >= device.expires_at
                 ) or not self.authority.is_active_internal(device.instance_id)):
                 raise PermissionError("No desconhecido, revogado ou expirado.")
