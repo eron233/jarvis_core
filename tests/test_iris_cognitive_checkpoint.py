@@ -21,10 +21,7 @@ class IrisCognitiveCheckpointTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.secret = secrets.token_urlsafe(32)
         self.auth = IrisInstanceAuthority(self.secret)
-        self.alice = self.auth.create_resident(
-            self.secret, tenant_id="tenant-alice", display_name="Iris",
-            user_consented=True,
-        )
+        self.alice = {"instance_id": self.auth.OWNER_ID, "token": self.secret}
         self.bob = self.auth.create_resident(
             self.secret, tenant_id="tenant-bob", display_name="Iris Bob",
             user_consented=True,
