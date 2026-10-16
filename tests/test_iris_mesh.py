@@ -154,21 +154,19 @@ class IrisMeshTests(unittest.TestCase):
             self.secret, tenant_id="cliente-bob",
             display_name="Iris Bob", user_consented=True,
         )
-        a = self.pair(alice["instance_id"], alice["token"], name="A")
-        b = self.pair(bob["instance_id"], bob["token"], name="B")
-        self.assertEqual(
-            [d["node_id"] for d in self.mesh.devices(alice["instance_id"], alice["token"])],
-            [a["node_id"]],
-        )
-        self.assertEqual(
-            [d["node_id"] for d in self.mesh.devices(bob["instance_id"], bob["token"])],
-            [b["node_id"]],
-        )
-        with self.assertRaises(PermissionError):
-            self.mesh.disconnect(alice["instance_id"], alice["token"], node_id=b["node_id"])
-        with self.assertRaises(PermissionError):
-            self.mesh.heartbeat(a["node_id"], b["node_token"])
-
+        original = self.pair(name="PC Original")
+        self.assertEqual(len(self.mesh.devices(self.owner_id, self.secret)), 1)
+        for client in (alice, bob):
+            with self.subTest(client=client["instance_id"]), self.assertRaises(PermissionError):
+                self.pair(client["instance_id"], client["token"], name="PC proibido")
+            with self.assertRaises(PermissionError):
+                self.mesh.devices(client["instance_id"], client["token"])
+            with self.assertRaises(PermissionError):
+                self.mesh.disconnect(
+                    client["instance_id"], client["token"],
+                    node_id=original["node_id"],
+                )
+        self.mesh.heartbeat(original["node_id"], original["node_token"])
     def test_deletar_no_revoga_token_mas_arquivos_dependem_do_cliente(self):
         node = self.pair()
         result = self.mesh.disconnect(self.owner_id, self.secret, node_id=node["node_id"])
@@ -178,18 +176,24 @@ class IrisMeshTests(unittest.TestCase):
             self.mesh.heartbeat(node["node_id"], node["node_token"])
         self.assertEqual(self.mesh.devices(self.owner_id, self.secret), [])
 
-    def test_revogacao_da_residente_interrompe_todos_os_nos(self):
+    def test_tokens_legados_de_residente_nao_reconectam(self):
         resident = self.identity.create_resident(
             self.secret, tenant_id="cliente-001",
             display_name="Iris cliente", user_consented=True,
         )
-        node = self.pair(resident["instance_id"], resident["token"])
-        self.identity.revoke(self.owner_id, self.secret, resident["instance_id"])
+        node = self.pair()
+        # Snapshot legado pode ainda listar dispositivos antigos. O token
+        # continua criptograficamente valido, mas nao da mais acesso.
+        self.mesh._devices[node["node_id"]].instance_id = resident["instance_id"]
         with self.assertRaises(PermissionError):
             self.mesh.heartbeat(node["node_id"], node["node_token"])
         with self.assertRaises(PermissionError):
+            self.mesh.authorize_node(
+                node["node_id"], node["node_token"], required_surface="compute.light",
+            )
+        with self.assertRaises(PermissionError):
             self.mesh.devices(resident["instance_id"], resident["token"])
-
+        self.assertFalse(self.mesh._is_alive(self.mesh._devices[node["node_id"]]))
     def test_no_nao_executa_comando_somente_retorna_plano(self):
         self.assertEqual(
             self.mesh.route(self.owner_id, self.secret, surface="compute.infer")["status"],
@@ -267,22 +271,19 @@ class IrisMeshTests(unittest.TestCase):
                 battery_percent=None, latency_ms=float("nan"),
             )
 
-    def test_perfis_nao_vazam_entre_residentes(self):
+    def test_perfis_tecnicos_exclusivos_da_original(self):
         resident = self.identity.create_resident(
             self.secret, tenant_id="cliente-001",
             display_name="Iris local", user_consented=True,
         )
-        node = self.pair(resident["instance_id"], resident["token"])
+        node = self.pair()
         self.mesh.report_health(
             node["node_id"], node["node_token"], cpu_percent=20,
             memory_available_mb=1024, battery_percent=90, latency_ms=10,
         )
-        self.assertEqual(self.mesh.resource_profiles(self.owner_id, self.secret), [])
-        self.assertEqual(
-            len(self.mesh.resource_profiles(resident["instance_id"], resident["token"])),
-            1,
-        )
-
+        self.assertEqual(len(self.mesh.resource_profiles(self.owner_id, self.secret)), 1)
+        with self.assertRaises(PermissionError):
+            self.mesh.resource_profiles(resident["instance_id"], resident["token"])
     def test_credencial_da_iris_nao_basta_para_forjar_heartbeat(self):
         node = self.pair()
         with self.assertRaises(PermissionError):
