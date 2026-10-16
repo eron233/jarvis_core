@@ -18,10 +18,7 @@ class IrisLeaseFailoverTests(unittest.TestCase):
         self.master = secrets.token_bytes(32)
         self.secret = secrets.token_urlsafe(32)
         self.auth = IrisInstanceAuthority(self.secret)
-        self.alice = self.auth.create_resident(
-            self.secret, tenant_id="tenant-alice",
-            display_name="Iris Alice", user_consented=True,
-        )
+        self.alice = {"instance_id": self.auth.OWNER_ID, "token": self.secret}
         self.mesh = IrisDeviceMesh(self.auth)
         self.nodes = [self.pair("PC"), self.pair("Laptop")]
         self.store1 = IrisEncryptedStateStore(self.path, self.auth, root_key=self.master)
