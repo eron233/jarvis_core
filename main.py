@@ -282,7 +282,6 @@ class JarvisSystemLoop:
         return cycle_log
 
     def _install_signal_handlers(self) -> None:
-        """Executa a rotina interna de install signal handlers."""
         for signame in ("SIGINT", "SIGTERM"):
             signum = getattr(signal, signame, None)
             if signum is None:
@@ -336,7 +335,6 @@ class JarvisSystemLoop:
         )
 
     def _log(self, message: str) -> None:
-        """Executa a rotina interna de log."""
         if self.logger is not None:
             self.logger(message)
 
@@ -736,7 +734,6 @@ def _load_audit_storage(
 
 
 def _backup_corrupted_storage(storage_path: Path) -> Path:
-    """Executa a rotina interna de backup corrupted storage."""
     suffix = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     backup_path = storage_path.with_name(f"{storage_path.stem}.corrompido-{suffix}{storage_path.suffix}")
     storage_path.rename(backup_path)
@@ -744,7 +741,6 @@ def _backup_corrupted_storage(storage_path: Path) -> Path:
 
 
 def _log_message(logger: Callable[[str], None] | None, message: str) -> None:
-    """Executa a rotina interna de log message."""
     if logger is not None:
         logger(message)
 
