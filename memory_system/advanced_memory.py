@@ -68,7 +68,7 @@ class AdvancedMemoryConfig:
             vector_top_k=max(1, int(env.get("JARVIS_VECTOR_TOP_K", "20"))),
             mem0_enabled=_env_bool(env.get("JARVIS_MEM0_ENABLED"), False),
             mem0_user_id=(env.get("JARVIS_MEM0_USER_ID") or "jarvis-owner").strip(),
-            ollama_base_url=(env.get("JARVIS_OLLAMA_BASE_URL") or "http://localhost:11434").strip(),
+            ollama_base_url=(env.get("JARVIS_MEM0_OLLAMA_BASE_URL") or env.get("JARVIS_OLLAMA_BASE_URL") or "http://localhost:11434").strip(),
             mem0_llm_model=(env.get("JARVIS_MEM0_LLM_MODEL") or "qwen3:4b").strip(),
         )
 
