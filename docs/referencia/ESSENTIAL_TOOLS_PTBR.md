@@ -14,7 +14,9 @@ chamadas de funções no protocolo OpenAI-compatible de llama.cpp ou Ollama.
    `POST /api/ingestao/universal` (`caminho_arquivo`). A consulta conserva o texto,
    o caminho da fonte, seu hash e o identificador do trecho.
 3. Para consultar código, indexe o projeto com o endpoint existente
-   `POST /api/codebase/indexar`. A ferramenta usa o grafo AST local; não dispara
+   `POST /api/codebase/indexar?preferir_externo=false`. Sem esse parâmetro, um MCP
+   habilitado pode atualizar apenas o índice externo, que estas consultas não usam.
+   A ferramenta usa o grafo AST local; não dispara
    um servidor MCP externo. A análise de impacto descreve dependências, sem
    alegar comprovação dinâmica ou segurança de uma alteração.
 4. Inicie o servidor e o aplicativo pelos comandos usuais do README.
@@ -85,8 +87,14 @@ Não há fallback para modelo em nuvem, FreeLLMAPI ou endpoint de modelo remoto.
 
 Máximo de quatro tentativas de inferência, três rodadas de ferramentas e seis
 chamadas de ferramentas por pedido. Retornos longos são truncados em envelopes
-JSON válidos e sinalizados no rastreio. Ausência de modelo, resposta incompleta,
+JSON válidos e sinalizados no rastreio. Nos documentos, o corte reduz o texto de
+cada trecho e conserva as fontes dos resultados incluídos. Fontes que não couberem
+são omitidas com contagem explícita. Ausência de modelo, resposta incompleta,
 chamada malformada ou orçamento esgotado não vira sucesso fictício.
+
+`status=sucesso` indica uma resposta gerada pelo ciclo. Não atesta correção factual,
+fidelidade às fontes, qualidade do raciocínio ou conclusão de uma tarefa real.
+As instruções do prompt não são uma garantia programática contra invenções.
 
 São consultas: não há shell, edição de arquivos, instalação, execução de código
 gerado, negociação financeira nem chamada arbitrária de ferramentas MCP pelo

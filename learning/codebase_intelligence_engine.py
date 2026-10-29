@@ -20,6 +20,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import unicodedata
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 
@@ -401,19 +402,22 @@ class LocalPythonCodeGraph:
         clean = str(query).strip()
         if not clean:
             return {"status": "erro", "resultados": [], "motivo": "Consulta vazia."}
-        pattern = f"%{clean.lower()}%"
+        folded = unicodedata.normalize("NFC", clean).casefold()
+        pattern = f"%{folded}%"
         with self._connect() as conn:
+            conn.create_function("iris_casefold", 1,
+                lambda value: unicodedata.normalize("NFC", value).casefold(), deterministic=True)
             rows = conn.execute(
                 """
                 SELECT symbol_id,path,name,qualified_name,kind,lineno,end_lineno,parent_qualified
                 FROM code_symbols
-                WHERE LOWER(name) LIKE ? OR LOWER(qualified_name) LIKE ? OR LOWER(path) LIKE ?
+                WHERE iris_casefold(name) LIKE ? OR iris_casefold(qualified_name) LIKE ? OR iris_casefold(path) LIKE ?
                 ORDER BY
-                    CASE WHEN LOWER(name)=? THEN 0 ELSE 1 END,
+                    CASE WHEN iris_casefold(name)=? THEN 0 ELSE 1 END,
                     path, lineno
                 LIMIT ?
                 """,
-                (pattern, pattern, pattern, clean.lower(), max(1, int(limit))),
+                (pattern, pattern, pattern, folded, max(1, int(limit))),
             ).fetchall()
         return {
             "status": "sucesso",

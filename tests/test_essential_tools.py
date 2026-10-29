@@ -69,11 +69,46 @@ def test_document_result_preserves_source_and_full_evidence(registry):
     assert result["resultados"][0]["source_sha256"] == "a" * 64
 
 
+@pytest.mark.parametrize("stored,query", [
+    ("A CONFIGURAÇÃO pode ser alterada.", "configuração"),
+    ("A configuração pode ser alterada.", "CONFIGURAÇÃO"),
+    ("A CONFIGURAC\u0327A\u0303O pode ser alterada.", "configuração"),
+])
+def test_document_search_matches_unicode_case_and_normalization(registry, stored, query):
+    engine = registry.runtime.research_knowledge_engine
+    source = engine.ingest_source("Manual de configuração", "documento", stored)
+    engine.ingest_document_chunks(source["item_id"], [{"text": stored}], source_path="config.txt")
+    out = registry.execute("documents_search", {"query": query})
+    assert [hit["source_path"] for hit in out["resultados"]] == ["config.txt"]
+    assert out["resultados"][0]["conteudo"] == stored
+
+
+@pytest.mark.parametrize("literal,other,query", [
+    ("Carga de 100%.", "Capacidade de 1000 ciclos.", "100%"),
+    ("arquivo_final.txt", "arquivoXfinal.txt", "arquivo_final"),
+    (r"pasta\arquivo.txt", "pastaarquivo.txt", r"pasta\arquivo"),
+])
+def test_document_search_does_not_treat_user_text_as_sql_wildcards(registry, literal, other, query):
+    engine = registry.runtime.research_knowledge_engine
+    source = engine.ingest_source("Termos literais", "documento", literal + other)
+    engine.ingest_document_chunks(source["item_id"], [{"text": literal}, {"text": other}])
+    out = registry.execute("documents_search", {"query": query})
+    assert [hit["conteudo"] for hit in out["resultados"]] == [literal]
+
+
 def test_code_search_and_impact_use_local_graph(registry):
     assert registry.execute("code_search", {"query": "carregar"})["resultados"][0]["path"] == "app.py"
     impact = registry.execute("code_impact", {"symbol": "carregar"})
     assert impact["status"] == "sucesso"
     assert impact["impacto_direto_indireto"][0]["evidence_path"] == "app.py"
+
+
+def test_code_search_matches_accented_identifier_case(registry):
+    graph = registry.runtime.codebase_intelligence_engine
+    (graph.config.project_root / "config.py").write_text("def CONFIGURAÇÃO():\n    return True\n", encoding="utf-8")
+    graph.index(prefer_external=False)
+    out = registry.execute("code_search", {"query": "configuração"})
+    assert out["resultados"][0]["name"] == "CONFIGURAÇÃO"
 
 
 @pytest.mark.parametrize("name,args", [
@@ -150,6 +185,20 @@ def test_oversized_result_remains_valid_json_and_is_marked(registry, repeated):
     assert message["truncado"] is True
     assert len(backend.requests[1]["messages"][-1]["content"]) <= 12500
     assert out["ferramentas"][0]["truncado"] is True
+
+
+def test_long_document_keeps_provenance_when_its_content_is_shortened(registry):
+    engine = registry.runtime.research_knowledge_engine
+    engine.ingest_document_chunks("long-manual", [{"text": "bateria " + "a" * 15000}],
+        source_path="long-manual.txt", source_sha256="b" * 64)
+    runner, backend = assistant(registry, [answer(calls=[call()]), answer("Resultado parcial")])
+    runner.run("bateria")
+    data = json.loads(backend.requests[1]["messages"][-1]["content"])
+    hit = next(hit for hit in data["resultados"] if hit["item_id"] == "long-manual")
+    assert hit["source_path"] == "long-manual.txt"
+    assert hit["source_sha256"] == "b" * 64
+    assert hit["conteudo_truncado"] is True
+    assert len(engine.get_document_chunks("long-manual")[0]["conteudo"]) == 15008
 
 
 @pytest.fixture

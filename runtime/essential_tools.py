@@ -35,6 +35,30 @@ _SYSTEM = (
 )
 
 
+def _encode_tool_result(name: str, result: dict[str, Any]) -> tuple[str, bool]:
+    encoded = json.dumps(result, ensure_ascii=False)
+    if len(encoded) <= 12000:
+        return encoded, False
+    if name == "documents_search" and isinstance(result.get("resultados"), list):
+        # Cortar o JSON bruto podia eliminar a fonte colocada depois do texto.
+        # Limita o texto de cada trecho e mantém intacta sua proveniência.
+        hits = [dict(hit) for hit in result["resultados"]]
+        for hit in hits:
+            content = hit.get("conteudo", "")
+            hit["conteudo"] = content[:1600]
+            hit["conteudo_truncado"] = len(content) > 1600
+        bounded = {"status": result.get("status"), "truncado": True,
+            "resultados": hits, "resultados_omitidos": 0}
+        encoded = json.dumps(bounded, ensure_ascii=False)
+        while len(encoded) > 12000 and hits:
+            hits.pop()
+            bounded["resultados_omitidos"] += 1
+            encoded = json.dumps(bounded, ensure_ascii=False)
+        return encoded, True
+    return json.dumps({"status": result.get("status"), "truncado": True,
+        "conteudo_json_parcial": encoded[:5000]}, ensure_ascii=False), True
+
+
 class EssentialToolRegistry:
     """Catálogo fechado; seleção de rede pertence ao chamador, não ao modelo."""
 
@@ -197,11 +221,7 @@ class EssentialToolAssistant:
             messages.append({"role": "assistant", "content": content, "tool_calls": normalized_calls})
             for call_id, name, arguments in parsed:
                 tool_result = self.registry.execute(name, arguments, allowed_tools=allowed_tools)
-                encoded = json.dumps(tool_result, ensure_ascii=False)
-                truncated = len(encoded) > 12000
-                if truncated:
-                    encoded = json.dumps({"status": tool_result.get("status"), "truncado": True,
-                        "conteudo_json_parcial": encoded[:5000]}, ensure_ascii=False)
+                encoded, truncated = _encode_tool_result(name, tool_result)
                 trace.append({"id": call_id, "nome": name,
                     "status": tool_result.get("status"), "truncado": truncated})
                 messages.append({"role": "tool", "tool_call_id": call_id, "content": encoded})

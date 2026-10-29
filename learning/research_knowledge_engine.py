@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sqlite3
+import unicodedata
 from typing import Any, Dict, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -222,21 +223,24 @@ class ResearchKnowledgeEngine:
         query: str,
         limit: int = 20,
     ) -> List[Dict[str, Any]]:
-        """Busca textual simples no conteúdo integral preservado dos documentos."""
+        """Busca literal Unicode; preserva o conteúdo original e seus acentos."""
 
-        clean = str(query).strip().lower()
+        clean = unicodedata.normalize("NFC", str(query).strip()).casefold()
         if not clean:
             return []
-        pattern = f"%{clean}%"
         with self._get_connection() as conn:
+            # LOWER do SQLite padrão não converte letras acentuadas. A mesma
+            # normalização é aplicada à consulta e ao texto, sem alterar o DB.
+            conn.create_function("iris_casefold", 1,
+                lambda value: unicodedata.normalize("NFC", value).casefold(), deterministic=True)
             rows = conn.execute(
                 """
                 SELECT * FROM document_chunks
-                WHERE LOWER(conteudo) LIKE ?
+                WHERE instr(iris_casefold(conteudo), ?) > 0
                 ORDER BY item_id, chunk_index
                 LIMIT ?
                 """,
-                (pattern, max(1, int(limit))),
+                (clean, max(1, int(limit))),
             ).fetchall()
         return [
             {
