@@ -227,10 +227,11 @@ class OpenAICompatibleLocalBackend:
         tool_choice: Optional[Any] = None,
         response_format: Optional[Dict[str, Any]] = None,
         extra_body: Optional[Dict[str, Any]] = None,
+        strict_local_transport: bool = False,
     ) -> Dict[str, Any]:
         reason = validate_inference_endpoint(
             self.base_url,
-            allow_remote=self.config.allow_remote_endpoints,
+            allow_remote=False if strict_local_transport else self.config.allow_remote_endpoints,
         )
         if reason:
             return {
@@ -268,7 +269,12 @@ class OpenAICompatibleLocalBackend:
         )
         started = time.perf_counter()
         try:
-            with urllib.request.urlopen(request, timeout=self.config.timeout_seconds) as response:
+            if strict_local_transport:
+                from runtime.restricted_http import restricted_opener
+                open_request = restricted_opener(loopback_only=True).open
+            else:
+                open_request = urllib.request.urlopen
+            with open_request(request, timeout=self.config.timeout_seconds) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         except Exception as exc:
             return {
@@ -407,6 +413,7 @@ class LocalInferenceRouter:
         extra_body: Optional[Dict[str, Any]] = None,
         allow_external: bool = False,
         data_classification: str = "private",
+        strict_local_transport: bool = False,
     ) -> Dict[str, Any]:
         if not self.config.enabled:
             return {
@@ -433,6 +440,10 @@ class LocalInferenceRouter:
 
         for name in providers:
             name = str(name)
+            if strict_local_transport and name not in {"llamacpp", "ollama"}:
+                attempts.append({"provider": name, "status": "bloqueado",
+                                 "motivo": "Transporte local exige llama.cpp/Ollama."})
+                continue
             if name == "freellmapi":
                 # localhost e apenas o PROXY. A inferencia real pode acontecer
                 # fora da maquina, inclusive em provedores com custos.
@@ -477,10 +488,12 @@ class LocalInferenceRouter:
                                  "motivo": "Modo offline nao permite endpoints remotos."})
                 continue
             last_model = model
+            transport_options = {"strict_local_transport": True} if strict_local_transport else {}
             result = backend.chat(
                 model=model, messages=messages, max_tokens=max_tokens,
                 temperature=temperature, tools=tools, tool_choice=tool_choice,
                 response_format=response_format, extra_body=extra_body,
+                **transport_options,
             )
             attempts.append({"provider": name, "status": result.get("status"),
                              "motivo": result.get("motivo")})

@@ -47,6 +47,9 @@ class NativeAppConfig:
     status_refresh_interval_ms: int
     brain_refresh_interval_ms: int
     health_path: str = "/health"
+    assistant_timeout_seconds: float = 500.0
+    iris_instance_id: str | None = None
+    iris_instance_token: str | None = None
 
     @classmethod
     def from_env(cls) -> "NativeAppConfig":
@@ -72,4 +75,7 @@ class NativeAppConfig:
             request_timeout_seconds=float(os.environ.get("JARVIS_NATIVE_REQUEST_TIMEOUT", "10")),
             status_refresh_interval_ms=int(os.environ.get("JARVIS_NATIVE_STATUS_REFRESH_MS", "30000")),
             brain_refresh_interval_ms=int(os.environ.get("JARVIS_NATIVE_BRAIN_REFRESH_MS", "90000")),
+            assistant_timeout_seconds=float(os.environ.get("JARVIS_NATIVE_ASSISTANT_TIMEOUT", "500")),
+            iris_instance_id=os.environ.get("IRIS_NATIVE_INSTANCE_ID") or None,
+            iris_instance_token=os.environ.get("IRIS_NATIVE_INSTANCE_TOKEN") or None,
         )

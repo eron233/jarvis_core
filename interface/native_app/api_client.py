@@ -93,7 +93,10 @@ class JarvisApiClient:
             "senha": password or None,
             "modo_resposta": response_mode,
         }
-        return self._request_json("/api/comando", method="POST", payload=payload)
+        timeout = None
+        if payload["texto"].casefold().startswith("consultar:"):
+            timeout = max(self.config.request_timeout_seconds, self.config.assistant_timeout_seconds)
+        return self._request_json("/api/comando", method="POST", payload=payload, timeout_seconds=timeout)
 
     def fetch_dashboard_bundle(self) -> dict[str, Any]:
         """Agrupa os relatarios usados pela lateral e pelo rodape do app."""
@@ -125,6 +128,7 @@ class JarvisApiClient:
         method: str = "GET",
         payload: dict[str, Any] | None = None,
         authenticated: bool = True,
+        timeout_seconds: float | None = None,
     ) -> dict[str, Any]:
         """Executa uma request JSON contra a API local."""
 
@@ -139,6 +143,11 @@ class JarvisApiClient:
                     device_id=self.config.device_id,
                 )
             )
+            instance_id = getattr(self.config, "iris_instance_id", None)
+            instance_token = getattr(self.config, "iris_instance_token", None)
+            if instance_id and instance_token:
+                headers["X-Iris-Instance-Id"] = instance_id
+                headers["X-Iris-Instance-Token"] = instance_token
 
         if payload is not None:
             body = json.dumps(payload).encode("utf-8")
@@ -151,7 +160,9 @@ class JarvisApiClient:
         )
 
         try:
-            with request.urlopen(http_request, timeout=self.config.request_timeout_seconds) as response:
+            with request.urlopen(http_request, timeout=(
+                self.config.request_timeout_seconds if timeout_seconds is None else timeout_seconds
+            )) as response:
                 raw_body = response.read().decode("utf-8")
         except error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="ignore")

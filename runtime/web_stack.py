@@ -283,8 +283,9 @@ class SearXNGSearchBackend:
 
 
 class SimpleHTTPExtractor:
-    def __init__(self, config: WebStackConfig) -> None:
+    def __init__(self, config: WebStackConfig, *, strict_public_transport: bool = False) -> None:
         self.config = config
+        self.strict_public_transport = strict_public_transport
 
     @property
     def available(self) -> bool:
@@ -302,7 +303,11 @@ class SimpleHTTPExtractor:
         if reason:
             return {"status": "bloqueado", "url": url, "motivo": reason}
 
-        opener = urllib.request.build_opener(_SafeRedirectHandler(self.config.allow_private_targets))
+        if self.strict_public_transport:
+            from runtime.restricted_http import restricted_opener
+            opener = restricted_opener(loopback_only=False, redirect_handler=_SafeRedirectHandler(False))
+        else:
+            opener = urllib.request.build_opener(_SafeRedirectHandler(self.config.allow_private_targets))
         request = urllib.request.Request(
             url,
             headers={

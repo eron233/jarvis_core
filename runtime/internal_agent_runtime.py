@@ -436,6 +436,10 @@ class InternalAgentRuntime:
             self.git_branch_patcher_engine = GitBranchPatcherEngine()
             self.lightweight_sandbox_engine = UltraLightweightSandboxEngine()
 
+            from runtime.essential_tools import EssentialToolAssistant, EssentialToolRegistry
+            self.essential_tools = EssentialToolRegistry(self)
+            self.tool_assistant = EssentialToolAssistant(self.inference_router, self.essential_tools)
+
             episodic_memory = self.memory["episodic"]
             semantic_memory = self.memory["semantic"]
             procedural_memory = self.memory["procedural"]

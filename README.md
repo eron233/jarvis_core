@@ -41,6 +41,7 @@ O repositório inclui o fluxo de build de **Genesis.exe** em `.github/workflows/
 | Área | Implementação | Situação |
 | --- | --- | --- |
 | Conversação | Runtime Python, FastAPI e roteador de inferência local | Integração existente; requer modelo/configuração adequados |
+| Consultas com ferramentas | Documentos com fontes, grafo de código, impacto e web opcional no ciclo do modelo local | Use `consultar:` na conversa; exige modelo com suporte a ferramentas |
 | Memória | Episódica, semântica, procedural e estado SQLite cifrado por instância | Testes automatizados |
 | Planejamento e segurança | Fila de tarefas, validação, auditoria e permissões | Em desenvolvimento |
 | Interface | Cliente desktop PySide6, avatar e mascote Íris | Requer validação visual em Windows físico |
@@ -90,6 +91,7 @@ O fluxo principal de testes é `.github/workflows/tests.yml`. Há testes separad
 - [Arquitetura](docs/referencia/ARCHITECTURE.md)
 - [API](docs/referencia/API_PTBR.md)
 - [Inferência](docs/referencia/INFERENCE_STACK_PTBR.md)
+- [Consultas com ferramentas](docs/referencia/ESSENTIAL_TOOLS_PTBR.md)
 - [Memória](docs/referencia/MEMORY_STACK_PTBR.md)
 - [Interface da Íris](docs/guias/IRIS_INTERFACE_PTBR.md)
 - [Deploy](docs/referencia/DEPLOY_PTBR.md)

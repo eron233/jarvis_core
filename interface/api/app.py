@@ -62,6 +62,15 @@ ACCESS_GATE_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "access_g
 BRAIN_AVATAR_DIR = Path(__file__).resolve().parents[1] / "brain_avatar"
 
 
+class EssentialAssistantRequest(BaseModel):
+    """Uma execução sem histórico persistido; rede selecionada explicitamente."""
+
+    model_config = {"extra": "forbid"}
+    texto: str = Field(min_length=1, max_length=8000)
+    ferramentas_permitidas: Optional[list[str]] = Field(default=None, max_length=6)
+    max_rodadas: int = Field(default=3, ge=1, le=3, strict=True)
+
+
 class TaskCreateRequest(BaseModel):
     """Payload minimo para adicionar uma tarefa na fila via API."""
 
@@ -309,6 +318,36 @@ def create_app(
         except PermissionError:
             raise HTTPException(status_code=401, detail="Credenciais Iris invalidas.") from None
         return authority, instance_id, instance_token
+
+    def require_tool_owner(
+        request: Request,
+        access: Dict[str, str] = Depends(require_trusted_device),
+    ) -> Dict[str, str]:
+        # O modo pessoal legado usa o dispositivo confiável. Com instâncias,
+        # o token global sozinho nunca abre os documentos da Original.
+        if request.app.state.iris_instance_authority is not None:
+            authority, instance_id, token = require_iris_instance(
+                request, request.headers.get("X-Iris-Instance-Id"),
+                request.headers.get("X-Iris-Instance-Token"))
+            try:
+                authority.require(instance_id, token, "device.local")
+            except PermissionError:
+                raise HTTPException(status_code=403, detail="Ferramentas exclusivas da Íris Original.") from None
+        return access
+
+    @app.get("/api/assistente/ferramentas", dependencies=[Depends(require_tool_owner)])
+    def assistant_tools(request: Request) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return {"ferramentas": runtime.essential_tools.schemas(),
+            "ferramentas_web": runtime.essential_tools.schemas(["web_search", "web_fetch"]),
+            "rede_por_padrao": False, "max_chamadas_modelo": 4, "max_chamadas_ferramentas": 6,
+            "historico_persistido": False}
+
+    @app.post("/api/assistente/executar", dependencies=[Depends(require_tool_owner)])
+    def assistant_execute(request: Request, payload: EssentialAssistantRequest) -> Dict[str, Any]:
+        runtime = _ensure_runtime_initialized(request)
+        return runtime.tool_assistant.run(payload.texto,
+            allowed_tools=payload.ferramentas_permitidas, max_rounds=payload.max_rodadas)
 
     @app.get("/api/iris/instancia")
     def iris_instance_status(
@@ -982,6 +1021,14 @@ def create_app(
         """
 
         runtime = _ensure_runtime_initialized(request)
+        if payload.texto.strip().casefold().startswith("consultar:"):
+            require_tool_owner(request, trusted_access)
+            consultation = runtime.tool_assistant.run(payload.texto.strip().split(":", 1)[1].strip())
+            return {**consultation, "acao": "tool_assistant", "respondido": True,
+                "resposta": consultation.get("resposta") or (
+                    "Não consegui concluir a consulta. Confira o modelo local e as ferramentas disponíveis."),
+                "dados_relacionados": {"ferramentas": consultation["ferramentas"],
+                    "chamadas_modelo": consultation["chamadas_modelo"]}}
         result = runtime.handle_command(
             text=payload.texto,
             voice_id=payload.voz_identificada,
