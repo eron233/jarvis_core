@@ -1022,6 +1022,43 @@ class JarvisApiTests(unittest.TestCase):
         )
         self.assertEqual(unexpected.status_code, 422)
 
+    def test_admin_approval_is_bound_to_task_and_single_use(self) -> None:
+        """Senha admin em fluxo especifico; mutacoes posteriores invalidam aval."""
+
+        client, headers = self.build_client("task_authenticated_approval")
+        create = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="create-for-approval"),
+            json={"task_id": "task-manual-1", "goal": "Operacao supervisionada",
+                  "domain": "runtime", "risk": 7},
+        )
+        self.assertEqual(create.status_code, 200)
+        task = create.json()["tarefa"]
+        runtime = client.app.state.runtime
+        self.assertFalse(runtime.can_execute(task))
+
+        denied = client.post(
+            "/api/tarefas/task-manual-1/aprovar",
+            headers=self.mutation_headers(headers, nonce="wrong-approval"),
+            json={"senha_admin": "senha-errada"},
+        )
+        self.assertEqual(denied.status_code, 403)
+        self.assertFalse(runtime.can_execute(task))
+
+        granted = client.post(
+            "/api/tarefas/task-manual-1/aprovar",
+            headers=self.mutation_headers(headers, nonce="approved-once"),
+            json={"senha_admin": "senha-admin-segura-2026"},
+        )
+        self.assertEqual(granted.status_code, 200)
+        self.assertTrue(runtime.can_execute(task))
+        altered = dict(task, goal="Requisicao alterada depois do consentimento")
+        self.assertFalse(runtime.can_execute(altered))
+
+        executed = runtime.dispatch_task(task)
+        self.assertIn(executed["status"], {"executed", "failed", "rejected"})
+        self.assertFalse(runtime.can_execute(task))
+
     def test_api_persiste_tarefa_no_store_configurado_apos_enfileiramento(self) -> None:
         """Garante que a rota real de tarefas grave no store persistente configurado."""
 
