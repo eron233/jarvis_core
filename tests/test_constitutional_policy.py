@@ -100,6 +100,24 @@ class ConstitutionalPolicyTests(unittest.TestCase):
                 self.assertFalse(outcome["approved"])
                 self.assertEqual(outcome["blocking_reason"], "requires_human_approval")
 
+    def test_queue_cannot_invent_approval_for_sensitive_task(self) -> None:
+        """Normalizacao e persistencia de fila nao podem aprovar tarefas."""
+
+        queue = TaskQueue(storage_path=make_policy_artifact_path("no_approval", "queue"))
+        task = queue.enqueue({
+            "task_id": "sensitive-queued",
+            "goal": "Operacao que exige aval",
+            "domain": "runtime",
+            "risk": 7,
+        })
+        self.assertFalse(task["approved"])
+        self.assertFalse(task["approval"]["approved"])
+
+        outcome = load_constitutional_policy().evaluate_task(queue.snapshot_items()[0])
+        self.assertTrue(outcome["requires_human_approval"])
+        self.assertFalse(outcome["approved"])
+        self.assertEqual(outcome["blocking_reason"], "requires_human_approval")
+
     def test_validator_does_not_invent_sensitive_approval(self) -> None:
         """A passagem pelo validador nao pode preencher consentimento ausente com True."""
 
