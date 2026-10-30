@@ -144,7 +144,7 @@ class PlanValidator:
             approval = {}
 
         merged_approval = deepcopy(approval)
-        merged_approval["approved"] = bool(merged_approval.get("approved", task.get("approved", True)))
+        merged_approval["approved"] = bool(merged_approval.get("approved", task.get("approved", policy_evaluation["approved"])))
         merged_approval["requires_supervision"] = bool(
             merged_approval.get("requires_supervision", task.get("requires_supervision", False))
             or policy_evaluation["requires_human_approval"]
