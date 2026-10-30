@@ -976,6 +976,122 @@ class JarvisApiTests(unittest.TestCase):
         last_access = client.app.state.runtime.get_access_events(limit=1)[0]
         self.assertEqual(last_access["payload"]["device_id"], "web-access-recovery")
 
+    def test_task_api_rejects_self_approval_and_preserves_safe_autonomy(self) -> None:
+        """Token de dispositivo nao autoriza autoaprovar operacoes sensiveis."""
+
+        client, headers = self.build_client("task_self_approval")
+        forged = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="task-forged"),
+            json={
+                "task_id": "forge-approval",
+                "goal": "Executar operacao sensivel",
+                "domain": "runtime",
+                "risk": 7,
+                "approved": True,
+            },
+        )
+        self.assertEqual(forged.status_code, 403)
+        self.assertEqual(client.get("/api/tarefas", headers=headers).json()["total"], 0)
+
+        sensitive = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="task-sensitive"),
+            json={
+                "task_id": "sensitive-unapproved",
+                "goal": "Executar operacao sensivel",
+                "domain": "runtime",
+                "risk": 7,
+            },
+        )
+        self.assertEqual(sensitive.status_code, 200)
+        task = sensitive.json()["tarefa"]
+        self.assertFalse(task["approval"]["approved"])
+        outcome = client.app.state.runtime.evaluate_task_execution(task)
+        self.assertFalse(outcome["should_execute"])
+        self.assertEqual(outcome["reason"], "requires_human_approval")
+
+        unexpected = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="task-hidden-effect"),
+            json={
+                "task_id": "hidden-effect",
+                "goal": "Operacao externa",
+                "effect_scope": "external",
+            },
+        )
+        self.assertEqual(unexpected.status_code, 422)
+
+    def test_admin_approval_is_bound_to_task_and_single_use(self) -> None:
+        """Senha admin em fluxo especifico; mutacoes posteriores invalidam aval."""
+
+        client, headers = self.build_client("task_authenticated_approval")
+        create = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="create-for-approval"),
+            json={"task_id": "task-manual-1", "goal": "Operacao supervisionada",
+                  "domain": "runtime", "risk": 7},
+        )
+        self.assertEqual(create.status_code, 200)
+        task = create.json()["tarefa"]
+        runtime = client.app.state.runtime
+        self.assertFalse(runtime.can_execute(task))
+
+        denied = client.post(
+            "/api/tarefas/task-manual-1/aprovar",
+            headers=self.mutation_headers(headers, nonce="wrong-approval"),
+            json={"senha_admin": "senha-errada"},
+        )
+        self.assertEqual(denied.status_code, 403)
+        self.assertFalse(runtime.can_execute(task))
+
+        granted = client.post(
+            "/api/tarefas/task-manual-1/aprovar",
+            headers=self.mutation_headers(headers, nonce="approved-once"),
+            json={"senha_admin": "senha-admin-segura-2026"},
+        )
+        self.assertEqual(granted.status_code, 200)
+        self.assertTrue(runtime.can_execute(task))
+        altered = dict(task, goal="Requisicao alterada depois do consentimento")
+        self.assertFalse(runtime.can_execute(altered))
+
+        executed = runtime.dispatch_task(task)
+        self.assertIn(executed["status"], {"executed", "failed", "rejected"})
+        self.assertFalse(runtime.can_execute(task))
+
+    def test_manual_approval_expires_and_legacy_flag_cannot_reenable_it(self) -> None:
+        """Concessao expirada nao pode ser reaproveitada por flags legadas."""
+
+        from unittest.mock import patch
+
+        client, headers = self.build_client("task_approval_expiry")
+        create = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="expire-create"),
+            json={"task_id": "expire-1", "goal": "Tarefa supervisionada",
+                  "domain": "runtime", "risk": 7},
+        )
+        self.assertEqual(create.status_code, 200)
+        task = create.json()["tarefa"]
+        runtime = client.app.state.runtime
+
+        forged_task = dict(task, approved=True, approval={"approved": True})
+        self.assertFalse(runtime.can_execute(forged_task))
+
+        grant = client.post(
+            "/api/tarefas/expire-1/aprovar",
+            headers=self.mutation_headers(headers, nonce="expire-approve"),
+            json={"senha_admin": "senha-admin-segura-2026"},
+        )
+        self.assertEqual(grant.status_code, 200)
+        self.assertTrue(runtime.can_execute(task))
+
+        expiry = runtime._manual_task_approvals["expire-1"][1]
+        with patch("runtime.internal_agent_runtime.time.monotonic", return_value=expiry + 1):
+            self.assertFalse(runtime.can_execute(task))
+            self.assertFalse(runtime.can_execute(forged_task))
+        self.assertNotIn("expire-1", runtime._manual_task_approvals)
+
     def test_api_persiste_tarefa_no_store_configurado_apos_enfileiramento(self) -> None:
         """Garante que a rota real de tarefas grave no store persistente configurado."""
 

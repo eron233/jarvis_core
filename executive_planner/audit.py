@@ -39,6 +39,7 @@ EVENTOS_PTBR = {
     "bootstrap": "inicializar",
     "dispatch": "despachar",
     "access": "acesso",
+    "human_approval": "aprovacao_humana",
     "command": "comando",
     "self_defense": "autodefesa",
     "runtime_watchdog": "watchdog_do_runtime",

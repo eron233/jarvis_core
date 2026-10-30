@@ -71,9 +71,17 @@ class EssentialAssistantRequest(BaseModel):
     max_rodadas: int = Field(default=3, ge=1, le=3, strict=True)
 
 
+class TaskApprovalRequest(BaseModel):
+    """Confirma consentimento especifico com autenticacao administrativa."""
+
+    model_config = {"extra": "forbid"}
+    senha_admin: str = Field(min_length=1, max_length=1024)
+
+
 class TaskCreateRequest(BaseModel):
     """Payload minimo para adicionar uma tarefa na fila via API."""
 
+    model_config = {"extra": "forbid"}
     task_id: str
     goal: str
     description: str = ""
@@ -84,7 +92,7 @@ class TaskCreateRequest(BaseModel):
     cost: int = 0
     reversibility: int = 0
     risk: int = 0
-    approved: bool = True
+    approved: bool = False
     requires_supervision: bool = False
     evidence: list[str] = Field(default_factory=list)
     parent_goal_id: Optional[str] = None
@@ -1079,6 +1087,13 @@ def create_app(
         - insere uma nova tarefa persistente na fila do runtime.
         """
 
+        # O token do dispositivo autentica o cliente, nao uma decisao humana.
+        # Nunca aceite autoaprovacao em uma requisicao para criar tarefa.
+        if payload.approved:
+            raise HTTPException(
+                status_code=403,
+                detail="Aprovacao por payload nao e prova de consentimento do proprietario.",
+            )
         runtime = _ensure_runtime_initialized(request)
         task = payload.model_dump()
         task["worker"] = _resolve_worker(task.get("worker"), task["domain"])
@@ -1091,6 +1106,16 @@ def create_app(
             "mensagem": "Tarefa adicionada a fila com sucesso.",
             "tarefa": enqueued_task,
         }
+
+    @app.post("/api/tarefas/{task_id}/aprovar", dependencies=[Depends(require_tool_owner)])
+    def approve_queued_task(task_id: str, payload: TaskApprovalRequest, request: Request) -> Dict[str, Any]:
+        """Aprova uma tarefa especifica, mediante senha admin e dispositivo autorizado."""
+
+        runtime = _ensure_runtime_initialized(request)
+        result = runtime.approve_queued_task(task_id, payload.senha_admin)
+        if result["status"] != "aprovado":
+            raise HTTPException(status_code=403, detail=result["reason"])
+        return result
 
     @app.get("/api/objetivos", dependencies=[Depends(require_trusted_device)])
     def get_goals(request: Request, goal_id: str | None = Query(default=None)) -> Dict[str, Any]:

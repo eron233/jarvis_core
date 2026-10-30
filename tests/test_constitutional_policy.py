@@ -79,6 +79,114 @@ class ConstitutionalPolicyTests(unittest.TestCase):
             ]
         )
 
+    def test_sensitive_tasks_default_to_unapproved(self) -> None:
+        """Ausencia de aprovacao explicita nunca libera efeitos sensiveis."""
+
+        policy = load_constitutional_policy()
+        cases = [
+            {"effect_scope": "external"},
+            {"effect_scope": "credential_change"},
+            {"effect_scope": "destructive"},
+            {"risk": 7},
+            {"sensitive_action": True},
+            {"requires_supervision": True},
+            {"domain": "unknown_domain"},
+        ]
+        for extra in cases:
+            with self.subTest(extra=extra):
+                task = {"task_id": "consent-required", "goal": "Executar operacao", "domain": "runtime", **extra}
+                outcome = policy.evaluate_task(task)
+                self.assertTrue(outcome["requires_human_approval"])
+                self.assertFalse(outcome["approved"])
+                self.assertEqual(outcome["blocking_reason"], "requires_human_approval")
+
+    def test_queue_cannot_invent_approval_for_sensitive_task(self) -> None:
+        """Normalizacao e persistencia de fila nao podem aprovar tarefas."""
+
+        queue = TaskQueue(storage_path=make_policy_artifact_path("no_approval", "queue"))
+        task = queue.enqueue({
+            "task_id": "sensitive-queued",
+            "goal": "Operacao que exige aval",
+            "domain": "runtime",
+            "risk": 7,
+        })
+        self.assertFalse(task["approved"])
+        self.assertFalse(task["approval"]["approved"])
+
+        outcome = load_constitutional_policy().evaluate_task(queue.snapshot_items()[0])
+        self.assertTrue(outcome["requires_human_approval"])
+        self.assertFalse(outcome["approved"])
+        self.assertEqual(outcome["blocking_reason"], "requires_human_approval")
+
+    def test_runtime_rejects_claimed_approval_without_owner_proof(self) -> None:
+        """Flag approved=True enviada por componente nao comprova consentimento."""
+
+        from runtime.autonomy import AutonomyController
+
+        # O controlador puro preserva o contrato legado; o gate do runtime deve
+        # ser mais estrito e nunca usar a flag como prova.
+        runtime = InternalAgentRuntime()
+        task = {
+            "task_id": "approval-forgery",
+            "goal": "Requisicao sensivel",
+            "domain": "runtime",
+            "risk": 7,
+            "approval": {"approved": True},
+        }
+        decision = runtime.autonomy_controller.evaluate(runtime._task_for_autonomy(task))
+        self.assertFalse(decision["should_execute"])
+        self.assertFalse(decision["approved"])
+
+    def test_validator_does_not_invent_sensitive_approval(self) -> None:
+        """A passagem pelo validador nao pode preencher consentimento ausente com True."""
+
+        task = {
+            "task_id": "without-consent",
+            "goal": "Atualizar credencial",
+            "domain": "runtime",
+            "effect_scope": "credential_change",
+        }
+        valid, issues = PlanValidator().validate_task(task)
+        self.assertTrue(valid)
+        self.assertEqual(issues, [])
+        self.assertTrue(task["requires_supervision"])
+        self.assertFalse(task["approved"])
+        self.assertFalse(task["approval"]["approved"])
+
+    def test_runtime_gate_reports_missing_sensitive_approval(self) -> None:
+        """Gate de autonomia bloqueia e informa aprovacao efetiva da politica."""
+
+        from runtime.autonomy import AutonomyController
+
+        outcome = AutonomyController().evaluate({
+            "task_id": "gate-consent",
+            "goal": "Operacao externa",
+            "domain": "runtime",
+            "effect_scope": "external",
+        })
+        self.assertFalse(outcome["should_execute"])
+        self.assertFalse(outcome["approved"])
+        self.assertEqual(outcome["reason"], "requires_human_approval")
+
+    def test_low_risk_autonomy_and_explicit_consent_remain_compatible(self) -> None:
+        """Preserva tarefas internas simples e exige True explicito para excecao sensivel."""
+
+        policy = load_constitutional_policy()
+        internal = policy.evaluate_task({"goal": "Resumir estudo", "domain": "study"})
+        self.assertFalse(internal["requires_human_approval"])
+        self.assertTrue(internal["approved"])
+        self.assertIsNone(internal["blocking_reason"])
+
+        consented = policy.evaluate_task({
+            "goal": "Operacao externa previamente aprovada",
+            "domain": "runtime",
+            "effect_scope": "external",
+            "approval": {"approved": True},
+        })
+        self.assertTrue(consented["requires_human_approval"])
+        self.assertTrue(consented["approved"])
+        self.assertIsNone(consented["blocking_reason"])
+
     def test_validator_denies_absolutely_prohibited_task(self) -> None:
         """Garante negacao de tarefas que violam proibicoes absolutas."""
 

@@ -75,7 +75,7 @@ class AutonomyController:
         """
 
         policy_evaluation = self.policy.evaluate_task(task)
-        approved = bool(task.get("approved", task.get("approval", {}).get("approved", True)))
+        approved = bool(policy_evaluation["approved"])
 
         if policy_evaluation["denied"]:
             return {
