@@ -317,7 +317,9 @@ class TaskQueue:
         if not isinstance(approval, dict):
             approval = {}
 
-        approved = bool(approval.get("approved", normalized.get("approved", True)))
+        # Enfileirar nao e conceder consentimento. A execucao de tarefas internas
+        # nao sensiveis continua dependendo da politica, nao desta flag.
+        approved = bool(approval.get("approved", normalized.get("approved", False)))
         requires_supervision = bool(
             approval.get("requires_supervision", normalized.get("requires_supervision", False))
         )
