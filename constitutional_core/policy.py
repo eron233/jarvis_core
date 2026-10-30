@@ -117,7 +117,6 @@ class ConstitutionalPolicy:
         if not isinstance(approval, dict):
             approval = {}
 
-        approved = bool(approval.get("approved", task.get("approved", True)))
         requires_supervision = bool(
             approval.get("requires_supervision", task.get("requires_supervision", False))
         )
@@ -156,6 +155,9 @@ class ConstitutionalPolicy:
                 risk >= 7,
             ]
         )
+        # Sem autorizacao expressa, uma tarefa sensivel nunca e pre-aprovada.
+        # Tarefas internas nao sensiveis preservam o caminho autonomo legado.
+        approved = bool(approval.get("approved", task.get("approved", not requires_human_approval)))
         denied = len(hard_violations) > 0 or bool(task.get("denied", False))
 
         if denied:
