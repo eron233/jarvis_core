@@ -18,10 +18,12 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
+import hashlib
 import json
 import logging
 from pathlib import Path
 from threading import RLock
+import time
 from typing import Any, Dict
 
 #
@@ -83,6 +85,9 @@ class InternalAgentRuntime:
         self.vital_organs_orchestrator: Any = None
         self._state_lock = RLock()
         self._request_nonces: Dict[str, str] = {}
+        # Autorizacoes humanas ficam somente na memoria do processo. Ao reiniciar
+        # ou perder o registro, a tarefa volta a exigir consentimento.
+        self._manual_task_approvals: Dict[str, tuple[str, float]] = {}
 
     def attach_planner(
         self,
@@ -573,16 +578,95 @@ class InternalAgentRuntime:
                 )
             return self.describe_state()
 
+    @staticmethod
+    def _manual_approval_fingerprint(task: Dict[str, Any]) -> str:
+        """Vincula o consentimento ao conteudo material, nunca a estados da fila."""
+
+        untrusted = deepcopy(task)
+        for key in (
+            "approved", "approval", "requires_supervision", "policy_evaluation",
+            "state", "state_ptbr", "timestamps", "created_at", "updated_at",
+            "queued_at", "procedural_guidance", "procedural_guidance_source",
+            "runtime_context", "goal_summary",
+        ):
+            untrusted.pop(key, None)
+        canonical = json.dumps(untrusted, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    def _has_verified_manual_approval(self, task: Dict[str, Any]) -> bool:
+        """Somente registro interno vinculado ao snapshot autoriza tarefa sensivel."""
+
+        task_id = str(task.get("task_id") or "")
+        if not task_id:
+            return False
+        record = self._manual_task_approvals.get(task_id)
+        if record is None:
+            return False
+        fingerprint, expires_at = record
+        if time.monotonic() >= expires_at:
+            self._manual_task_approvals.pop(task_id, None)
+            return False
+        try:
+            return self._manual_approval_fingerprint(task) == fingerprint
+        except (TypeError, ValueError):
+            return False
+
+    def approve_queued_task(self, task_id: str, admin_password: str) -> Dict[str, Any]:
+        """Aprovacao pontual, autenticada por senha, sem persistir credenciais."""
+
+        with self._state_lock:
+            self.bootstrap()
+            context = self.access_control.evaluate(password=admin_password)
+            if not self.access_control.can_execute_sensitive_action(context):
+                return {"status": "negado", "reason": "admin_auth_required"}
+            matches = [
+                task for task in self.task_queue.snapshot_items()
+                if str(task.get("task_id") or "") == str(task_id)
+            ]
+            if len(matches) != 1:
+                return {"status": "negado", "reason": "task_missing_or_ambiguous"}
+            task = matches[0]
+            evaluation = self.constitutional_policy.evaluate_task(task)
+            if evaluation["denied"]:
+                return {"status": "negado", "reason": "policy_denied"}
+            if not evaluation["requires_human_approval"]:
+                return {"status": "negado", "reason": "human_approval_not_required"}
+            try:
+                fingerprint = self._manual_approval_fingerprint(task)
+            except (TypeError, ValueError):
+                return {"status": "negado", "reason": "invalid_task_payload"}
+            self._manual_task_approvals[str(task_id)] = (fingerprint, time.monotonic() + 300)
+            self.audit_logger.record("human_approval", {
+                "task_id": str(task_id), "validity_seconds": 300, "origin": "authenticated_admin",
+            })
+            return {"status": "aprovado", "task_id": str(task_id), "validity_seconds": 300}
+
+    def _task_for_autonomy(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """Ignora flags de aprovacao do payload quando a tarefa exige humano."""
+
+        safe_task = deepcopy(task)
+        evaluation = self.autonomy_controller.policy.evaluate_task(safe_task)
+        if evaluation["requires_human_approval"]:
+            verified = self._has_verified_manual_approval(task)
+            approval = safe_task.get("approval", {})
+            approval = dict(approval) if isinstance(approval, dict) else {}
+            approval["approved"] = verified
+            safe_task["approval"] = approval
+            safe_task["approved"] = verified
+        return safe_task
+
     def can_execute(self, task: Dict[str, Any]) -> bool:
         """Retorna se a tarefa pode ser executada de forma deterministica agora."""
 
-        return self.autonomy_controller.should_execute(task)
+        with self._state_lock:
+            return self.autonomy_controller.should_execute(self._task_for_autonomy(task))
 
     def evaluate_task_execution(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """Explica a decisao de autonomia para a tarefa atual."""
 
         self.bootstrap()
-        return self.autonomy_controller.evaluate(task)
+        with self._state_lock:
+            return self.autonomy_controller.evaluate(self._task_for_autonomy(task))
 
     def dispatch_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """Executa uma tarefa por meio do gate de autonomia do runtime."""
@@ -615,6 +699,11 @@ class InternalAgentRuntime:
                     }
                 )
                 return result
+
+            # Uma aprovacao sensivel permite uma unica tentativa de dispatch.
+            # Mesmo que o worker falhe, nao existe reutilizacao silenciosa.
+            if autonomy_decision["policy_evaluation"]["requires_human_approval"]:
+                self._manual_task_approvals.pop(str(task.get("task_id") or ""), None)
 
             worker_id = self._normalize_worker_id(task.get("worker") or task.get("worker_id") or "runtime")
             worker = self.workers.get(worker_id)
