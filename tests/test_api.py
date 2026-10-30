@@ -976,6 +976,52 @@ class JarvisApiTests(unittest.TestCase):
         last_access = client.app.state.runtime.get_access_events(limit=1)[0]
         self.assertEqual(last_access["payload"]["device_id"], "web-access-recovery")
 
+    def test_task_api_rejects_self_approval_and_preserves_safe_autonomy(self) -> None:
+        """Token de dispositivo nao autoriza autoaprovar operacoes sensiveis."""
+
+        client, headers = self.build_client("task_self_approval")
+        forged = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="task-forged"),
+            json={
+                "task_id": "forge-approval",
+                "goal": "Executar operacao sensivel",
+                "domain": "runtime",
+                "risk": 7,
+                "approved": True,
+            },
+        )
+        self.assertEqual(forged.status_code, 403)
+        self.assertEqual(client.get("/api/tarefas", headers=headers).json()["total"], 0)
+
+        sensitive = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="task-sensitive"),
+            json={
+                "task_id": "sensitive-unapproved",
+                "goal": "Executar operacao sensivel",
+                "domain": "runtime",
+                "risk": 7,
+            },
+        )
+        self.assertEqual(sensitive.status_code, 200)
+        task = sensitive.json()["tarefa"]
+        self.assertFalse(task["approval"]["approved"])
+        outcome = client.app.state.runtime.evaluate_task_execution(task)
+        self.assertFalse(outcome["should_execute"])
+        self.assertEqual(outcome["reason"], "requires_human_approval")
+
+        unexpected = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="task-hidden-effect"),
+            json={
+                "task_id": "hidden-effect",
+                "goal": "Operacao externa",
+                "effect_scope": "external",
+            },
+        )
+        self.assertEqual(unexpected.status_code, 422)
+
     def test_api_persiste_tarefa_no_store_configurado_apos_enfileiramento(self) -> None:
         """Garante que a rota real de tarefas grave no store persistente configurado."""
 
