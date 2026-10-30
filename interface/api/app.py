@@ -74,6 +74,7 @@ class EssentialAssistantRequest(BaseModel):
 class TaskCreateRequest(BaseModel):
     """Payload minimo para adicionar uma tarefa na fila via API."""
 
+    model_config = {"extra": "forbid"}
     task_id: str
     goal: str
     description: str = ""
@@ -84,7 +85,7 @@ class TaskCreateRequest(BaseModel):
     cost: int = 0
     reversibility: int = 0
     risk: int = 0
-    approved: bool = True
+    approved: bool = False
     requires_supervision: bool = False
     evidence: list[str] = Field(default_factory=list)
     parent_goal_id: Optional[str] = None
@@ -1079,6 +1080,13 @@ def create_app(
         - insere uma nova tarefa persistente na fila do runtime.
         """
 
+        # O token do dispositivo autentica o cliente, nao uma decisao humana.
+        # Nunca aceite autoaprovacao em uma requisicao para criar tarefa.
+        if payload.approved:
+            raise HTTPException(
+                status_code=403,
+                detail="Aprovacao por payload nao e prova de consentimento do proprietario.",
+            )
         runtime = _ensure_runtime_initialized(request)
         task = payload.model_dump()
         task["worker"] = _resolve_worker(task.get("worker"), task["domain"])
