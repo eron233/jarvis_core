@@ -1059,6 +1059,39 @@ class JarvisApiTests(unittest.TestCase):
         self.assertIn(executed["status"], {"executed", "failed", "rejected"})
         self.assertFalse(runtime.can_execute(task))
 
+    def test_manual_approval_expires_and_legacy_flag_cannot_reenable_it(self) -> None:
+        """Concessao expirada nao pode ser reaproveitada por flags legadas."""
+
+        from unittest.mock import patch
+
+        client, headers = self.build_client("task_approval_expiry")
+        create = client.post(
+            "/api/tarefas",
+            headers=self.mutation_headers(headers, nonce="expire-create"),
+            json={"task_id": "expire-1", "goal": "Tarefa supervisionada",
+                  "domain": "runtime", "risk": 7},
+        )
+        self.assertEqual(create.status_code, 200)
+        task = create.json()["tarefa"]
+        runtime = client.app.state.runtime
+
+        forged_task = dict(task, approved=True, approval={"approved": True})
+        self.assertFalse(runtime.can_execute(forged_task))
+
+        grant = client.post(
+            "/api/tarefas/expire-1/aprovar",
+            headers=self.mutation_headers(headers, nonce="expire-approve"),
+            json={"senha_admin": "senha-admin-segura-2026"},
+        )
+        self.assertEqual(grant.status_code, 200)
+        self.assertTrue(runtime.can_execute(task))
+
+        expiry = runtime._manual_task_approvals["expire-1"][1]
+        with patch("runtime.internal_agent_runtime.time.monotonic", return_value=expiry + 1):
+            self.assertFalse(runtime.can_execute(task))
+            self.assertFalse(runtime.can_execute(forged_task))
+        self.assertNotIn("expire-1", runtime._manual_task_approvals)
+
     def test_api_persiste_tarefa_no_store_configurado_apos_enfileiramento(self) -> None:
         """Garante que a rota real de tarefas grave no store persistente configurado."""
 
