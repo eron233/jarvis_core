@@ -287,6 +287,20 @@ def create_app(
         """
 
         if request.app.state.simple_web_login and _has_valid_dashboard_session(request):
+            runtime = _ensure_runtime_initialized(request)
+            client_host = request.client.host if request.client is not None else None
+            if _requires_replay_protection(request):
+                replay_reason = _validate_replay_headers(
+                    runtime, request, SIMPLE_WEB_LOGIN_DEVICE_ID,
+                    x_jarvis_nonce, x_jarvis_timestamp,
+                )
+                if replay_reason is not None:
+                    _record_access_attempt(runtime, request, SIMPLE_WEB_LOGIN_DEVICE_ID,
+                                           False, replay_reason, client_host)
+                    raise HTTPException(status_code=403,
+                                        detail=_map_replay_error_to_detail(replay_reason))
+            _record_access_attempt(runtime, request, SIMPLE_WEB_LOGIN_DEVICE_ID,
+                                   True, None, client_host)
             return {
                 "device_id": SIMPLE_WEB_LOGIN_DEVICE_ID,
                 "access_mode": "simple_web_login",
@@ -773,8 +787,8 @@ def create_app(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         if _has_valid_dashboard_session(request):
-            return HTMLResponse(_render_dashboard(request.app))
-        return HTMLResponse(_render_access_gate(request.app))
+            return HTMLResponse(_render_dashboard(request.app), headers={"Cache-Control": "no-store"})
+        return HTMLResponse(_render_access_gate(request.app), headers={"Cache-Control": "no-store"})
 
     @app.post("/api/auth/device-session")
     def create_device_session(
@@ -2442,7 +2456,7 @@ def _validate_replay_headers(
 
     try:
         request_dt = _parse_request_timestamp(request_timestamp)
-    except ValueError:
+    except (ValueError, OverflowError, OSError):
         return "invalid_request_timestamp"
 
     age_seconds = abs((datetime.now(timezone.utc) - request_dt).total_seconds())
@@ -2465,6 +2479,8 @@ def _parse_request_timestamp(value: str) -> datetime:
     """Converte timestamp HTTP do cliente para `datetime` UTC."""
 
     normalized = str(value).strip()
+    if len(normalized) > 64:
+        raise ValueError("timestamp invalido")
     if normalized.isdigit():
         numeric_value = int(normalized)
         if len(normalized) >= 13:

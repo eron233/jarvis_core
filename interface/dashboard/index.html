@@ -445,19 +445,26 @@
   </div>
 
   <script>
+    const DASHBOARD_CONFIG = __JARVIS_DASHBOARD_CONFIG__;
+    const TOKEN_KEY = 'jarvis_api_token';
+    const DEVICE_KEY = 'jarvis_device_id';
+
     function getAuthHeaders() {
-      return {
+      const headers = {
         'Content-Type': 'application/json',
-        'X-Jarvis-Token': localStorage.getItem('jarvis_token') || '',
-        'X-Jarvis-Device-Id': localStorage.getItem('jarvis_device_id') || '',
         'X-Jarvis-Nonce': Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join(''),
-        'X-Jarvis-Timestamp': Date.now().toString()
+        'X-Jarvis-Timestamp': new Date().toISOString()
       };
+      if (!DASHBOARD_CONFIG.simple_web_login) {
+        headers['X-Jarvis-Token'] = localStorage.getItem(TOKEN_KEY) || '';
+        headers['X-Jarvis-Device-Id'] = localStorage.getItem(DEVICE_KEY) || '';
+      }
+      return headers;
     }
 
-    function apiFetch(url, options = {}) {
+    async function apiFetch(url, options = {}) {
       const headers = Object.assign(getAuthHeaders(), options.headers || {});
-      return fetch(url, Object.assign({}, options, { headers })).then(response => {
+      return fetch(url, Object.assign({}, options, { headers, credentials: 'same-origin', cache: 'no-store' })).then(response => {
         if (!response.ok) throw new Error(`Solicitação recusada (HTTP ${response.status}).`);
         return response;
       });

@@ -130,7 +130,7 @@
 
     function criarHeadersDeProtecao() {
       return {
-        "X-Jarvis-Nonce": crypto.randomUUID(),
+        "X-Jarvis-Nonce": Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join(""),
         "X-Jarvis-Timestamp": new Date().toISOString(),
       };
     }

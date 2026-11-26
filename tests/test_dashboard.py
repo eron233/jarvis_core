@@ -81,6 +81,12 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertEqual(unlocked_response.status_code, 200)
         self.assertIn("<title>Gênesis | Íris</title>", unlocked_response.text)
         self.assertIn("JARVIS", unlocked_response.text)
+        self.assertIn("jarvis_api_token", locked_response.text)
+        self.assertIn("jarvis_api_token", unlocked_response.text)
+        self.assertNotIn("localStorage.getItem('jarvis_token')", unlocked_response.text)
+        self.assertIn('"simple_web_login": false', unlocked_response.text)
+        self.assertEqual(locked_response.headers["cache-control"], "no-store")
+        self.assertEqual(unlocked_response.headers["cache-control"], "no-store")
 
     def test_assets_do_brain_avatar_sao_servidos_pela_api(self) -> None:
         """Confirma que os modulos JS do brain avatar ficam acessiveis pelo mesmo servidor."""
@@ -130,6 +136,7 @@ class JarvisDashboardTests(unittest.TestCase):
         unlocked_response = client.get("/painel")
         self.assertEqual(unlocked_response.status_code, 200)
         self.assertIn("<title>Gênesis | Íris</title>", unlocked_response.text)
+        self.assertIn('"simple_web_login": true', unlocked_response.text)
 
 
 if __name__ == "__main__":
