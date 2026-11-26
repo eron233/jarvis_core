@@ -22,3 +22,16 @@ class QualityReportTests(unittest.TestCase):
             p.write_text('<testsuite><testcase name="ok"/></testsuite>', encoding="utf-8")
             self.assertFalse(summarize(p, 2)["approved"])
             self.assertTrue(summarize(p, 0)["approved"])
+
+    def test_skips_never_release_and_failure_summary_is_bounded(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "report.xml"
+            p.write_text('<testsuite><testcase name="ok"/><testcase name="skip"><skipped/></testcase></testsuite>', encoding="utf-8")
+            result = summarize(p, 0)
+            self.assertTrue(result["approved"])
+            self.assertFalse(result["release_ready"])
+            p.write_text("<testsuite>" + '<testcase name="bad"><failure/></testcase>' * 130 + "</testsuite>", encoding="utf-8")
+            result = summarize(p, 1)
+            self.assertEqual(result["failed_or_error"], 130)
+            self.assertEqual(len(result["failures"]), 100)
+            self.assertEqual(result["failures_omitted"], 30)

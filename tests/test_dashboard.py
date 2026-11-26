@@ -95,6 +95,34 @@ class JarvisDashboardTests(unittest.TestCase):
         self.assertEqual(locked_response.headers["cache-control"], "no-store")
         self.assertEqual(unlocked_response.headers["cache-control"], "no-store")
 
+    def test_websocket_nega_visitante_e_origem_externa(self) -> None:
+        from starlette.websockets import WebSocketDisconnect
+        client = self.build_client("websocket_security")
+        with self.assertRaises(WebSocketDisconnect):
+            with client.websocket_connect("/ws/live-stream"):
+                pass
+        session = client.post("/api/auth/device-session", headers={
+            "X-Jarvis-Token": "token-teste",
+            "X-Jarvis-Device-Id": "eron-celular-principal",
+            "X-Jarvis-Nonce": "ws-login",
+            "X-Jarvis-Timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        self.assertEqual(session.status_code, 200)
+        with self.assertRaises(WebSocketDisconnect):
+            with client.websocket_connect("/ws/live-stream", headers={"Origin": "https://example.invalid"}):
+                pass
+        with client.websocket_connect("/ws/live-stream", headers={"Origin": "http://testserver"}):
+            pass
+
+    def test_login_tem_limite_de_tentativas_e_bloqueia_origem_externa(self) -> None:
+        client = self.build_client("dashboard_rate")
+        headers = {"X-Jarvis-Token": "invalido", "X-Jarvis-Device-Id": "invalido"}
+        denied = client.post("/api/auth/device-session", headers={**headers, "Origin": "https://example.invalid"})
+        self.assertEqual(denied.status_code, 403)
+        for _ in range(10):
+            self.assertEqual(client.post("/api/auth/device-session", headers=headers).status_code, 401)
+        self.assertEqual(client.post("/api/auth/device-session", headers=headers).status_code, 429)
+
     def test_assets_do_brain_avatar_sao_servidos_pela_api(self) -> None:
         """Confirma que os modulos JS do brain avatar ficam acessiveis pelo mesmo servidor."""
 

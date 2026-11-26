@@ -26,6 +26,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from interface.api.websocket_feed import ws_manager
 from security.dashboard_sessions import DashboardSessions, DashboardSession
+from security.login_limiter import LoginLimiter
 from pydantic import BaseModel, Field
 
 from main import SystemLoopConfig, bootstrap_runtime
@@ -102,7 +103,7 @@ class CommandRequest(BaseModel):
 class SimpleWebLoginRequest(BaseModel):
     """Payload minimo do modo de recuperacao de acesso web por senha."""
 
-    admin_password: str = Field(min_length=1)
+    admin_password: str = Field(min_length=1, max_length=1024)
 
 
 class IrisResidentPreferencesRequest(BaseModel):
@@ -246,6 +247,7 @@ def create_app(
         True if effective_deployment_config is None else effective_deployment_config.enable_dashboard
     )
     app.state.dashboard_sessions = DashboardSessions()
+    app.state.dashboard_login_limiter = LoginLimiter()
     app.state.environment_report = _build_environment_report(app)
     app.state.runtime.configure_runtime_identity(
         entrypoint="interface.api.app.create_app",
@@ -818,6 +820,9 @@ def create_app(
         _require_same_origin(request)
         if not request.app.state.enable_dashboard:
             raise HTTPException(status_code=403, detail="Painel desabilitado.")
+        if not request.app.state.dashboard_login_limiter.reserve():
+            raise HTTPException(status_code=429, detail="Muitas tentativas de acesso. Aguarde um minuto.",
+                                headers={"Retry-After": "60"})
         if request.app.state.simple_web_login:
             access_context = _validate_simple_web_access(
                 request=request,
