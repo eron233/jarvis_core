@@ -108,7 +108,7 @@ Servidor `stdio` é um processo real, portanto é uma superfície de execução.
 
 O JARVIS aplica:
 - sem `shell=True`;
-- comando precisa estar na allowlist;
+- comando precisa estar na allowlist; caminhos absolutos precisam constar integralmente nela, e caminhos relativos com diretorios sao recusados;
 - argumentos precisam ser lista de strings;
 - `cwd` permanece dentro do projeto;
 - variáveis de ambiente não são copiadas em massa;
