@@ -405,6 +405,7 @@
         <h1 class="header-title" id="tabTitle">Sessão Atual</h1>
         <div class="header-actions">
           <button type="button" class="btn-action" onclick="clearStream()">Limpar Chat</button>
+          <button type="button" class="btn-action" onclick="logout()">Sair</button>
           <button type="button" class="btn-action" onclick="runAutoEvolution()">Autoevolução</button>
         </div>
       </header>
@@ -446,8 +447,10 @@
 
   <script>
     const DASHBOARD_CONFIG = __JARVIS_DASHBOARD_CONFIG__;
-    const TOKEN_KEY = 'jarvis_api_token';
-    const DEVICE_KEY = 'jarvis_device_id';
+    // Remover segredos persistidos por versoes anteriores.
+    try {
+      for (const key of ['jarvis_api_token', 'jarvis_token', 'jarvis_device_id']) localStorage.removeItem(key);
+    } catch (_) { /* cookie HttpOnly continua suficiente */ }
 
     function getAuthHeaders() {
       const headers = {
@@ -455,11 +458,7 @@
         'X-Jarvis-Nonce': Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join(''),
         'X-Jarvis-Timestamp': new Date().toISOString()
       };
-      if (!DASHBOARD_CONFIG.simple_web_login) {
-        headers['X-Jarvis-Token'] = localStorage.getItem(TOKEN_KEY) || '';
-        headers['X-Jarvis-Device-Id'] = localStorage.getItem(DEVICE_KEY) || '';
-      }
-      return headers;
+       return headers;
     }
 
     async function apiFetch(url, options = {}) {
@@ -468,6 +467,15 @@
         if (!response.ok) throw new Error(`Solicitação recusada (HTTP ${response.status}).`);
         return response;
       });
+    }
+
+    async function logout() {
+      try {
+        await apiFetch('/api/auth/device-session', {method: 'DELETE'});
+        window.location.replace('/painel');
+      } catch (error) {
+        appendMsg('assistant', 'ÍRIS', 'Não foi possível encerrar a sessão: ' + error.message);
+      }
     }
 
     function sendMsg() {

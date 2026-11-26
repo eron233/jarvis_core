@@ -13,7 +13,7 @@ import asyncio
 from datetime import datetime, timezone
 import json
 import logging
-from typing import Any, Dict, List, Set
+from typing import Any, Callable, Dict, Set
 
 from fastapi import WebSocket, WebSocketDisconnect
 
@@ -25,16 +25,19 @@ class ConnectionManager:
 
     def __init__(self) -> None:
         self.active_connections: Set[WebSocket] = set()
+        self._authorizations: Dict[WebSocket, Callable[[], bool]] = {}
 
-    async def connect(self, websocket: WebSocket) -> None:
+    async def connect(self, websocket: WebSocket, *, authorized: Callable[[], bool]) -> None:
         """Aceita a conexão WebSocket e armazena na lista de conexões ativas."""
         await websocket.accept()
         self.active_connections.add(websocket)
+        self._authorizations[websocket] = authorized
         LOGGER.info("[websocket] Nova conexão estabelecida. Total ativas: %d", len(self.active_connections))
 
     def disconnect(self, websocket: WebSocket) -> None:
         """Remove a conexão WebSocket desconectada."""
         self.active_connections.discard(websocket)
+        self._authorizations.pop(websocket, None)
         LOGGER.info("[websocket] Conexão encerrada. Total ativas: %d", len(self.active_connections))
 
     async def broadcast_event(self, event_type: str, payload: Dict[str, Any]) -> None:
@@ -51,8 +54,13 @@ class ConnectionManager:
         }, ensure_ascii=False)
 
         disconnected_clients = set()
-        for connection in self.active_connections:
+        for connection in tuple(self.active_connections):
             try:
+                check = self._authorizations.get(connection)
+                if check is None or not check():
+                    await connection.close(code=1008)
+                    disconnected_clients.add(connection)
+                    continue
                 await connection.send_text(message)
             except Exception as e:
                 LOGGER.warning("[websocket_broadcast_error] Falha ao enviar para cliente: %s", e)
