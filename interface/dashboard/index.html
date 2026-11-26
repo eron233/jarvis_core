@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gênesis | Zero</title>
+  <title>Gênesis | Íris</title>
   <style>
-    /* Estética Anthropic Claude Desktop / Claude Code */
+    /* Design system Íris */
     :root {
-      --bg-app: #181715;
-      --bg-sidebar: #1E1C1A;
-      --bg-card: #242220;
-      --bg-input: #2A2825;
+      --bg-app: #17191d;
+      --bg-sidebar: #20232a;
+      --bg-card: #282c34;
+      --bg-input: #303641;
       --border-subtle: rgba(255, 255, 255, 0.08);
-      --border-active: rgba(217, 119, 87, 0.4);
-      --text-primary: #ECEBE8;
-      --text-secondary: #B0AEA8;
-      --text-muted: #85837D;
-      --accent-claude: #D97757; /* Laranja Terroso característico do Claude */
-      --accent-claude-hover: #E28769;
+      --border-active: #9bbcf2;
+      --text-primary: #edf0f5;
+      --text-secondary: #b9c2cf;
+      --text-muted: #aeb8c7;
+      --accent-iris: #9bbcf2; 
+      --accent-iris-hover: #b5cff8;
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
       --font-mono: "JetBrains Mono", "Cascadia Code", monospace;
     }
@@ -41,7 +41,7 @@
       height: 100vh;
     }
 
-    /* Sidebar Esquerda Minimalista estilo Claude */
+    /* Sidebar Esquerda Minimalista Íris */
     .sidebar {
       display: flex;
       flex-direction: column;
@@ -62,14 +62,14 @@
     .brand-icon {
       width: 24px;
       height: 24px;
-      background-color: var(--accent-claude);
+      background-color: var(--accent-iris);
       border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
       font-size: 0.85rem;
-      color: #181715;
+      color: #17191d;
     }
 
     .brand-name {
@@ -121,7 +121,7 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background-color: var(--accent-claude);
+      background-color: var(--accent-iris);
     }
 
     /* Área Principal estilo Chat Claude Desktop */
@@ -210,7 +210,7 @@
       border: 1px solid var(--border-subtle);
     }
 
-    /* Composer de Texto estilo Claude */
+    /* Composer de Texto Íris */
     .composer-container {
       padding: 16px 24px 24px;
       max-width: 800px;
@@ -275,8 +275,8 @@
     }
 
     .btn-send {
-      background-color: var(--accent-claude);
-      color: #181715;
+      background-color: var(--accent-iris);
+      color: #17191d;
       font-weight: 600;
       font-size: 0.82rem;
       padding: 6px 14px;
@@ -287,7 +287,7 @@
     }
 
     .btn-send:hover {
-      background-color: var(--accent-claude-hover);
+      background-color: var(--accent-iris-hover);
     }
 
     /* Modal Discreto */
@@ -306,7 +306,7 @@
     /* Foco visível por teclado em todos os controles interativos */
     button:focus-visible,
     textarea:focus-visible {
-      outline: 2px solid var(--accent-claude);
+      outline: 2px solid var(--accent-iris);
       outline-offset: 2px;
     }
 
@@ -315,7 +315,7 @@
     }
 
     .composer-wrapper:focus-within {
-      box-shadow: 0 0 0 1px var(--accent-claude);
+      box-shadow: 0 0 0 1px var(--accent-iris);
     }
 
     .sr-only {
@@ -340,6 +340,31 @@
       overflow-y: auto;
     }
 
+    .msg-content { overflow-wrap: anywhere; }
+    .msg-group.user { align-self: flex-end; max-width: 86%; }
+    .composer-wrapper { border-radius: 16px; }
+    .chat-stream { gap: 28px; padding-top: 32px; }
+    .main-content { min-height: 0; }
+    .composer-controls { flex-wrap: wrap; gap: 8px; }
+    .quick-tools { flex-wrap: wrap; }
+    .btn-send, .tool-btn, .nav-btn, .btn-action { min-height: 40px; }
+    @media (max-width: 760px) {
+      .app-layout { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); height: 100dvh; }
+      .sidebar { padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--border-subtle); }
+      .brand { border: none; padding: 4px; }
+      .nav-group { flex-direction: row; overflow-x: auto; margin-top: 4px; }
+      .nav-btn { flex: 0 0 auto; white-space: nowrap; }
+      .sidebar-status { display: none; }
+      .main-content { height: auto; }
+      .header { padding: 8px 12px; gap: 8px; flex-wrap: wrap; }
+      .chat-stream { padding: 18px 14px; }
+      .composer-container { padding: 8px 12px 12px; }
+      .msg-group.user { max-width: 95%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+
     .modal-header-clean {
       display: flex;
       justify-content: space-between;
@@ -352,11 +377,11 @@
 </head>
 <body>
   <div class="app-layout">
-    <!-- Sidebar estilo Claude Code/Desktop -->
+    <!-- Sidebar Íris -->
     <aside class="sidebar">
       <div>
         <div class="brand">
-          <div class="brand-icon" aria-hidden="true">J</div>
+          <div class="brand-icon" aria-hidden="true">Í</div>
           <div class="brand-name">GÊNESIS</div>
         </div>
 
@@ -370,7 +395,7 @@
 
       <div class="sidebar-status" role="status" aria-live="polite">
         <span class="status-dot" aria-hidden="true"></span>
-        <span>ZERO / Sistema Gênesis</span>
+        <span>Ambiente Gênesis</span>
       </div>
     </aside>
 
@@ -380,20 +405,21 @@
         <h1 class="header-title" id="tabTitle">Sessão Atual</h1>
         <div class="header-actions">
           <button type="button" class="btn-action" onclick="clearStream()">Limpar Chat</button>
+          <button type="button" class="btn-action" onclick="logout()">Sair</button>
           <button type="button" class="btn-action" onclick="runAutoEvolution()">Autoevolução</button>
         </div>
       </header>
 
-      <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-atomic="false" aria-label="Conversa com Zero" tabindex="0">
+      <div class="chat-stream" id="chatStream" role="log" aria-live="polite" aria-atomic="false" aria-label="Conversa com Íris" tabindex="0">
         <div class="msg-group assistant">
-          <div class="msg-author">ZERO</div>
-          <div class="msg-content">Olá. O sistema está operacional com todos os módulos, análise topológica Graphify, busca web e voz local ativos. Como posso ajudar?</div>
+          <div class="msg-author">ÍRIS</div>
+          <div class="msg-content">Olá. Sou Íris, sua assistente no Gênesis. Como posso ajudar?</div>
         </div>
       </div>
 
       <div class="composer-container">
         <div class="composer-wrapper">
-          <label for="composerInput" class="sr-only">Mensagem para Zero</label>
+          <label for="composerInput" class="sr-only">Mensagem para Íris</label>
           <textarea id="composerInput" class="composer-textarea" placeholder="Envie uma mensagem ou solicite uma análise..." rows="1"></textarea>
           <div class="composer-controls">
             <div class="quick-tools" role="group" aria-label="Ferramentas rápidas">
@@ -420,19 +446,36 @@
   </div>
 
   <script>
+    const DASHBOARD_CONFIG = __JARVIS_DASHBOARD_CONFIG__;
+    // Remover segredos persistidos por versoes anteriores.
+    try {
+      for (const key of ['jarvis_api_token', 'jarvis_token', 'jarvis_device_id']) localStorage.removeItem(key);
+    } catch (_) { /* cookie HttpOnly continua suficiente */ }
+
     function getAuthHeaders() {
-      return {
+      const headers = {
         'Content-Type': 'application/json',
-        'X-Jarvis-Token': localStorage.getItem('jarvis_token') || 'test-token',
-        'X-Jarvis-Device-Id': localStorage.getItem('jarvis_device_id') || 'test-device-id',
-        'X-Jarvis-Nonce': 'nonce-' + Math.random().toString(36).substring(2, 10),
-        'X-Jarvis-Timestamp': Date.now().toString()
+        'X-Jarvis-Nonce': Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join(''),
+        'X-Jarvis-Timestamp': new Date().toISOString()
       };
+       return headers;
     }
 
-    function apiFetch(url, options = {}) {
+    async function apiFetch(url, options = {}) {
       const headers = Object.assign(getAuthHeaders(), options.headers || {});
-      return fetch(url, Object.assign({}, options, { headers }));
+      return fetch(url, Object.assign({}, options, { headers, credentials: 'same-origin', cache: 'no-store' })).then(response => {
+        if (!response.ok) throw new Error(`Solicitação recusada (HTTP ${response.status}).`);
+        return response;
+      });
+    }
+
+    async function logout() {
+      try {
+        await apiFetch('/api/auth/device-session', {method: 'DELETE'});
+        window.location.replace('/painel');
+      } catch (error) {
+        appendMsg('assistant', 'ÍRIS', 'Não foi possível encerrar a sessão: ' + error.message);
+      }
     }
 
     function sendMsg() {
@@ -448,8 +491,8 @@
         body: JSON.stringify({ texto: text })
       })
       .then(r => r.json())
-      .then(d => appendMsg('assistant', 'ZERO', d.resposta || d.mensagem || 'Comando executado.'))
-      .catch(e => appendMsg('assistant', 'ZERO', 'Erro: ' + e.message));
+      .then(d => appendMsg('assistant', 'ÍRIS', d.resposta || d.mensagem || d.motivo || 'O servidor não informou um resultado.'))
+      .catch(e => appendMsg('assistant', 'ÍRIS', 'Erro: ' + e.message));
     }
 
     function appendMsg(role, author, text) {
@@ -471,32 +514,37 @@
       appendMsg('user', 'Você', 'Executar análise Graphify.');
       apiFetch('/api/graphify/estruturar?titulo=Projeto_JARVIS&descricao=Topologia', { method: 'POST' })
       .then(r => r.json())
-      .then(d => appendMsg('assistant', 'ZERO', d.resultado?.resumo_topologico_ptbr || 'Análise Graphify gerada.'));
+      .then(d => appendMsg('assistant', 'ÍRIS', d.resultado?.resumo_topologico_ptbr || d.resultado?.motivo || 'Análise sem resultado confirmado.'))
+      .catch(e => appendMsg('assistant', 'ÍRIS', e.message));
     }
 
     function runWebSearch() {
       appendMsg('user', 'Você', 'Pesquisar na web.');
       apiFetch('/api/web/pesquisar?q=JARVIS+AI')
       .then(r => r.json())
-      .then(d => appendMsg('assistant', 'ZERO', `Pesquisa web concluída. ${d.total_fontes_encontradas || 0} fontes consultadas.`));
+      .then(d => appendMsg('assistant', 'ÍRIS', d.status === 'sucesso' ? `Pesquisa web concluída. ${d.total_fontes_encontradas || 0} fontes consultadas.` : (d.motivo || 'Pesquisa sem resultado confirmado.')))
+      .catch(e => appendMsg('assistant', 'ÍRIS', e.message));
     }
 
     function runVoice() {
-      apiFetch('/api/voz/falar?texto=Zero+online', { method: 'POST' })
+      apiFetch('/api/voz/falar?texto=Íris+online', { method: 'POST' })
       .then(r => r.json())
-      .then(() => appendMsg('assistant', 'ZERO', 'Áudio de voz gerado localmente.'));
+      .then(d => appendMsg('assistant', 'ÍRIS', d.status === 'sucesso' ? 'Áudio de voz gerado localmente.' : (d.motivo || 'Áudio sem confirmação.')))
+      .catch(e => appendMsg('assistant', 'ÍRIS', e.message));
     }
 
     function runAutoEvolution() {
       apiFetch('/api/modulos/autoevolucao/ciclo', { method: 'POST' })
       .then(r => r.json())
-      .then(() => appendMsg('assistant', 'ZERO', 'Ciclo de autoevolução executado.'));
+      .then(d => appendMsg('assistant', 'ÍRIS', d.relatorio?.status === 'sucesso' ? 'Ciclo de autoevolução executado.' : 'Consulte o relatório de autoevolução para confirmar o resultado.'))
+      .catch(e => appendMsg('assistant', 'ÍRIS', e.message));
     }
 
     let lastFocusBeforeModal = null;
 
     function openThoughtModal() {
       const modal = document.getElementById('thoughtModal');
+      document.getElementById('thoughtContent').textContent = 'Carregando…';
       lastFocusBeforeModal = document.activeElement;
       modal.classList.add('active');
       modal.setAttribute('aria-hidden', 'false');
@@ -507,7 +555,7 @@
         document.getElementById('thoughtContent').textContent = d.status === 'sucesso'
           ? JSON.stringify(d.ultimos_pensamentos, null, 2)
           : d.motivo || 'Acesso restrito.';
-      });
+      }).catch(e => { document.getElementById('thoughtContent').textContent = e.message; });
     }
 
     function closeThoughtModal() {
@@ -544,7 +592,7 @@
 
     function clearStream() {
       document.getElementById('chatStream').innerHTML = '';
-      appendMsg('assistant', 'ZERO', 'Chat limpo.');
+      appendMsg('assistant', 'ÍRIS', 'Chat limpo.');
     }
   </script>
 </body>

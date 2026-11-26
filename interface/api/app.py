@@ -16,7 +16,6 @@ Integracoes principais:
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import hashlib
 import hmac
 import json
 from pathlib import Path
@@ -26,6 +25,8 @@ from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query, Reques
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from interface.api.websocket_feed import ws_manager
+from security.dashboard_sessions import DashboardSessions, DashboardSession
+from security.login_limiter import LoginLimiter
 from pydantic import BaseModel, Field
 
 from main import SystemLoopConfig, bootstrap_runtime
@@ -102,7 +103,7 @@ class CommandRequest(BaseModel):
 class SimpleWebLoginRequest(BaseModel):
     """Payload minimo do modo de recuperacao de acesso web por senha."""
 
-    admin_password: str = Field(min_length=1)
+    admin_password: str = Field(min_length=1, max_length=1024)
 
 
 class IrisResidentPreferencesRequest(BaseModel):
@@ -245,6 +246,8 @@ def create_app(
     app.state.enable_dashboard = (
         True if effective_deployment_config is None else effective_deployment_config.enable_dashboard
     )
+    app.state.dashboard_sessions = DashboardSessions()
+    app.state.dashboard_login_limiter = LoginLimiter()
     app.state.environment_report = _build_environment_report(app)
     app.state.runtime.configure_runtime_identity(
         entrypoint="interface.api.app.create_app",
@@ -286,11 +289,25 @@ def create_app(
         - registra acessos autorizados e negados na auditoria do runtime.
         """
 
-        if request.app.state.simple_web_login and _has_valid_dashboard_session(request):
-            return {
-                "device_id": SIMPLE_WEB_LOGIN_DEVICE_ID,
-                "access_mode": "simple_web_login",
-            }
+        # Explicit API credentials keep their original validation path.
+        session = None if x_jarvis_token is not None or x_jarvis_device_id is not None else _get_dashboard_session(request)
+        if session is not None:
+            runtime = _ensure_runtime_initialized(request)
+            client_host = request.client.host if request.client is not None else None
+            if _requires_replay_protection(request):
+                _require_same_origin(request)
+                replay_reason = _validate_replay_headers(
+                    runtime, request, session.device_id,
+                    x_jarvis_nonce, x_jarvis_timestamp,
+                )
+                if replay_reason is not None:
+                    _record_access_attempt(runtime, request, session.device_id,
+                                           False, replay_reason, client_host)
+                    raise HTTPException(status_code=403,
+                                        detail=_map_replay_error_to_detail(replay_reason))
+            _record_access_attempt(runtime, request, session.device_id,
+                                   True, None, client_host)
+            return {"device_id": session.device_id, "access_mode": session.mode}
 
         return _validate_trusted_access(
             request=request,
@@ -773,8 +790,8 @@ def create_app(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         if _has_valid_dashboard_session(request):
-            return HTMLResponse(_render_dashboard(request.app))
-        return HTMLResponse(_render_access_gate(request.app))
+            return HTMLResponse(_render_dashboard(request.app), headers={"Cache-Control": "no-store"})
+        return HTMLResponse(_render_access_gate(request.app), headers={"Cache-Control": "no-store"})
 
     @app.post("/api/auth/device-session")
     def create_device_session(
@@ -800,14 +817,23 @@ def create_app(
         - grava a validacao do acesso e prepara o painel autenticado.
         """
 
+        _require_same_origin(request)
+        if not request.app.state.enable_dashboard:
+            raise HTTPException(status_code=403, detail="Painel desabilitado.")
+        if not request.app.state.dashboard_login_limiter.reserve():
+            raise HTTPException(status_code=429, detail="Muitas tentativas de acesso. Aguarde um minuto.",
+                                headers={"Retry-After": "60"})
         if request.app.state.simple_web_login:
             access_context = _validate_simple_web_access(
                 request=request,
                 admin_password=payload.admin_password if payload is not None else None,
             )
-            session_cookie_value = _build_simple_web_session_value(
-                request.app.state.access_control.admin_password_hash
+            replay_reason = _validate_replay_headers(
+                _ensure_runtime_initialized(request), request, SIMPLE_WEB_LOGIN_DEVICE_ID,
+                x_jarvis_nonce, x_jarvis_timestamp,
             )
+            if replay_reason is not None:
+                raise HTTPException(status_code=403, detail=_map_replay_error_to_detail(replay_reason))
         else:
             access_context = _validate_trusted_access(
                 request=request,
@@ -816,10 +842,14 @@ def create_app(
                 request_nonce=x_jarvis_nonce,
                 request_timestamp=x_jarvis_timestamp,
             )
-            session_cookie_value = _build_trusted_session_value(
-                request.app.state.api_token,
-                access_context["device_id"],
-            )
+            if not _secrets_match(access_context["device_id"], request.app.state.trusted_device_id):
+                raise HTTPException(status_code=403, detail="Painel reservado ao dispositivo principal.")
+        sessions = request.app.state.dashboard_sessions
+        sessions.revoke(request.cookies.get(SESSION_COOKIE))
+        session_cookie_value = sessions.issue(
+            access_context["device_id"], access_context.get("access_mode", "trusted_device"),
+            _dashboard_binding(request),
+        )
         response = JSONResponse(
             {
                 "mensagem": "Acesso ao painel validado com sucesso.",
@@ -833,11 +863,13 @@ def create_app(
             httponly=True,
             samesite="lax",
             secure=request.url.scheme == "https",
+            max_age=sessions.ttl_seconds,
         )
+        response.headers["Cache-Control"] = "no-store"
         return response
 
     @app.delete("/api/auth/device-session")
-    def clear_device_session() -> JSONResponse:
+    def clear_device_session(request: Request) -> JSONResponse:
         """
         Remove a sessao HTTP do dispositivo autenticado.
 
@@ -851,7 +883,10 @@ def create_app(
         - encerra a sessao local do painel.
         """
 
+        _require_same_origin(request)
+        request.app.state.dashboard_sessions.revoke(request.cookies.get(SESSION_COOKIE))
         response = JSONResponse({"mensagem": "Sessao do dispositivo removida."})
+        response.headers["Cache-Control"] = "no-store"
         response.delete_cookie(SESSION_COOKIE)
         return response
 
@@ -2021,16 +2056,28 @@ def create_app(
     @app.websocket("/ws/live-stream")
     async def websocket_live_stream_endpoint(websocket: WebSocket):
         """Endpoint de transmissão ao vivo por WebSocket para eventos, pensamentos e telemetria."""
-        await ws_manager.connect(websocket)
+        def authorized() -> bool:
+            if not _same_origin(websocket):
+                return False
+            session = _get_dashboard_session(websocket)
+            return session is not None and session.mode == "trusted_device" and _secrets_match(
+                session.device_id, websocket.app.state.trusted_device_id
+            )
+
+        if not authorized():
+            await websocket.close(code=1008)
+            return
+        await ws_manager.connect(websocket, authorized=authorized)
         try:
             while True:
-                data = await websocket.receive_text()
-                # Processa comandos/mensagens recepcionados via WebSocket
-                await ws_manager.broadcast_event(
-                    event_type="client_message_echo",
-                    payload={"recebido": data},
-                )
+                # Feed somente leitura. Mensagens do cliente nao sao difundidas.
+                await websocket.receive_text()
+                if not authorized():
+                    await websocket.close(code=1008)
+                    break
         except WebSocketDisconnect:
+            pass
+        finally:
             ws_manager.disconnect(websocket)
 
     return app
@@ -2296,66 +2343,36 @@ def _secrets_match(supplied: str | None, expected: str | None) -> bool:
         return False
     return hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
 
+def _dashboard_binding(request: Request | WebSocket) -> tuple[str, ...]:
+    state = request.app.state
+    if state.simple_web_login:
+        return ("simple_web_login", state.access_control.admin_password_hash)
+    return ("trusted_device", state.api_token, state.trusted_device_id)
+
+
+def _get_dashboard_session(request: Request | WebSocket) -> DashboardSession | None:
+    if not request.app.state.enable_dashboard:
+        return None
+    return request.app.state.dashboard_sessions.resolve(
+        request.cookies.get(SESSION_COOKIE), _dashboard_binding(request)
+    )
+
+
 def _has_valid_dashboard_session(request: Request) -> bool:
-    """
-    Verifica se o cookie do painel corresponde ao dispositivo confiavel.
+    return _get_dashboard_session(request) is not None
 
-    Parametros:
-    - request: requisicao HTTP atual.
 
-    Retorno:
-    - `True` quando a sessao do painel esta valida.
-
-    Efeitos no sistema:
-    - nenhum; protege o HTML do painel.
-    """
-
-    session_value = request.cookies.get(SESSION_COOKIE)
-    if not session_value:
+def _same_origin(request: Request | WebSocket) -> bool:
+    if request.headers.get("sec-fetch-site") == "cross-site":
         return False
-
-    if request.app.state.simple_web_login:
-        expected_value = _build_simple_web_session_value(
-            request.app.state.access_control.admin_password_hash
-        )
-    else:
-        expected_value = _build_trusted_session_value(
-            request.app.state.api_token,
-            request.app.state.trusted_device_id,
-        )
-    return _secrets_match(session_value, expected_value)
+    origin = request.headers.get("origin")
+    scheme = {"ws": "http", "wss": "https"}.get(request.url.scheme, request.url.scheme)
+    return origin is None or origin == f"{scheme}://{request.url.netloc}"
 
 
-def _build_trusted_session_value(api_token: str, device_id: str) -> str:
-    """
-    Gera o valor hasheado da sessao de dispositivo confiavel.
-
-    Parametros:
-    - api_token: token configurado da API.
-    - device_id: dispositivo confiavel ativo.
-
-    Retorno:
-    - hash SHA-256 usado como cookie de sessao.
-
-    Efeitos no sistema:
-    - nenhum; padroniza a protecao do painel.
-    """
-
-    return hashlib.sha256(f"{api_token}:{device_id}".encode("utf-8")).hexdigest()
-
-
-def _build_simple_web_session_value(admin_password_hash: str) -> str:
-    """
-    Gera o valor do cookie do modo emergencial de acesso web.
-
-    Parametros:
-    - admin_password_hash: hash PBKDF2 da senha administrativa efetiva.
-
-    Retorno:
-    - valor estavel e nao reversivel para a sessao do painel.
-    """
-
-    return hashlib.sha256(f"simple-web:{admin_password_hash}".encode("utf-8")).hexdigest()
+def _require_same_origin(request: Request) -> None:
+    if not _same_origin(request):
+        raise HTTPException(status_code=403, detail="Origem da requisicao nao autorizada.")
 
 
 def _render_access_gate(app: FastAPI) -> str:
@@ -2442,7 +2459,7 @@ def _validate_replay_headers(
 
     try:
         request_dt = _parse_request_timestamp(request_timestamp)
-    except ValueError:
+    except (ValueError, OverflowError, OSError):
         return "invalid_request_timestamp"
 
     age_seconds = abs((datetime.now(timezone.utc) - request_dt).total_seconds())
@@ -2465,6 +2482,8 @@ def _parse_request_timestamp(value: str) -> datetime:
     """Converte timestamp HTTP do cliente para `datetime` UTC."""
 
     normalized = str(value).strip()
+    if len(normalized) > 64:
+        raise ValueError("timestamp invalido")
     if normalized.isdigit():
         numeric_value = int(normalized)
         if len(normalized) >= 13:

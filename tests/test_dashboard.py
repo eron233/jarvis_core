@@ -79,8 +79,49 @@ class JarvisDashboardTests(unittest.TestCase):
 
         unlocked_response = client.get("/painel")
         self.assertEqual(unlocked_response.status_code, 200)
-        self.assertIn("<title>Gênesis | Zero</title>", unlocked_response.text)
+        self.assertIn("<title>Gênesis | Íris</title>", unlocked_response.text)
         self.assertIn("JARVIS", unlocked_response.text)
+        self.assertIn("jarvis_api_token", locked_response.text)
+        self.assertIn("jarvis_api_token", unlocked_response.text)
+        self.assertNotIn("localStorage.getItem", unlocked_response.text)
+        self.assertNotIn("localStorage.setItem", locked_response.text)
+        self.assertEqual(client.get("/api/status").status_code, 200)
+        captured = client.cookies.get("jarvis_trusted_device")
+        self.assertIsNotNone(captured)
+        self.assertEqual(client.delete("/api/auth/device-session").status_code, 200)
+        client.cookies.set("jarvis_trusted_device", captured)
+        self.assertEqual(client.get("/api/status").status_code, 401)
+        self.assertIn('"simple_web_login": false', unlocked_response.text)
+        self.assertEqual(locked_response.headers["cache-control"], "no-store")
+        self.assertEqual(unlocked_response.headers["cache-control"], "no-store")
+
+    def test_websocket_nega_visitante_e_origem_externa(self) -> None:
+        from starlette.websockets import WebSocketDisconnect
+        client = self.build_client("websocket_security")
+        with self.assertRaises(WebSocketDisconnect):
+            with client.websocket_connect("/ws/live-stream"):
+                pass
+        session = client.post("/api/auth/device-session", headers={
+            "X-Jarvis-Token": "token-teste",
+            "X-Jarvis-Device-Id": "eron-celular-principal",
+            "X-Jarvis-Nonce": "ws-login",
+            "X-Jarvis-Timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        self.assertEqual(session.status_code, 200)
+        with self.assertRaises(WebSocketDisconnect):
+            with client.websocket_connect("/ws/live-stream", headers={"Origin": "https://example.invalid"}):
+                pass
+        with client.websocket_connect("/ws/live-stream", headers={"Origin": "http://testserver"}):
+            pass
+
+    def test_login_tem_limite_de_tentativas_e_bloqueia_origem_externa(self) -> None:
+        client = self.build_client("dashboard_rate")
+        headers = {"X-Jarvis-Token": "invalido", "X-Jarvis-Device-Id": "invalido"}
+        denied = client.post("/api/auth/device-session", headers={**headers, "Origin": "https://example.invalid"})
+        self.assertEqual(denied.status_code, 403)
+        for _ in range(10):
+            self.assertEqual(client.post("/api/auth/device-session", headers=headers).status_code, 401)
+        self.assertEqual(client.post("/api/auth/device-session", headers=headers).status_code, 429)
 
     def test_assets_do_brain_avatar_sao_servidos_pela_api(self) -> None:
         """Confirma que os modulos JS do brain avatar ficam acessiveis pelo mesmo servidor."""
@@ -129,7 +170,8 @@ class JarvisDashboardTests(unittest.TestCase):
 
         unlocked_response = client.get("/painel")
         self.assertEqual(unlocked_response.status_code, 200)
-        self.assertIn("<title>Gênesis | Zero</title>", unlocked_response.text)
+        self.assertIn("<title>Gênesis | Íris</title>", unlocked_response.text)
+        self.assertIn('"simple_web_login": true', unlocked_response.text)
 
 
 if __name__ == "__main__":

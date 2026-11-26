@@ -120,17 +120,13 @@
   <script>
     const GATE_CONFIG = __JARVIS_GATE_CONFIG__;
     const SIMPLE_WEB_LOGIN = Boolean(GATE_CONFIG.simple_web_login);
-    const TOKEN_KEY = "jarvis_api_token";
-    const DEVICE_KEY = "jarvis_device_id";
-
-    function persistirCredenciais(token, deviceId) {
-      localStorage.setItem(TOKEN_KEY, token);
-      localStorage.setItem(DEVICE_KEY, deviceId);
-    }
+    try {
+      for (const key of ["jarvis_api_token", "jarvis_token", "jarvis_device_id"]) localStorage.removeItem(key);
+    } catch (_) { /* sem dependencia de armazenamento local */ }
 
     function criarHeadersDeProtecao() {
       return {
-        "X-Jarvis-Nonce": crypto.randomUUID(),
+        "X-Jarvis-Nonce": Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join(""),
         "X-Jarvis-Timestamp": new Date().toISOString(),
       };
     }
@@ -197,12 +193,8 @@
           throw new Error(payload.detail || payload.mensagem || "Falha na validacao do acesso.");
         }
 
-        if (!SIMPLE_WEB_LOGIN) {
-          persistirCredenciais(
-            document.getElementById("tokenInput").value.trim(),
-            document.getElementById("deviceInput").value.trim(),
-          );
-        }
+        document.getElementById("tokenInput").value = "";
+        document.getElementById("adminPasswordInput").value = "";
 
         statusBox.textContent = "Acesso liberado. Redirecionando para o painel.";
         window.location.href = "/painel";
@@ -213,12 +205,7 @@
 
     window.addEventListener("load", () => {
       configurarModoGate();
-      if (!SIMPLE_WEB_LOGIN) {
-        const token = localStorage.getItem(TOKEN_KEY) || "";
-        const deviceId = localStorage.getItem(DEVICE_KEY) || "";
-        document.getElementById("tokenInput").value = token;
-        document.getElementById("deviceInput").value = deviceId;
-      }
+ 
     });
   </script>
 </body>

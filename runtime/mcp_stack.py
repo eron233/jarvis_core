@@ -145,6 +145,9 @@ class MCPStackConfig:
 def validate_mcp_http_url(url: str, allow_remote: bool = False) -> Optional[str]:
     try:
         parsed = urlparse(str(url).strip())
+        port = parsed.port
+        if port == 0:
+            return "Porta MCP invalida."
     except ValueError:
         return "URL MCP invalida."
     if parsed.scheme not in {"http", "https"}:
@@ -170,7 +173,7 @@ def validate_mcp_http_url(url: str, allow_remote: bool = False) -> Optional[str]
             info[4][0]
             for info in socket.getaddrinfo(
                 host,
-                parsed.port or (443 if parsed.scheme == "https" else 80),
+                port or (443 if parsed.scheme == "https" else 80),
             )
             if info and info[4]
         }
@@ -262,8 +265,23 @@ class OfficialMCPClientManager:
             if not command:
                 return {"status": "erro", "motivo": "Servidor stdio sem command."}
             command_name = Path(command).name.lower()
-            allowed = {Path(item).name.lower() for item in self.config.allowed_stdio_commands}
-            if command_name not in allowed:
+            # A permissao para um nome simples nao autoriza um executavel
+            # homonimo em qualquer diretorio. Caminhos precisam ser absolutos
+            # e aparecer explicitamente na configuracao de confianca.
+            if Path(command).is_absolute():
+                allowed_command = any(
+                    Path(item).is_absolute()
+                    and os.path.normcase(os.path.normpath(item)) == os.path.normcase(os.path.normpath(command))
+                    for item in self.config.allowed_stdio_commands
+                )
+            else:
+                allowed_command = command == Path(command).name and not any(
+                    sep in command for sep in ("/", "\\")
+                ) and command.lower() in {
+                    item.lower() for item in self.config.allowed_stdio_commands
+                    if item == Path(item).name and not any(sep in item for sep in ("/", "\\"))
+                }
+            if not allowed_command:
                 return {
                     "status": "bloqueado",
                     "motivo": f"Comando stdio MCP '{command_name}' nao esta na allowlist.",

@@ -134,14 +134,17 @@ class ChatMessageBubble(QFrame):
 
         bubble_shell = QFrame()
         bubble_shell.setObjectName(f"BubbleShell-{role}")
-        bubble_shell.setMaximumWidth(540)
+        bubble_shell.setMaximumWidth(760)
         bubble_layout = QVBoxLayout(bubble_shell)
         bubble_layout.setContentsMargins(14, 10, 14, 10)
         bubble_layout.setSpacing(6)
 
         header = QLabel(meta or role.upper())
+        header.setTextFormat(Qt.PlainText)
         header.setObjectName("BubbleMeta")
         body = QLabel(text)
+        body.setTextFormat(Qt.PlainText)
+        body.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
         body.setWordWrap(True)
         body.setObjectName("BubbleBody")
 
@@ -222,7 +225,7 @@ class JarvisMainWindow(QMainWindow):
 
         self.setWindowTitle("Gênesis | Íris")
         self.resize(1440, 860)
-        self.setMinimumSize(1080, 690)
+        self.setMinimumSize(960, 640)
         self._build_ui()
         self._apply_styles()
         self._connect_signals()
@@ -248,7 +251,7 @@ class JarvisMainWindow(QMainWindow):
         splitter.addWidget(self._build_center_panel())
         splitter.addWidget(self._build_brain_panel())
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([190, 820, 420])
+        splitter.setSizes([190, 960, 290])
 
         root_layout.addWidget(splitter, 1)
         self.setCentralWidget(root)
@@ -292,7 +295,7 @@ class JarvisMainWindow(QMainWindow):
         brand_stack.setSpacing(0)
         brand = QLabel("GÊNESIS")
         brand.setObjectName("BrandTitle")
-        subtitle = QLabel("Í R I S")
+        subtitle = QLabel("Íris")
         subtitle.setObjectName("BrandSubtitle")
         brand_stack.addWidget(brand)
         brand_stack.addWidget(subtitle)
@@ -345,10 +348,10 @@ class JarvisMainWindow(QMainWindow):
         hero_layout = QVBoxLayout(hero)
         hero_layout.setContentsMargins(18, 16, 18, 16)
         hero_layout.setSpacing(8)
-        hero_title = QLabel("ÍRIS  /  ESPAÇO DE TRABALHO")
+        hero_title = QLabel("Conversa com Íris")
         hero_title.setObjectName("SectionTitle")
         hero_text = QLabel(
-            "Converse, organize ideias e execute tarefas supervisionadas."
+            "Organize ideias, consulte seus projetos e acompanhe tarefas."
         )
         hero_text.setWordWrap(True)
         hero_text.setObjectName("SectionBody")
@@ -380,7 +383,7 @@ class JarvisMainWindow(QMainWindow):
         self.voice_input = QLineEdit()
         self.voice_input.setPlaceholderText("Voz (opcional)")
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Chave admin (opcional)")
+        self.password_input.setPlaceholderText("Senha administrativa (se necessária)")
         self.password_input.setEchoMode(QLineEdit.Password)
         self.response_mode = QComboBox()
         self.response_mode.addItems(["conversacional", "tecnico"])
@@ -526,51 +529,56 @@ class JarvisMainWindow(QMainWindow):
         """Aplica styles ao estado atual."""
         self.setStyleSheet(
             """
-            QMainWindow { background: #060c12; color: #f5f7fa; }
-            QWidget { color: #f5f7fa; font-family: "Segoe UI"; }
+            QMainWindow { background: #17191d; color: #edf0f5; }
+            QWidget { color: #edf0f5; font-family: "Segoe UI"; font-size: 13px; }
             QLabel { background: transparent; border: none; }
-            QStatusBar { background: #050505; border-top: 1px solid #11171c; }
-            #Sidebar { background: #030303; border-right: 1px solid #11171c; }
-            #CenterPanel { background: #010101; }
-            #BrainPanel { background: #030506; border-left: 1px solid #11171c; }
-            #HeroCard, #ComposerFrame, #DetailContainer {
-                background: #07090c; border: 1px solid #11171c; border-radius: 18px;
+            QStatusBar { background: #20232a; border-top: 1px solid #353a44; }
+            #Sidebar { background: #20232a; border-right: 1px solid #353a44; }
+            #CenterPanel { background: #17191d; }
+            #BrainPanel { background: #20232a; border-left: 1px solid #353a44; }
+            #HeroCard { background: transparent; border: none; }
+            #ComposerFrame, #DetailContainer {
+                background: #20232a; border: 1px solid #414754; border-radius: 14px;
             }
-            #BrandTitle { font-size: 20px; font-weight: 700; letter-spacing: 2px; }
-            #BrandSubtitle { color: #9ca8b5; font-size: 12px; line-height: 1.35; }
-            #SidebarChip {
-                background: #070d12; border: 1px solid #16222b; border-radius: 12px;
-                padding: 8px 10px; color: #d8e3eb;
-            }
+            #BrandTitle { font-size: 18px; font-weight: 700; }
+            #BrandSubtitle { color: #b9c2cf; font-size: 13px; }
+            #SidebarChip { background: transparent; border: none; padding: 4px 2px; color: #b9c2cf; }
             QPushButton {
-                background: #0a1116; border: 1px solid #19262f; border-radius: 12px;
-                padding: 10px 12px; color: #f4f7fb;
+                background: transparent; border: 1px solid transparent; border-radius: 8px;
+                padding: 8px 10px; color: #edf0f5;
             }
-            QPushButton:hover { border-color: #2b4f62; }
-            QPushButton:checked { background: #071a22; border-color: #2bb2d3; color: #ffffff; }
-            #PrimaryButton { background: #0f6d86; border-color: #1c9bc1; font-weight: 700; }
-            #PrimaryButton:hover { background: #1383a0; }
-            #GhostButton { background: #07090c; border-color: #172028; }
+            QPushButton:hover { background: #303641; }
+            QPushButton:checked { background: #303b4e; border-color: #617a9e; color: #ffffff; }
+            QPushButton:focus, QLineEdit:focus, QComboBox:focus, QPlainTextEdit:focus {
+                border: 2px solid #9bbcf2;
+            }
+            QPushButton:disabled { background: #272b32; color: #9ca3af; }
+            #PrimaryButton { background: #9bbcf2; border-color: #9bbcf2; color: #152238; font-weight: 700; }
+            #PrimaryButton:hover { background: #b5cff8; }
+            #PrimaryButton:disabled { background: #394453; color: #b9c2cf; border-color: #394453; }
+            #GhostButton { background: transparent; border-color: #414754; }
             QLineEdit, QComboBox, QPlainTextEdit {
-                background: #020406; border: 1px solid #182027; border-radius: 12px;
-                padding: 10px 12px; color: #f5f7fa; selection-background-color: #2bb2d3;
+                background: #17191d; border: 1px solid #414754; border-radius: 8px;
+                padding: 10px 12px; color: #edf0f5; selection-background-color: #36558a;
             }
             QComboBox QAbstractItemView {
-                background: #05080b; border: 1px solid #172028;
-                selection-background-color: #0f6d86; color: #f5f7fa;
+                background: #20232a; border: 1px solid #414754;
+                selection-background-color: #36558a; color: #edf0f5;
             }
-            #SectionTitle { font-size: 20px; font-weight: 700; }
-            #SectionBody { color: #a6b2be; line-height: 1.4; }
-            #DetailTitle { font-size: 18px; font-weight: 700; }
-            #DetailSummary { color: #bfd1dd; line-height: 1.45; }
-            #PayloadView { background: #010203; border-radius: 14px; border: 1px solid #141c22; }
-            #ChatTimeline, #ChatStreamContainer { background: #050a10; border: none; }
-            QSplitter::handle { background: #172732; width: 2px; }
-            #BubbleShell-user { background: #0f6d86; border: 1px solid #22a7ca; border-radius: 16px; }
-            #BubbleShell-assistant { background: #0a0f14; border: 1px solid #19242d; border-radius: 16px; }
-            #BubbleShell-system { background: #120f05; border: 1px solid #5b4914; border-radius: 16px; }
-            #BubbleMeta { color: #d6dde5; font-size: 11px; letter-spacing: 1px; }
-            #BubbleBody { color: #ffffff; font-size: 14px; line-height: 1.45; }
+            #SectionTitle { font-size: 24px; font-weight: 600; }
+            #SectionBody, #DetailSummary { color: #b9c2cf; }
+            #DetailTitle { font-size: 19px; font-weight: 600; }
+            #PayloadView { background: #17191d; border-radius: 8px; border: 1px solid #414754; }
+            #ChatTimeline, #ChatStreamContainer { background: #17191d; border: none; }
+            QSplitter::handle { background: #353a44; width: 3px; }
+            #BubbleShell-user { background: #303b4e; border: 1px solid #465875; border-radius: 14px; }
+            #BubbleShell-assistant { background: transparent; border: none; }
+            #BubbleShell-system { background: #30291e; border: 1px solid #72592f; border-radius: 10px; }
+            #BubbleMeta { color: #b9c2cf; font-size: 12px; font-weight: 600; }
+            #BubbleBody { color: #edf0f5; font-size: 15px; }
+            QScrollBar:vertical { background: transparent; width: 10px; }
+            QScrollBar::handle:vertical { background: #596373; border-radius: 5px; min-height: 30px; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
             """
         )
 
@@ -675,6 +683,7 @@ class JarvisMainWindow(QMainWindow):
         self.chat_timeline.add_message("user", command_text, "Voce")
         voice_id = self.voice_input.text().strip() or None
         password = self.password_input.text().strip() or None
+        self.password_input.clear()
         response_mode = self.response_mode.currentText()
         self.command_input.clear()
         self._set_command_busy(True)

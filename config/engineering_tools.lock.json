@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "checked_on": "2026-11-26",
+  "activation": "disabled_pending_review",
+  "tools": [
+    {
+      "id": "context-mode",
+      "repository": "mksglu/context-mode",
+      "commit": "1400b93fee0eec0f3404d67a7c328b45d1ed033e",
+      "license": "NOASSERTION",
+      "profile": "context",
+      "archived": false
+    },
+    {
+      "id": "rtk",
+      "repository": "rtk-ai/rtk",
+      "commit": "97e68d5358aa5d91d1540ea64df58c9688bcf83d",
+      "license": "Apache-2.0",
+      "profile": "terminal",
+      "archived": false
+    },
+    {
+      "id": "graphify",
+      "repository": "Graphify-Labs/graphify",
+      "commit": "02c27dc246cd7bc359d0f4acaf53a3fce595bc1e",
+      "license": "Apache-2.0",
+      "profile": "graph",
+      "archived": false
+    },
+    {
+      "id": "superpowers",
+      "repository": "obra/superpowers",
+      "commit": "22f0b463e7a5e579904dd6211a520321035526f7",
+      "license": "MIT",
+      "profile": "skill",
+      "archived": false
+    },
+    {
+      "id": "ponytail",
+      "repository": "DietrichGebert/ponytail",
+      "commit": "ebd8654c2c627f721eb8f9c0d1bd4090a29f9e10",
+      "license": "MIT",
+      "profile": "skill",
+      "archived": false
+    },
+    {
+      "id": "headroom",
+      "repository": "headroomlabs-ai/headroom",
+      "commit": "c9d7eae7e6254ff9864f1c1bd505ae1e37adca31",
+      "license": "Apache-2.0",
+      "profile": "context",
+      "archived": false
+    },
+    {
+      "id": "caveman",
+      "repository": "JuliusBrussee/caveman",
+      "commit": "e74a11ccdb38b98d15c9f9545787c907dd15f0ab",
+      "license": "Apache-2.0",
+      "profile": "skill",
+      "archived": false
+    },
+    {
+      "id": "vitest",
+      "repository": "vitest-dev/vitest",
+      "commit": "0fa77146055effb7e376615e4ed2286b24613da7",
+      "license": "MIT",
+      "profile": "js",
+      "archived": false
+    },
+    {
+      "id": "playwright",
+      "repository": "microsoft/playwright",
+      "commit": "80290e838ba588b841e49c0945dc5ac2f2dbc82f",
+      "license": "Apache-2.0",
+      "profile": "web",
+      "archived": false
+    },
+    {
+      "id": "testez",
+      "repository": "Roblox/testez",
+      "commit": "26a5247631279154c74425b94583c189b8447d0f",
+      "license": "Apache-2.0",
+      "profile": "roblox",
+      "archived": true
+    },
+    {
+      "id": "nextest",
+      "repository": "nextest-rs/nextest",
+      "commit": "d0ec6a19fcf4b34c7dfddff15f88ee642a976d1a",
+      "license": "Apache-2.0",
+      "profile": "rust",
+      "archived": false
+    },
+    {
+      "id": "stryker",
+      "repository": "stryker-mutator/stryker-js",
+      "commit": "8f24ef0be3a2119fc44ac48bfce58930ab2c9032",
+      "license": "Apache-2.0",
+      "profile": "js",
+      "archived": false
+    },
+    {
+      "id": "fast-check",
+      "repository": "dubzzz/fast-check",
+      "commit": "bd1c460dbe8b693cc31a0f23588a8e3b1a5f2ae5",
+      "license": "MIT",
+      "profile": "js",
+      "archived": false
+    },
+    {
+      "id": "k6",
+      "repository": "grafana/k6",
+      "commit": "14c4018eb64d3f9f3a3d1bf16471ea40cb0f5027",
+      "license": "AGPL-3.0",
+      "profile": "load",
+      "archived": false
+    },
+    {
+      "id": "cppcheck",
+      "repository": "cppcheck-opensource/cppcheck",
+      "commit": "e209d61b5654c390b54e34fe598a6f96010a0d27",
+      "license": "GPL-3.0",
+      "profile": "cpp",
+      "archived": false
+    },
+    {
+      "id": "googletest",
+      "repository": "google/googletest",
+      "commit": "a46a6012a133c7c0929fdae55b321c2fe65f3c5f",
+      "license": "BSD-3-Clause",
+      "profile": "cpp",
+      "archived": false
+    },
+    {
+      "id": "cargo-mutants",
+      "repository": "sourcefrog/cargo-mutants",
+      "commit": "6c720ae82a1784b84cfa06066f7b0d59ed1798d0",
+      "license": "MIT",
+      "profile": "rust",
+      "archived": false
+    }
+  ]
+}

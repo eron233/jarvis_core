@@ -922,6 +922,34 @@ class JarvisApiTests(unittest.TestCase):
         self.assertEqual(second_response.status_code, 403)
         self.assertEqual(second_response.json()["detail"], "Requisicao repetida detectada.")
 
+    def test_api_rejeita_timestamp_fora_do_intervalo_sem_erro_interno(self) -> None:
+        client, headers = self.build_client("invalid_timestamp_bounds")
+        for timestamp in ("999999999999999999999", "9" * 100):
+            with self.subTest(timestamp=timestamp):
+                response = client.post(
+                    "/api/comando",
+                    headers=self.mutation_headers(headers, nonce="invalid-time", timestamp=timestamp),
+                    json={"texto": "status"},
+                )
+                self.assertEqual(response.status_code, 403)
+                self.assertEqual(response.json()["detail"], "Timestamp de requisicao invalido.")
+
+    def test_api_sessao_web_simples_exige_antireplay_em_mutacoes(self) -> None:
+        client = self.build_simple_web_client("simple_replay")
+        login = client.post(
+            "/api/auth/device-session",
+            headers=self.mutation_headers({}, nonce="simple-login"),
+            json={"admin_password": "senha-admin-segura-2026"},
+        )
+        self.assertEqual(login.status_code, 200)
+        denied = client.post("/api/comando", json={"texto": "status"})
+        self.assertEqual(denied.status_code, 403)
+        headers = self.mutation_headers({}, nonce="simple-command")
+        first = client.post("/api/comando", headers=headers, json={"texto": "status"})
+        self.assertEqual(first.status_code, 200)
+        repeated = client.post("/api/comando", headers=headers, json={"texto": "status"})
+        self.assertEqual(repeated.status_code, 403)
+
     def test_api_expoe_identidade_do_runtime_em_endpoint_dedicado(self) -> None:
         """Confirma rastreabilidade explicita do runtime que esta respondendo."""
 

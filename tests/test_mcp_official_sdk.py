@@ -49,7 +49,7 @@ class OfficialMCPSDKIntegrationTests(unittest.TestCase):
                 config=MCPStackConfig(
                     enabled=True,
                     registry_path=registry,
-                    allowed_stdio_commands=(Path(sys.executable).name,),
+                    allowed_stdio_commands=(sys.executable,),
                 )
             )
 
