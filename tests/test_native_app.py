@@ -18,9 +18,10 @@ from interface.native_app.runtime_bootstrap import JarvisRuntimeBootstrapper, Ru
 
 try:
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QApplication, QLabel
 
-    from interface.native_app.main_window import JarvisMainWindow
+    from interface.native_app.main_window import ChatMessageBubble, JarvisMainWindow
 
     PYSIDE6_AVAILABLE = True
 except ImportError:  # pragma: no cover - protegido para ambientes sem Qt
@@ -111,6 +112,15 @@ class NativeAppWindowSmokeTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         """Executa a rotina interna de setUpClass."""
         cls.qt_app = QApplication.instance() or QApplication([])
+
+    def test_chat_message_is_literal_and_selectable(self) -> None:
+        message = '<b>texto recebido</b>'
+        bubble = ChatMessageBubble('assistant', message)
+        body = bubble.findChild(QLabel, 'BubbleBody')
+        self.assertEqual(body.text(), message)
+        self.assertEqual(body.textFormat(), Qt.PlainText)
+        self.assertTrue(body.textInteractionFlags() & Qt.TextSelectableByMouse)
+        bubble.close()
 
     def build_bundle(self) -> dict:
         """Executa a rotina interna de build bundle."""
